@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "TeamMeet",
+  "name": "TeamMeet | Secure Video Conferencing",
   "icons": [
     {
       "src": "favicon.ico",

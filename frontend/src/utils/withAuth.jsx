@@ -14,9 +14,15 @@ const withAuth = (WrappedComponent ) => {
 
         useEffect(() => {
             if(!isAuthenticated()) {
+                // Save current path to redirect back after login
+                localStorage.setItem("redirectPath", window.location.pathname);
                 router("/auth")
             }
-        }, [])
+        }, [router])
+
+        if (!isAuthenticated()) {
+            return null; // Don't render component if not authenticated
+        }
 
         return <WrappedComponent {...props} />
     }

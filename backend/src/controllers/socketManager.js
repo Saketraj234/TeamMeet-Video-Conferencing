@@ -4,6 +4,7 @@ import { Server } from "socket.io"
 let connections = {}
 let messages = {}
 let timeOnline = {}
+let names = {} // To store names by socket.id
 
 export const connectToSocket = (server) => {
     const io = new Server(server, {
@@ -20,22 +21,25 @@ export const connectToSocket = (server) => {
 
         console.log("SOMETHING CONNECTED")
 
-        socket.on("join-call", (path) => {
+        socket.on("join-call", (path, name) => {
 
             if (connections[path] === undefined) {
                 connections[path] = []
             }
-            connections[path].push(socket.id)
+            
+            // Avoid duplicates for the same socket
+            if (!connections[path].includes(socket.id)) {
+                connections[path].push(socket.id)
+            }
+            names[socket.id] = name || "Guest"
 
             timeOnline[socket.id] = new Date();
 
-            // connections[path].forEach(elem => {
-            //     io.to(elem)
-            // })
-
-            for (let a = 0; a < connections[path].length; a++) {
-                io.to(connections[path][a]).emit("user-joined", socket.id, connections[path])
-            }
+            // Notify everyone in the room about the new user
+            const usersInRoom = connections[path].map(id => ({ id, name: names[id] }))
+            connections[path].forEach(socketId => {
+                io.to(socketId).emit("user-joined", socket.id, connections[path], usersInRoom)
+            })
 
             if (messages[path] !== undefined) {
                 for (let a = 0; a < messages[path].length; ++a) {
@@ -48,6 +52,38 @@ export const connectToSocket = (server) => {
 
         socket.on("signal", (toId, message) => {
             io.to(toId).emit("signal", socket.id, message);
+        })
+
+        socket.on("hand-raised", (path, status) => {
+            if (connections[path]) {
+                connections[path].forEach(elem => {
+                    io.to(elem).emit("hand-raised", socket.id, status)
+                })
+            }
+        })
+
+        socket.on("mute-all", (path) => {
+            if (connections[path]) {
+                connections[path].forEach(elem => {
+                    io.to(elem).emit("mute-all")
+                })
+            }
+        })
+
+        socket.on("remove-user", (path, id) => {
+            if (connections[path]) {
+                io.to(id).emit("remove-user", id)
+            }
+        })
+
+        socket.on("toggle-feature", (path, feature, status) => {
+            if (connections[path]) {
+                connections[path].forEach(elem => {
+                    if (elem !== socket.id) { // Don't mute the host themselves
+                        io.to(elem).emit("feature-toggled", feature, status)
+                    }
+                })
+            }
         })
 
         socket.on("chat-message", (data, sender) => {
@@ -80,35 +116,28 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("disconnect", () => {
+            console.log("SOCKET DISCONNECTED:", socket.id);
+            for (const [path, participants] of Object.entries(connections)) {
+                const index = participants.indexOf(socket.id);
+                if (index !== -1) {
+                    // Remove user from room
+                    participants.splice(index, 1);
+                    
+                    // Notify others in the room
+                    participants.forEach(socketId => {
+                        io.to(socketId).emit('user-left', socket.id);
+                    });
 
-            var diffTime = Math.abs(timeOnline[socket.id] - new Date())
-
-            var key
-
-            for (const [k, v] of JSON.parse(JSON.stringify(Object.entries(connections)))) {
-
-                for (let a = 0; a < v.length; ++a) {
-                    if (v[a] === socket.id) {
-                        key = k
-
-                        for (let a = 0; a < connections[key].length; ++a) {
-                            io.to(connections[key][a]).emit('user-left', socket.id)
-                        }
-
-                        var index = connections[key].indexOf(socket.id)
-
-                        connections[key].splice(index, 1)
-
-
-                        if (connections[key].length === 0) {
-                            delete connections[key]
-                        }
+                    // Clean up room if empty
+                    if (participants.length === 0) {
+                        delete connections[path];
+                        console.log("ROOM DELETED:", path);
                     }
+                    break; // User can only be in one room at a time
                 }
-
             }
-
-
+            delete timeOnline[socket.id];
+            delete names[socket.id];
         })
 
 

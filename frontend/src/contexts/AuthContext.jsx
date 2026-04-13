@@ -1,6 +1,6 @@
 import axios from "axios";
 import httpStatus from "http-status";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import server from "../environment";
 
@@ -22,43 +22,53 @@ export const AuthProvider = ({ children }) => {
 
     const router = useNavigate();
 
-    const handleRegister = async (name, username, password) => {
+    const handleRegister = useCallback(async (name, username, password, email) => {
         try {
             let request = await client.post("/register", {
                 name: name,
                 username: username,
-                password: password
+                password: password,
+                email: email
             })
 
 
             if (request.status === httpStatus.CREATED) {
+                // Return success and let component handle auto-login if needed
                 return request.data.message;
             }
         } catch (err) {
             throw err;
         }
-    }
+    }, [])
 
-    const handleLogin = async (username, password) => {
+    const handleLogin = useCallback(async (username, password) => {
         try {
             let request = await client.post("/login", {
                 username: username,
                 password: password
             });
 
-            console.log(username, password)
-            console.log(request.data)
-
             if (request.status === httpStatus.OK) {
                 localStorage.setItem("token", request.data.token);
-                router("/home")
+                setUserData(request.data.user);
+                
+                // CRITICAL: Check for redirect path from withAuth
+                const redirectPath = localStorage.getItem("redirectPath");
+                console.log("Found redirect path:", redirectPath);
+                
+                if (redirectPath && redirectPath !== "/auth" && redirectPath !== "/") {
+                    localStorage.removeItem("redirectPath");
+                    router(redirectPath);
+                } else {
+                    router("/home");
+                }
             }
         } catch (err) {
             throw err;
         }
-    }
+    }, [router])
 
-    const getHistoryOfUser = async () => {
+    const getHistoryOfUser = useCallback(async () => {
         try {
             let request = await client.get("/get_all_activity", {
                 params: {
@@ -70,23 +80,64 @@ export const AuthProvider = ({ children }) => {
          (err) {
             throw err;
         }
-    }
+    }, [])
 
-    const addToUserHistory = async (meetingCode) => {
+    const addToUserHistory = useCallback(async (meetingCode, scheduledAt = null) => {
         try {
             let request = await client.post("/add_to_activity", {
                 token: localStorage.getItem("token"),
-                meeting_code: meetingCode
+                meeting_code: meetingCode,
+                scheduled_at: scheduledAt
             });
             return request
         } catch (e) {
             throw e;
         }
-    }
+    }, [])
+
+    const getUserData = useCallback(async () => {
+        try {
+            let request = await client.get("/get_user_data", {
+                params: {
+                    token: localStorage.getItem("token")
+                }
+            });
+            return request.data
+        } catch (err) {
+            throw err;
+        }
+    }, [])
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    const data = await getUserData();
+                    setUserData(data);
+                } catch (err) {
+                    localStorage.removeItem("token");
+                }
+            }
+        };
+        checkAuth();
+    }, [getUserData]);
+
+    const updateProfile = useCallback(async (profileData) => {
+        try {
+            let request = await client.post("/update_profile", {
+                token: localStorage.getItem("token"),
+                ...profileData
+            });
+            return request.data;
+        } catch (err) {
+            throw err;
+        }
+    }, [])
 
 
     const data = {
-        userData, setUserData, addToUserHistory, getHistoryOfUser, handleRegister, handleLogin
+        userData, setUserData, addToUserHistory, getHistoryOfUser, handleRegister, handleLogin, getUserData, updateProfile
     }
 
     return (
