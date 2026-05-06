@@ -145,12 +145,12 @@ export default function LandingPage() {
                         <h1 className='text-xl font-bold'>TeamMeet</h1>
                     </div>
                     <p className='text-gray-500 dark:text-gray-400 text-sm'>
-                        © 2026 TeamMeet. Built with React & Node.js.
+                        © 2026 TeamMeet.
                     </p>
                     <div className='flex gap-6'>
-                        <button onClick={() => window.open('https://twitter.com')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>Twitter</button>
-                        <button onClick={() => window.open('https://github.com')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>GitHub</button>
-                        <button onClick={() => window.open('https://discord.com')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>Discord</button>
+                        <button onClick={() => window.open('https://x.com/saketraj235')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>Twitter</button>
+                        <button onClick={() => window.open('https://github.com/Saketraj234')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>GitHub</button>
+                        <button onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>LinkedIn</button>
                     </div>
                 </div>
             </footer>
