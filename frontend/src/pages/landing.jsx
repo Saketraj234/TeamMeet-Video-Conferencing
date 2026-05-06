@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Video, Users, Shield, Zap, ChevronRight, Twitter, Github, Linkedin } from 'lucide-react'
+import { Video, Users, Shield, Zap, ChevronRight, X, Github, Linkedin } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function LandingPage() {
@@ -142,7 +142,7 @@ export default function LandingPage() {
                         <div className='bg-blue-600 p-1.5 rounded-lg'>
                             <Video className='text-white w-4 h-4' />
                         </div>
-                        <h1 className='text-xl font-bold'>TeamMeet</h1>
+                        <h1 className='text-xl font-bold'>TeamMeet Team</h1>
                     </div>
                     <p className='text-gray-500 dark:text-gray-400 text-sm'>
                         © 2026 TeamMeet.
@@ -153,7 +153,7 @@ export default function LandingPage() {
                             className='p-2.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300'
                             title="Twitter"
                         >
-                            <Twitter className='w-5 h-5' />
+                            <X className='w-5 h-5' />
                         </button>
                         <button 
                             onClick={() => window.open('https://github.com/Saketraj234')} 
