@@ -81,7 +81,7 @@ export default function Authentication() {
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
                                             className='appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-white/10 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all dark:bg-white/5 dark:text-white'
-                                            placeholder='John Doe'
+                                            placeholder='Enter your name'
                                         />
                                     </div>
                                 </motion.div>
