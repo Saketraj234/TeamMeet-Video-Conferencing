@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Video, Users, Shield, Zap, ChevronRight } from 'lucide-react'
+import { Video, Users, Shield, Zap, ChevronRight, Twitter, Github, Linkedin } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function LandingPage() {
@@ -147,10 +147,28 @@ export default function LandingPage() {
                     <p className='text-gray-500 dark:text-gray-400 text-sm'>
                         © 2026 TeamMeet.
                     </p>
-                    <div className='flex gap-6'>
-                        <button onClick={() => window.open('https://x.com/saketraj235')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>Twitter</button>
-                        <button onClick={() => window.open('https://github.com/Saketraj234')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>GitHub</button>
-                        <button onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} className='text-gray-400 hover:text-gray-600 dark:hover:text-blue-400 transition-colors'>LinkedIn</button>
+                    <div className='flex gap-5'>
+                        <button 
+                            onClick={() => window.open('https://x.com/saketraj235')} 
+                            className='p-2.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300'
+                            title="Twitter"
+                        >
+                            <Twitter className='w-5 h-5' />
+                        </button>
+                        <button 
+                            onClick={() => window.open('https://github.com/Saketraj234')} 
+                            className='p-2.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-all duration-300'
+                            title="GitHub"
+                        >
+                            <Github className='w-5 h-5' />
+                        </button>
+                        <button 
+                            onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} 
+                            className='p-2.5 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300'
+                            title="LinkedIn"
+                        >
+                            <Linkedin className='w-5 h-5' />
+                        </button>
                     </div>
                 </div>
             </footer>
