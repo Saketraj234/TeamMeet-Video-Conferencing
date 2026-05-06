@@ -80,9 +80,39 @@ function VideoMeetComponent() {
         }, 3000)
     }
 
+    const createPeer = React.useCallback((userToSignal, callerID, stream) => {
+        const peer = new Peer({
+            initiator: true,
+            trickle: false,
+            stream,
+        })
+
+        peer.on("signal", signal => {
+            if (socketRef.current) socketRef.current.emit("signal", userToSignal, signal)
+        })
+
+        return peer
+    }, [])
+
+    const addPeer = React.useCallback((incomingSignal, callerID, stream) => {
+        const peer = new Peer({
+            initiator: false,
+            trickle: false,
+            stream,
+        })
+
+        peer.on("signal", signal => {
+            if (socketRef.current) socketRef.current.emit("signal", callerID, signal)
+        })
+
+        peer.signal(incomingSignal)
+        return peer
+    }, [])
+
     useEffect(() => {
         const init = async () => {
-            if (showLobby) return; // Wait for user to click Join
+            if (showLobby) return;
+            if (!userData.name) return; // Wait for name to be available
             if (isInitializingRef.current || localStreamRef.current) return;
             isInitializingRef.current = true;
             
@@ -102,7 +132,6 @@ function VideoMeetComponent() {
                     if (clients[0] === socketRef.current.id) {
                         setIsHost(true)
                         isHostRef.current = true
-                        // Show invite modal to the host on first join
                         if (joinerId === socketRef.current.id) {
                             setShowInviteModal(true)
                             addNotification("Welcome! You are the host of this meeting.")
@@ -111,12 +140,14 @@ function VideoMeetComponent() {
 
                     if (joinerId === socketRef.current.id) return;
 
+                    // Avoid duplicate peer creation
+                    if (peersRef.current.find(p => p.peerID === joinerId)) return;
+
                     const joiner = usersList.find(u => u.id === joinerId)
                     addNotification(`${joiner?.name || 'A participant'} joined`)
                     
                     const peer = createPeer(joinerId, socketRef.current.id, userStream)
                     
-                    // Add to ref immediately to prevent duplicate creation from rapid events
                     const newPeerObj = {
                         peerID: joinerId,
                         peer,
@@ -133,7 +164,9 @@ function VideoMeetComponent() {
                     const leavingUser = participantsRef.current.find(u => u.id === id)
                     addNotification(`${leavingUser?.name || 'A participant'} has left`)
                     const peerObj = peersRef.current.find(p => p.peerID === id)
-                    if (peerObj) peerObj.peer.destroy()
+                    if (peerObj) {
+                        peerObj.peer.destroy()
+                    }
                     const updatedPeers = peersRef.current.filter(p => p.peerID !== id)
                     peersRef.current = updatedPeers
                     setPeers(updatedPeers)
@@ -142,19 +175,15 @@ function VideoMeetComponent() {
                 socketRef.current.on("signal", (fromId, signal) => {
                     const peerObj = peersRef.current.find(p => p.peerID === fromId)
                     if (peerObj) {
-                        // Check if peer exists and not destroyed
                         if (peerObj.peer && !peerObj.peer.destroyed) {
                             try {
-                                // Add check for signal type if possible
                                 if (signal.renegotiate || signal.transceiverRequest) return;
-                                
                                 peerObj.peer.signal(signal)
                             } catch (e) {
                                 console.warn("Error signaling peer:", e);
                             }
                         }
                     } else {
-                        // If we get a signal but don't have a peer yet, it's an incoming connection
                         const peer = addPeer(signal, fromId, userStream)
                         const newPeerObj = {
                             peerID: fromId,
@@ -190,12 +219,12 @@ function VideoMeetComponent() {
                         setPermissions(prev => ({ ...prev, [feature]: status }))
                         
                         if (feature === 'mic' && !status) {
-                            localStreamRef.current.getAudioTracks()[0].enabled = false
+                            if (localStreamRef.current) localStreamRef.current.getAudioTracks()[0].enabled = false
                             setMicOn(false)
                             addNotification("Host has disabled audio.")
                         }
                         if (feature === 'video' && !status) {
-                            localStreamRef.current.getVideoTracks()[0].enabled = false
+                            if (localStreamRef.current) localStreamRef.current.getVideoTracks()[0].enabled = false
                             setVideoOn(false)
                             addNotification("Host has disabled video.")
                         }
@@ -226,6 +255,8 @@ function VideoMeetComponent() {
                 } else {
                     addNotification("Could not access camera/microphone. Please check permissions.")
                 }
+                // Don't leave user stuck if permissions denied
+                isInitializingRef.current = false;
             }
         }
         init()
@@ -239,10 +270,13 @@ function VideoMeetComponent() {
                 localStreamRef.current.getTracks().forEach(track => track.stop())
                 localStreamRef.current = null
             }
-            if (socketRef.current) socketRef.current.disconnect()
+            if (socketRef.current) {
+                socketRef.current.disconnect()
+                socketRef.current = null
+            }
             isInitializingRef.current = false
         }
-    }, [url, navigate, showLobby, stopScreenShare, userData.name])
+    }, [url, navigate, showLobby, stopScreenShare, userData?.name, createPeer, addPeer])
 
     const toggleScreenShare = async () => {
         if (!isHost && !permissions.screenShare) {
@@ -278,36 +312,8 @@ function VideoMeetComponent() {
         }
     }
 
-    function createPeer(userToSignal, callerID, stream) {
-        const peer = new Peer({
-            initiator: true,
-            trickle: false,
-            stream,
-        })
-
-        peer.on("signal", signal => {
-            socketRef.current.emit("signal", userToSignal, signal)
-        })
-
-        return peer
-    }
-
-    function addPeer(incomingSignal, callerID, stream) {
-        const peer = new Peer({
-            initiator: false,
-            trickle: false,
-            stream,
-        })
-
-        peer.on("signal", signal => {
-            socketRef.current.emit("signal", callerID, signal)
-        })
-
-        peer.signal(incomingSignal)
-        return peer
-    }
-
     const toggleMic = () => {
+        if (!stream) return
         if (!isHost && !permissions.mic) {
             addNotification("Audio is disabled by host.")
             return
@@ -317,6 +323,7 @@ function VideoMeetComponent() {
     }
 
     const toggleVideo = () => {
+        if (!stream) return
         if (!isHost && !permissions.video) {
             addNotification("Video is disabled by host.")
             return
@@ -783,7 +790,7 @@ function VideoMeetComponent() {
                     </motion.div>
 
                     {/* Remote Videos */}
-                    {peers.map((peerObj, index) => {
+                    {peers.map((peerObj) => {
                         const participant = participants.find(u => u.id === peerObj.peerID)
                         return (
                             <RemoteVideo 
