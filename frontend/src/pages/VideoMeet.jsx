@@ -77,13 +77,13 @@ function VideoMeetComponent() {
     const [micOn, setMicOn] = useState(true)
     const [videoOn, setVideoOn] = useState(true)
     const [showChat, setShowChat] = useState(false)
+    const showChatRef = useRef(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
-    const [showParticipants, setShowParticipants] = useState(false)
     const [messages, setMessages] = useState([])
     const [message, setMessage] = useState("")
     const [copied, setCopied] = useState(false)
     const [raiseHand, setRaiseHand] = useState(false)
-    const [handsRaised, setHandsRaised] = useState({})
+    const [handsRaised] = useState({})
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
     const isHostRef = useRef(false)
@@ -101,7 +101,7 @@ function VideoMeetComponent() {
     const recordedChunksRef = useRef([])
     const mediaRecorderRef = useRef(null)
     const localStreamRef = useRef(null)
-    const [stream, setStream] = useState(null)
+    const [, setStream] = useState(null)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const canvasRef = useRef(null)
@@ -115,6 +115,11 @@ function VideoMeetComponent() {
     const [typingPos, setTypingPos] = useState(null)
     const [typingText, setTypingText] = useState("")
 
+    // Sync showChatRef with showChat state
+    useEffect(() => {
+        showChatRef.current = showChat
+    }, [showChat])
+
     const stopScreenShare = React.useCallback(() => {
         if (localStreamRef.current && screenShareOn) {
             const videoTrack = localStreamRef.current.getVideoTracks()[0];
@@ -124,7 +129,7 @@ function VideoMeetComponent() {
             navigator.mediaDevices.getUserMedia({ video: true, audio: true })
                 .then(camStream => {
                     const camVideoTrack = camStream.getVideoTracks()[0];
-                    const sender = peersRef.current[0]?.peer?.replaceTrack(
+                    peersRef.current[0]?.peer?.replaceTrack(
                         videoTrack,
                         camVideoTrack,
                         localStreamRef.current
@@ -253,7 +258,7 @@ function VideoMeetComponent() {
 
                 socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
                     setMessages((prev) => [...prev, { data, sender, socketIdSender }])
-                    if (!showChat) {
+                    if (!showChatRef.current) {
                         addNotification(`New message from ${sender}`)
                     }
                 })
