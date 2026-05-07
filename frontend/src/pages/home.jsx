@@ -38,7 +38,7 @@ function HomeComponent() {
         const code = Math.random().toString(36).substring(2, 12)
         await addToUserHistory(code)
         setShowCreateModal(false)
-        navigate(`/${code}`)
+        navigate(`/${code}`, { state: { fromCreate: true } })
     }
 
     const handleScheduleMeeting = async (e) => {

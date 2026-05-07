@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useContext } from 'react'
 import { io } from 'socket.io-client'
 import Peer from 'simple-peer'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, 
-    Users, Share, Hand, Send, X, Copy, Check, Circle, ExternalLink, Shield, Lock, Sparkles
+    Users, Share, Hand, Send, X, Copy, Check, Circle, ExternalLink, Shield, Lock, Sparkles,
+    Eraser, Pencil, Square as WhiteboardIcon, Trash2
 } from 'lucide-react'
 import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -15,11 +16,12 @@ import withAuth from '../utils/withAuth'
 function VideoMeetComponent() {
     const { url } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
     const socketRef = useRef()
     const localVideoRef = useRef()
     const [peers, setPeers] = useState([])
     const peersRef = useRef([])
-    const [participants, setParticipants] = useState([]) // Array of {id, name}
+    const [participants, setParticipants] = useState([]) // Array of {id, name, isHost}
     const participantsRef = useRef([])
     const { userData } = useContext(AuthContext)
     const [micOn, setMicOn] = useState(true)
@@ -35,7 +37,7 @@ function VideoMeetComponent() {
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
     const isHostRef = useRef(false)
-    const [showLobby, setShowLobby] = useState(true)
+    const [showLobby, setShowLobby] = useState(!location.state?.fromCreate)
     const [permissions, setPermissions] = useState({
         mic: true,
         video: true,
@@ -53,6 +55,11 @@ function VideoMeetComponent() {
     const screenStreamRef = useRef()
     const [stream, setStream] = useState(null)
     const [screenShareOn, setScreenShareOn] = useState(false)
+    const [showWhiteboard, setShowWhiteboard] = useState(false)
+    const canvasRef = useRef(null)
+    const [isDrawing, setIsDrawing] = useState(false)
+    const [color, setColor] = useState("#3b82f6")
+    const [lineWidth, setLineWidth] = useState(3)
 
     const stopScreenShare = React.useCallback(() => {
         if (screenStreamRef.current) {
@@ -125,17 +132,17 @@ function VideoMeetComponent() {
                 socketRef.current = io(server)
                 socketRef.current.emit("join-call", url, userData.name)
 
-                socketRef.current.on("user-joined", (joinerId, clients, usersList) => {
+                socketRef.current.on("user-joined", (joinerId, clients, usersList, hostId) => {
                     setParticipants(usersList)
                     participantsRef.current = usersList
                     
-                    if (clients[0] === socketRef.current.id) {
-                        setIsHost(true)
-                        isHostRef.current = true
-                        if (joinerId === socketRef.current.id) {
-                            setShowInviteModal(true)
-                            addNotification("Welcome! You are the host of this meeting.")
-                        }
+                    const currentlyIsHost = hostId === socketRef.current.id
+                    setIsHost(currentlyIsHost)
+                    isHostRef.current = currentlyIsHost
+                    
+                    if (currentlyIsHost && joinerId === socketRef.current.id) {
+                        setShowInviteModal(true)
+                        addNotification("Welcome! You are the host of this meeting.")
                     }
 
                     if (joinerId === socketRef.current.id) return;
@@ -158,6 +165,17 @@ function VideoMeetComponent() {
                         if (prev.find(p => p.peerID === joinerId)) return prev;
                         return [...prev, newPeerObj];
                     })
+                })
+
+                socketRef.current.on("host-updated", (hostId, usersList) => {
+                    setParticipants(usersList)
+                    participantsRef.current = usersList
+                    const currentlyIsHost = hostId === socketRef.current.id
+                    setIsHost(currentlyIsHost)
+                    isHostRef.current = currentlyIsHost
+                    
+                    const host = usersList.find(u => u.id === hostId)
+                    addNotification(`Host updated: ${host?.name || 'Unknown'} is now the host`)
                 })
 
                 socketRef.current.on("user-left", id => {
@@ -207,7 +225,7 @@ function VideoMeetComponent() {
                 })
 
                 socketRef.current.on("mute-all", () => {
-                    if (!isHostRef.current && localStreamRef.current) {
+                    if (localStreamRef.current) {
                         localStreamRef.current.getAudioTracks()[0].enabled = false
                         setMicOn(false)
                         addNotification("Host has muted everyone's audio.")
@@ -246,6 +264,40 @@ function VideoMeetComponent() {
                     if (socketRef.current.id === id) {
                         alert("You have been removed from the meeting by the host.")
                         navigate("/home")
+                    }
+                })
+
+                socketRef.current.on("whiteboard-toggle", (status) => {
+                    setShowWhiteboard(status)
+                })
+
+                socketRef.current.on("whiteboard-draw", (data) => {
+                    if (canvasRef.current) {
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext('2d');
+                        
+                        ctx.strokeStyle = data.color;
+                        ctx.lineWidth = data.lineWidth;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+
+                        if (data.type === 'start') {
+                            ctx.beginPath();
+                            ctx.moveTo(data.x * canvas.width, data.y * canvas.height);
+                        } else if (data.type === 'draw') {
+                            ctx.lineTo(data.x * canvas.width, data.y * canvas.height);
+                            ctx.stroke();
+                        } else if (data.type === 'end') {
+                            ctx.closePath();
+                        }
+                    }
+                })
+
+                socketRef.current.on("whiteboard-clear", () => {
+                    if (canvasRef.current) {
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
                 })
             } catch (err) {
@@ -411,6 +463,66 @@ function VideoMeetComponent() {
             addNotification(`${feature.charAt(0).toUpperCase() + feature.slice(1)} has been ${newStatus ? 'enabled' : 'disabled'} for everyone.`)
         }
     }
+
+    const startDrawing = (e) => {
+        if (!isHost) return;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / canvas.width;
+        const y = (e.clientY - rect.top) / canvas.height;
+
+        setIsDrawing(true);
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.moveTo(x * canvas.width, y * canvas.height);
+
+        socketRef.current.emit("whiteboard-draw", url, {
+            type: 'start',
+            x, y, color, lineWidth
+        });
+    };
+
+    const draw = (e) => {
+        if (!isDrawing || !isHost) return;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / canvas.width;
+        const y = (e.clientY - rect.top) / canvas.height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.lineTo(x * canvas.width, y * canvas.height);
+        ctx.stroke();
+
+        socketRef.current.emit("whiteboard-draw", url, {
+            type: 'draw',
+            x, y, color, lineWidth
+        });
+    };
+
+    const stopDrawing = () => {
+        if (!isHost) return;
+        setIsDrawing(false);
+        socketRef.current.emit("whiteboard-draw", url, { type: 'end' });
+    };
+
+    const clearWhiteboard = () => {
+        if (!isHost) return;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        socketRef.current.emit("whiteboard-clear", url);
+    };
+
+    const toggleWhiteboard = () => {
+        if (!isHost) return;
+        const newStatus = !showWhiteboard;
+        setShowWhiteboard(newStatus);
+        socketRef.current.emit("whiteboard-toggle", url, newStatus);
+    };
 
     return (
         <div className='h-screen bg-[#111] flex flex-col text-white overflow-hidden font-sans relative'>
@@ -588,6 +700,86 @@ function VideoMeetComponent() {
                 )}
             </AnimatePresence>
 
+            {/* Whiteboard Overlay */}
+            <AnimatePresence>
+                {showWhiteboard && (
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className='fixed inset-4 z-[200] bg-[#1a1a1a] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col'
+                    >
+                        <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
+                            <div className='flex items-center gap-4'>
+                                <div className='p-3 bg-blue-600/20 rounded-2xl'>
+                                    <WhiteboardIcon className='w-6 h-6 text-blue-500' />
+                                </div>
+                                <div>
+                                    <h3 className='text-xl font-bold'>Collaborative Whiteboard</h3>
+                                    <p className='text-[10px] text-gray-500 uppercase tracking-widest mt-0.5'>
+                                        {isHost ? "You are presenting" : "Viewing Host's whiteboard"}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className='flex items-center gap-4'>
+                                {isHost && (
+                                    <>
+                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                            {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
+                                                <button 
+                                                    key={c}
+                                                    onClick={() => setColor(c)}
+                                                    className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
+                                                    style={{ backgroundColor: c }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                            <input 
+                                                type="range" 
+                                                min="1" 
+                                                max="20" 
+                                                value={lineWidth}
+                                                onChange={(e) => setLineWidth(parseInt(e.target.value))}
+                                                className='w-24 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
+                                            />
+                                        </div>
+                                        <button 
+                                            onClick={clearWhiteboard}
+                                            className='p-3 bg-red-600/10 text-red-500 hover:bg-red-600/20 rounded-xl transition-all border border-red-600/20'
+                                            title="Clear All"
+                                        >
+                                            <Trash2 className='w-5 h-5' />
+                                        </button>
+                                    </>
+                                )}
+                                <div className='h-8 w-[1px] bg-white/10 mx-2' />
+                                <button 
+                                    onClick={() => isHost ? toggleWhiteboard() : setShowWhiteboard(false)} 
+                                    className='p-3 hover:bg-white/5 rounded-xl transition-all'
+                                >
+                                    <X className='w-6 h-6 text-gray-400' />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className='flex-1 relative bg-white/5 cursor-crosshair overflow-hidden'>
+                            <canvas 
+                                ref={canvasRef}
+                                onMouseDown={startDrawing}
+                                onMouseMove={draw}
+                                onMouseUp={stopDrawing}
+                                onMouseLeave={stopDrawing}
+                                width={window.innerWidth - 32}
+                                height={window.innerHeight - 150}
+                                className='w-full h-full'
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Header */}
             <div className='p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5'>
                 <div className='flex items-center gap-3'>
@@ -605,13 +797,15 @@ function VideoMeetComponent() {
                 </div>
                 
                 <div className='flex items-center gap-2'>
-                    <button 
-                        onClick={() => setShowInviteModal(true)}
-                        className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
-                    >
-                        <Share className='w-3.5 h-3.5' />
-                        <span className='hidden md:inline'>Invite Others</span>
-                    </button>
+                    {isHost && (
+                        <button 
+                            onClick={() => setShowInviteModal(true)}
+                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
+                        >
+                            <Share className='w-3.5 h-3.5' />
+                            <span className='hidden md:inline'>Invite Others</span>
+                        </button>
+                    )}
 
                     <div className='h-8 w-[1px] bg-white/10 mx-1' />
 
@@ -776,7 +970,9 @@ function VideoMeetComponent() {
                         <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
                             <div className='w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse' />
                             {!micOn && <MicOff className='w-3 h-3 text-red-500' />}
-                            <span className='text-[10px] font-bold uppercase tracking-wider text-blue-400'>Host (You)</span>
+                            <span className='text-[10px] font-bold uppercase tracking-wider text-blue-400'>
+                                {isHost ? "Host (You)" : "You"}
+                            </span>
                             {raiseHand && (
                                 <motion.div 
                                     initial={{ scale: 0 }}
@@ -798,6 +994,7 @@ function VideoMeetComponent() {
                                 peer={peerObj.peer} 
                                 id={peerObj.peerID} 
                                 name={participant?.name || 'Participant'}
+                                isRemoteHost={participant?.isHost}
                                 handRaised={handsRaised[peerObj.peerID]} 
                                 isHost={isHost}
                                 onRemove={() => removeParticipant(peerObj.peerID)}
@@ -879,7 +1076,9 @@ function VideoMeetComponent() {
                                         <div className='flex items-center justify-between p-3 bg-blue-600/10 border border-blue-600/20 rounded-2xl'>
                                             <div className='flex items-center gap-3'>
                                                 <div className='w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold'>Me</div>
-                                                <span className='text-sm font-bold text-blue-400'>You (Host)</span>
+                                                <span className='text-sm font-bold text-blue-400'>
+                                                    {isHost ? "You (Host)" : "You"}
+                                                </span>
                                             </div>
                                             <div className='flex items-center gap-2'>
                                                 {!micOn && <MicOff className='w-3.5 h-3.5 text-red-500' />}
@@ -894,7 +1093,9 @@ function VideoMeetComponent() {
                                                 <div key={peerObj.peerID} className='flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all group'>
                                                     <div className='flex items-center gap-3'>
                                                         <div className='w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold uppercase'>{pName.charAt(0)}</div>
-                                                        <span className='text-sm font-medium text-gray-300 truncate max-w-[100px]'>{pName}</span>
+                                                        <span className='text-sm font-medium text-gray-300 truncate max-w-[100px]'>
+                                                            {pName} {participant?.isHost && "(Host)"}
+                                                        </span>
                                                     </div>
                                                     {isHost && (
                                                         <button 
@@ -955,6 +1156,16 @@ function VideoMeetComponent() {
                         <MessageSquare className='w-5 h-5' />
                     </button>
                     
+                    {isHost && (
+                        <button 
+                            onClick={toggleWhiteboard}
+                            className={`p-3 rounded-xl transition-all ${showWhiteboard ? 'bg-blue-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
+                            title="Whiteboard"
+                        >
+                            <WhiteboardIcon className='w-5 h-5' />
+                        </button>
+                    )}
+                    
                     <div className='relative'>
                         <button 
                             onClick={() => setShowFilters(!showFilters)}
@@ -1009,7 +1220,7 @@ function VideoMeetComponent() {
 const VideoMeetWithAuth = withAuth(VideoMeetComponent);
 export default VideoMeetWithAuth;
 
-const RemoteVideo = ({ peer, id, name, handRaised, isHost, onRemove }) => {
+const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove }) => {
     const ref = useRef()
     const [stream, setStream] = useState(null)
 
@@ -1051,7 +1262,9 @@ const RemoteVideo = ({ peer, id, name, handRaised, isHost, onRemove }) => {
 
             <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
                 <div className='w-1.5 h-1.5 bg-blue-500 rounded-full' />
-                <span className='text-[10px] font-bold text-gray-300 uppercase tracking-wider'>{name}</span>
+                <span className='text-[10px] font-bold text-gray-300 uppercase tracking-wider'>
+                    {name} {isRemoteHost && "(Host)"}
+                </span>
                 {handRaised && (
                     <motion.div 
                         initial={{ scale: 0 }}

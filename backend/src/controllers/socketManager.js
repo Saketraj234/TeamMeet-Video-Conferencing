@@ -5,6 +5,7 @@ let connections = {}
 let messages = {}
 let timeOnline = {}
 let names = {} // To store names by socket.id
+let hosts = {} // To store host socket.id by path
 
 export const connectToSocket = (server) => {
     const io = new Server(server, {
@@ -26,6 +27,7 @@ export const connectToSocket = (server) => {
 
             if (connections[path] === undefined) {
                 connections[path] = []
+                hosts[path] = socket.id // First person to join is the host
             }
             
             if (!connections[path].includes(socket.id)) {
@@ -35,10 +37,14 @@ export const connectToSocket = (server) => {
 
             timeOnline[socket.id] = new Date();
 
-            const usersInRoom = connections[path].map(id => ({ id, name: names[id] }))
+            const usersInRoom = connections[path].map(id => ({ 
+                id, 
+                name: names[id],
+                isHost: id === hosts[path]
+            }))
             
             // Notify everyone in the room
-            io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom)
+            io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom, hosts[path])
 
             if (messages[path] !== undefined) {
                 for (let a = 0; a < messages[path].length; ++a) {
@@ -58,7 +64,7 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("mute-all", (path) => {
-            io.to(path).emit("mute-all")
+            socket.to(path).emit("mute-all")
         })
 
         socket.on("remove-user", (path, id) => {
@@ -67,6 +73,18 @@ export const connectToSocket = (server) => {
 
         socket.on("toggle-feature", (path, feature, status) => {
             socket.to(path).emit("feature-toggled", feature, status) // send to all except sender
+        })
+
+        socket.on("whiteboard-toggle", (path, status) => {
+            io.to(path).emit("whiteboard-toggle", status)
+        })
+
+        socket.on("whiteboard-draw", (path, data) => {
+            socket.to(path).emit("whiteboard-draw", data)
+        })
+
+        socket.on("whiteboard-clear", (path) => {
+            io.to(path).emit("whiteboard-clear")
         })
 
         socket.on("chat-message", (data, sender) => {
@@ -94,9 +112,31 @@ export const connectToSocket = (server) => {
                     const index = connections[path].indexOf(socket.id);
                     if (index !== -1) {
                         connections[path].splice(index, 1);
+                        
+                        // If the person leaving was the host, assign a new host
+                        if (hosts[path] === socket.id) {
+                            if (connections[path].length > 0) {
+                                hosts[path] = connections[path][0];
+                            } else {
+                                delete hosts[path];
+                            }
+                        }
+
+                        const usersInRoom = connections[path].map(id => ({ 
+                            id, 
+                            name: names[id],
+                            isHost: id === hosts[path]
+                        }))
+
                         io.to(path).emit('user-left', socket.id);
+                        
+                        if (connections[path].length > 0) {
+                            io.to(path).emit('host-updated', hosts[path], usersInRoom);
+                        }
+
                         if (connections[path].length === 0) {
                             delete connections[path];
+                            delete hosts[path];
                             console.log("ROOM DELETED:", path);
                         }
                     }
