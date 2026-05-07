@@ -1,6 +1,5 @@
-const IS_PROD = true;
-const server = IS_PROD ?
+const server = process.env.NODE_ENV === "production" ?
     "https://teem-meet-backend.onrender.com" :
-    "https://team-meet-liart.vercel.app/";
+    "http://localhost:8000";
 
 export default server;

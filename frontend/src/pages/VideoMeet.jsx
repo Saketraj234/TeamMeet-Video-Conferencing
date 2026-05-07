@@ -4,7 +4,7 @@ import Peer from 'simple-peer'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, 
-    Users, Share, Hand, Send, X, Check, Circle, Shield, Lock, Sparkles,
+    Users, Share, Hand, Send, X, Copy, Check, Circle, Shield, Lock, Sparkles,
     Square as WhiteboardIcon, Trash2, Type, Unlock, Pencil
 } from 'lucide-react'
 import server from '../environment'
@@ -112,6 +112,8 @@ function VideoMeetComponent() {
     const [isLocked, setIsLocked] = useState(false)
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [waitingStatus, setWaitingStatus] = useState(null) // 'waiting', 'accepted', 'rejected'
+    const [typingPos, setTypingPos] = useState(null)
+    const [typingText, setTypingText] = useState("")
 
     const stopScreenShare = React.useCallback(() => {
         if (localStreamRef.current && screenShareOn) {
@@ -466,18 +468,8 @@ function VideoMeetComponent() {
         const y = (e.clientY - rect.top) / canvas.height;
 
         if (whiteboardMode === 'text') {
-            const text = prompt("Enter text to add to whiteboard:");
-            if (text && text.trim() !== "") {
-                const ctx = canvas.getContext('2d');
-                ctx.font = `${lineWidth * 5}px Arial`;
-                ctx.fillStyle = color;
-                ctx.fillText(text, x * canvas.width, y * canvas.height);
-                
-                socketRef.current.emit("whiteboard-draw", url, {
-                    type: 'text',
-                    x, y, color, lineWidth, text: text.trim()
-                });
-            }
+            setTypingPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, rawX: x, rawY: y });
+            setTypingText("");
             return;
         }
 
@@ -494,6 +486,31 @@ function VideoMeetComponent() {
             type: 'start',
             x, y, color, lineWidth
         });
+    };
+
+    const handleTypingSubmit = (e) => {
+        if (e.key === 'Enter' && typingText.trim() !== "" && typingPos) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${lineWidth * 5}px Arial`;
+            ctx.fillStyle = color;
+            ctx.fillText(typingText, typingPos.rawX * canvas.width, typingPos.rawY * canvas.height);
+            
+            socketRef.current.emit("whiteboard-draw", url, {
+                type: 'text',
+                x: typingPos.rawX,
+                y: typingPos.rawY,
+                color,
+                lineWidth,
+                text: typingText.trim()
+            });
+            
+            setTypingPos(null);
+            setTypingText("");
+        } else if (e.key === 'Escape') {
+            setTypingPos(null);
+            setTypingText("");
+        }
     };
 
     const draw = (e) => {
@@ -752,6 +769,32 @@ function VideoMeetComponent() {
                                     height={window.innerHeight - 150}
                                     className='w-full h-full'
                                 />
+                                {isHost && typingPos && (
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        value={typingText}
+                                        onChange={(e) => setTypingText(e.target.value)}
+                                        onKeyDown={handleTypingSubmit}
+                                        onBlur={() => {
+                                            setTypingPos(null);
+                                            setTypingText("");
+                                        }}
+                                        style={{
+                                            position: 'absolute',
+                                            left: typingPos.x,
+                                            top: typingPos.y - (lineWidth * 2.5),
+                                            color: color,
+                                            fontSize: `${lineWidth * 5}px`,
+                                            background: 'transparent',
+                                            border: 'none',
+                                            outline: 'none',
+                                            fontFamily: 'Arial',
+                                            minWidth: '100px',
+                                            caretColor: color
+                                        }}
+                                    />
+                                )}
                             </div>
 
                             {/* Right Side: Participants List */}
