@@ -12,7 +12,10 @@ function HomeComponent() {
     const navigate = useNavigate()
     const { user } = useUser()
     const [meetingCode, setMeetingCode] = useState("")
-    // ... rest of state remains same
+    const [showScheduleModal, setShowScheduleModal] = useState(false)
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [scheduleDate, setScheduleDate] = useState("")
+    const [scheduleTime, setScheduleTime] = useState("")
     const { addToUserHistory } = useContext(AuthContext)
     const { isDark, toggleTheme } = useTheme()
 
