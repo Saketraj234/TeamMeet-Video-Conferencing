@@ -11,7 +11,7 @@ window.process = process;
 
 import { ClerkProvider } from '@clerk/clerk-react';
 
-const PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || "pk_test_cmVuZXdpbmctZGFzc2llLTEwLmNsZXJrLmFjY291bnRzLmRldiQ";
+const PUBLISHABLE_KEY = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY || "pk_test_cmVuZXdpbmctZGFzc2llLTEwLmNsZXJrLmFjY291bnRzLmRldiQ";
 
 if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Publishable Key")

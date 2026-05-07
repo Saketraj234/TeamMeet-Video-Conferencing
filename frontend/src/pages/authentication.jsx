@@ -1,7 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { SignIn, SignUp } from '@clerk/clerk-react'
 import { Video } from 'lucide-react'
-import { useState } from 'react'
 import { motion } from 'framer-motion'
 
 export default function Authentication() {
