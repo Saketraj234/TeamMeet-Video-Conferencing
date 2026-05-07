@@ -5,7 +5,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, 
     Users, Share, Hand, Send, X, Copy, Check, Circle, ExternalLink, Shield, Lock, Sparkles,
-    WhiteboardIcon, Trash2
+    Square as WhiteboardIcon, Trash2
 } from 'lucide-react'
 import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
