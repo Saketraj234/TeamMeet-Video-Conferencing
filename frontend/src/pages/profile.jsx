@@ -4,7 +4,6 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { ArrowLeft, User, Mail, Lock, Phone, Camera, Save, Loader2, Check, Sun, Moon, Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
-import withAuth from '../utils/withAuth'
 
 function ProfilePage() {
     const navigate = useNavigate()
@@ -448,4 +447,4 @@ function ProfilePage() {
     )
 }
 
-export default withAuth(ProfilePage)
+export default ProfilePage

@@ -1,26 +1,24 @@
 import React, { useContext, useState } from 'react'
-import withAuth from '../utils/withAuth'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User } from 'lucide-react'
+import { Video, Plus, Keyboard, History, Sun, Moon, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-
 import { UserButton, useUser } from '@clerk/clerk-react'
 
 function HomeComponent() {
-    const navigate = useNavigate()
-    const { user } = useUser()
-    const [meetingCode, setMeetingCode] = useState("")
-    const [showScheduleModal, setShowScheduleModal] = useState(false)
-    const [showCreateModal, setShowCreateModal] = useState(false)
-    const [scheduleDate, setScheduleDate] = useState("")
-    const [scheduleTime, setScheduleTime] = useState("")
-    const { addToUserHistory } = useContext(AuthContext)
-    const { isDark, toggleTheme } = useTheme()
+    const [meetingCode, setMeetingCode] = useState("");
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [scheduleDate, setScheduleDate] = useState("");
+    const [scheduleTime, setScheduleTime] = useState("");
 
-    // Replace userData?.name with user?.fullName
-    const userName = user?.fullName || user?.firstName || "User"
+    const navigate = useNavigate();
+    const { user } = useUser();
+    const { addToUserHistory } = useContext(AuthContext);
+    const { isDark, toggleTheme } = useTheme();
+
+    const userName = user?.fullName || user?.firstName || "User";
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -44,7 +42,6 @@ function HomeComponent() {
 
     const confirmCreate = async () => {
         const code = Math.random().toString(36).substring(2, 12)
-        // Check if addToUserHistory exists and is a function
         if (typeof addToUserHistory === 'function') {
             await addToUserHistory(code)
         }
@@ -56,18 +53,11 @@ function HomeComponent() {
         e.preventDefault()
         const code = Math.random().toString(36).substring(2, 12)
         const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`)
-        // Add to history with schedule
         if (typeof addToUserHistory === 'function') {
             await addToUserHistory(code, scheduledAt)
         }
         setShowScheduleModal(false)
         alert(`Meeting scheduled for ${scheduledAt.toLocaleString()}. Meeting code: ${code}`)
-    }
-
-    const handleLogout = () => {
-        // Use Clerk sign out if needed, or just let UserButton handle it
-        localStorage.removeItem("token")
-        navigate("/auth")
     }
 
     return (
@@ -181,7 +171,6 @@ function HomeComponent() {
                                     <p className='text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-[200px]'>No one can join a meeting unless invited or admitted by the host.</p>
                                 </div>
                             </div>
-                            {/* Floating decorative avatars */}
                             <div className='absolute top-12 left-12 w-12 h-12 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
                                 <img src="https://i.pravatar.cc/150?u=1" alt="" />
                             </div>
@@ -289,4 +278,4 @@ function HomeComponent() {
     )
 }
 
-export default withAuth(HomeComponent)
+export default HomeComponent

@@ -11,8 +11,6 @@ import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AuthContext } from '../contexts/AuthContext'
 
-import withAuth from '../utils/withAuth'
-
 import { useUser } from '@clerk/clerk-react'
 
 function VideoMeetComponent() {
@@ -1423,8 +1421,7 @@ function VideoMeetComponent() {
     )
 }
 
-const VideoMeetWithAuth = withAuth(VideoMeetComponent);
-export default VideoMeetWithAuth;
+export default VideoMeetComponent;
 
 const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove }) => {
     const ref = useRef()
