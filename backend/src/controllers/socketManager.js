@@ -6,6 +6,9 @@ let messages = {}
 let timeOnline = {}
 let names = {} // To store names by socket.id
 let hosts = {} // To store host socket.id by path
+let whiteboardStates = {} // To store whiteboard drawings by path
+let whiteboardVisible = {} // To store whiteboard visibility status by path
+let lockedMeetings = {} // To store locked status by path
 
 export const connectToSocket = (server) => {
     const io = new Server(server, {
@@ -23,8 +26,37 @@ export const connectToSocket = (server) => {
         console.log("SOMETHING CONNECTED")
 
         socket.on("join-call", (path, name) => {
-            socket.join(path); // Join the socket.io room
+            if (lockedMeetings[path] && hosts[path] !== socket.id) {
+                socket.emit("meeting-locked");
+                return;
+            }
 
+            // If meeting has a host and it's not the joiner, they must wait for admission
+            if (hosts[path] && hosts[path] !== socket.id) {
+                io.to(hosts[path]).emit("admission-request", socket.id, name);
+                socket.emit("waiting-for-admission");
+                return;
+            }
+
+            socket.join(path); // Join the socket.io room
+            completeJoin(socket, path, name);
+        })
+
+        socket.on("admission-response", (id, path, accepted) => {
+            if (accepted) {
+                const targetSocket = io.sockets.sockets.get(id);
+                if (targetSocket) {
+                    targetSocket.join(path);
+                    const name = names[id] || "Guest";
+                    completeJoin(targetSocket, path, name);
+                    io.to(id).emit("admission-accepted");
+                }
+            } else {
+                io.to(id).emit("admission-rejected");
+            }
+        })
+
+        function completeJoin(socket, path, name) {
             if (connections[path] === undefined) {
                 connections[path] = []
                 hosts[path] = socket.id // First person to join is the host
@@ -46,14 +78,23 @@ export const connectToSocket = (server) => {
             // Notify everyone in the room
             io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom, hosts[path])
 
+            // Send existing whiteboard state to new joiner
+            if (whiteboardVisible[path]) {
+                io.to(socket.id).emit("whiteboard-toggle", true)
+                if (whiteboardStates[path]) {
+                    whiteboardStates[path].forEach(drawData => {
+                        io.to(socket.id).emit("whiteboard-draw", drawData)
+                    })
+                }
+            }
+
             if (messages[path] !== undefined) {
                 for (let a = 0; a < messages[path].length; ++a) {
                     io.to(socket.id).emit("chat-message", messages[path][a]['data'],
                         messages[path][a]['sender'], messages[path][a]['socket-id-sender'])
                 }
             }
-
-        })
+        }
 
         socket.on("signal", (toId, message) => {
             io.to(toId).emit("signal", socket.id, message);
@@ -64,7 +105,7 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("mute-all", (path) => {
-            socket.to(path).emit("mute-all")
+            io.to(path).emit("mute-all")
         })
 
         socket.on("remove-user", (path, id) => {
@@ -76,15 +117,25 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("whiteboard-toggle", (path, status) => {
+            whiteboardVisible[path] = status;
+            if (!status) delete whiteboardStates[path]; // Clear state when closed
             io.to(path).emit("whiteboard-toggle", status)
         })
 
         socket.on("whiteboard-draw", (path, data) => {
+            if (!whiteboardStates[path]) whiteboardStates[path] = [];
+            whiteboardStates[path].push(data);
             socket.to(path).emit("whiteboard-draw", data)
         })
 
         socket.on("whiteboard-clear", (path) => {
+            whiteboardStates[path] = [];
             io.to(path).emit("whiteboard-clear")
+        })
+
+        socket.on("toggle-meeting-lock", (path, status) => {
+            lockedMeetings[path] = status;
+            io.to(path).emit("meeting-lock-status", status);
         })
 
         socket.on("chat-message", (data, sender) => {
@@ -137,6 +188,9 @@ export const connectToSocket = (server) => {
                         if (connections[path].length === 0) {
                             delete connections[path];
                             delete hosts[path];
+                            delete whiteboardStates[path];
+                            delete whiteboardVisible[path];
+                            delete lockedMeetings[path];
                             console.log("ROOM DELETED:", path);
                         }
                     }

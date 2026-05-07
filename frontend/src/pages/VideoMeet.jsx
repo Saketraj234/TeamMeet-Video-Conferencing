@@ -5,7 +5,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, 
     Users, Share, Hand, Send, X, Copy, Check, Circle, ExternalLink, Shield, Lock, Sparkles,
-    Square as WhiteboardIcon, Trash2
+    Square as WhiteboardIcon, Trash2, Type, Unlock, Pencil
 } from 'lucide-react'
 import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -60,6 +60,10 @@ function VideoMeetComponent() {
     const [isDrawing, setIsDrawing] = useState(false)
     const [color, setColor] = useState("#3b82f6")
     const [lineWidth, setLineWidth] = useState(3)
+    const [whiteboardMode, setWhiteboardMode] = useState('pencil') // 'pencil' or 'text'
+    const [isLocked, setIsLocked] = useState(false)
+    const [admissionRequests, setAdmissionRequests] = useState([])
+    const [waitingStatus, setWaitingStatus] = useState(null) // 'waiting', 'accepted', 'rejected'
 
     const stopScreenShare = React.useCallback(() => {
         if (screenStreamRef.current) {
@@ -287,6 +291,10 @@ function VideoMeetComponent() {
                         } else if (data.type === 'draw') {
                             ctx.lineTo(data.x * canvas.width, data.y * canvas.height);
                             ctx.stroke();
+                        } else if (data.type === 'text') {
+                            ctx.font = `${data.lineWidth * 5}px Arial`;
+                            ctx.fillStyle = data.color;
+                            ctx.fillText(data.text, data.x * canvas.width, data.y * canvas.height);
                         } else if (data.type === 'end') {
                             ctx.closePath();
                         }
@@ -299,6 +307,39 @@ function VideoMeetComponent() {
                         const ctx = canvas.getContext('2d');
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                     }
+                })
+
+                socketRef.current.on("meeting-full", () => {
+                    alert("This meeting is full. Max 100 participants allowed.")
+                    navigate("/home")
+                })
+
+                socketRef.current.on("meeting-locked", () => {
+                    alert("This meeting is locked by the host. You cannot join.")
+                    navigate("/home")
+                })
+
+                socketRef.current.on("meeting-lock-status", (status) => {
+                    setIsLocked(status)
+                    addNotification(`Meeting has been ${status ? 'locked' : 'unlocked'} by host.`)
+                })
+
+                socketRef.current.on("waiting-for-admission", () => {
+                    setWaitingStatus('waiting')
+                })
+
+                socketRef.current.on("admission-request", (id, name) => {
+                    setAdmissionRequests(prev => [...prev, { id, name }])
+                    addNotification(`Admission request from ${name}`)
+                })
+
+                socketRef.current.on("admission-accepted", () => {
+                    setWaitingStatus('accepted')
+                    setShowLobby(false)
+                })
+
+                socketRef.current.on("admission-rejected", () => {
+                    setWaitingStatus('rejected')
                 })
             } catch (err) {
                 console.error("Error accessing media devices:", err)
@@ -446,6 +487,7 @@ function VideoMeetComponent() {
     const muteAllParticipants = () => {
         if (isHost) {
             socketRef.current.emit("mute-all", url)
+            addNotification("You have muted everyone's audio.")
         }
     }
 
@@ -470,6 +512,22 @@ function VideoMeetComponent() {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / canvas.width;
         const y = (e.clientY - rect.top) / canvas.height;
+
+        if (whiteboardMode === 'text') {
+            const text = prompt("Enter text to add to whiteboard:");
+            if (text) {
+                const ctx = canvas.getContext('2d');
+                ctx.font = `${lineWidth * 5}px Arial`;
+                ctx.fillStyle = color;
+                ctx.fillText(text, x * canvas.width, y * canvas.height);
+                
+                socketRef.current.emit("whiteboard-draw", url, {
+                    type: 'text',
+                    x, y, color, lineWidth, text
+                });
+            }
+            return;
+        }
 
         setIsDrawing(true);
         const ctx = canvas.getContext('2d');
@@ -522,6 +580,18 @@ function VideoMeetComponent() {
         const newStatus = !showWhiteboard;
         setShowWhiteboard(newStatus);
         socketRef.current.emit("whiteboard-toggle", url, newStatus);
+    };
+
+    const toggleMeetingLock = () => {
+        if (!isHost) return;
+        const newStatus = !isLocked;
+        setIsLocked(newStatus);
+        socketRef.current.emit("toggle-meeting-lock", url, newStatus);
+    };
+
+    const handleAdmissionResponse = (id, accepted) => {
+        setAdmissionRequests(prev => prev.filter(req => req.id !== id));
+        socketRef.current.emit("admission-response", id, url, accepted);
     };
 
     return (
@@ -666,18 +736,37 @@ function VideoMeetComponent() {
                                 transition={{ delay: 0.5 }}
                                 className='flex flex-col sm:flex-row gap-5 items-center justify-center pt-6'
                             >
-                                <button 
-                                    onClick={() => navigate("/home")}
-                                    className='w-full sm:w-auto px-12 py-5 rounded-[1.5rem] bg-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 text-white font-black text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95'
-                                >
-                                    Not Now
-                                </button>
-                                <button 
-                                    onClick={() => setShowLobby(false)}
-                                    className='w-full sm:w-auto px-16 py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest transition-all shadow-[0_20px_40px_rgba(37,99,235,0.3)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.4)] hover:-translate-y-1 active:scale-95'
-                                >
-                                    Join Meeting
-                                </button>
+                                {waitingStatus === 'waiting' ? (
+                                    <div className='flex flex-col items-center gap-4 bg-blue-600/10 p-6 rounded-3xl border border-blue-600/20 w-full'>
+                                        <div className='w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
+                                        <p className='text-blue-400 font-bold'>Waiting for host to let you in...</p>
+                                    </div>
+                                ) : waitingStatus === 'rejected' ? (
+                                    <div className='flex flex-col items-center gap-4 bg-red-600/10 p-6 rounded-3xl border border-red-600/20 w-full'>
+                                        <X className='w-12 h-12 text-red-500' />
+                                        <p className='text-red-500 font-bold'>Host has denied your admission request.</p>
+                                        <button onClick={() => navigate("/home")} className='text-sm text-gray-400 underline'>Go Back Home</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={() => navigate("/home")}
+                                            className='w-full sm:w-auto px-12 py-5 rounded-[1.5rem] bg-white/5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 text-white font-black text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95'
+                                        >
+                                            Not Now
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                if (socketRef.current) {
+                                                    socketRef.current.emit("join-call", url, userData.name)
+                                                }
+                                            }}
+                                            className='w-full sm:w-auto px-16 py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest transition-all shadow-[0_20px_40px_rgba(37,99,235,0.3)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.4)] hover:-translate-y-1 active:scale-95'
+                                        >
+                                            Join Meeting
+                                        </button>
+                                    </>
+                                )}
                             </motion.div>
 
                             <motion.div 
@@ -726,6 +815,22 @@ function VideoMeetComponent() {
                                 {isHost && (
                                     <>
                                         <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                            <button 
+                                                onClick={() => setWhiteboardMode('pencil')}
+                                                className={`p-2 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                                title="Pencil Mode"
+                                            >
+                                                <Pencil className='w-4 h-4' />
+                                            </button>
+                                            <button 
+                                                onClick={() => setWhiteboardMode('text')}
+                                                className={`p-2 rounded-lg transition-all ${whiteboardMode === 'text' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                                title="Text Mode"
+                                            >
+                                                <Type className='w-4 h-4' />
+                                            </button>
+                                        </div>
+                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
                                             {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
                                                 <button 
                                                     key={c}
@@ -755,26 +860,67 @@ function VideoMeetComponent() {
                                     </>
                                 )}
                                 <div className='h-8 w-[1px] bg-white/10 mx-2' />
-                                <button 
-                                    onClick={() => isHost ? toggleWhiteboard() : setShowWhiteboard(false)} 
-                                    className='p-3 hover:bg-white/5 rounded-xl transition-all'
-                                >
-                                    <X className='w-6 h-6 text-gray-400' />
-                                </button>
+                                {isHost && (
+                                    <button 
+                                        onClick={toggleWhiteboard} 
+                                        className='p-3 hover:bg-white/5 rounded-xl transition-all'
+                                    >
+                                        <X className='w-6 h-6 text-gray-400' />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
-                        <div className='flex-1 relative bg-white/5 cursor-crosshair overflow-hidden'>
-                            <canvas 
-                                ref={canvasRef}
-                                onMouseDown={startDrawing}
-                                onMouseMove={draw}
-                                onMouseUp={stopDrawing}
-                                onMouseLeave={stopDrawing}
-                                width={window.innerWidth - 32}
-                                height={window.innerHeight - 150}
-                                className='w-full h-full'
-                            />
+                        <div className='flex-1 flex relative bg-white/5 overflow-hidden'>
+                            {/* Left Side: Canvas */}
+                            <div className='flex-1 relative cursor-crosshair'>
+                                <canvas 
+                                    ref={canvasRef}
+                                    onMouseDown={startDrawing}
+                                    onMouseMove={draw}
+                                    onMouseUp={stopDrawing}
+                                    onMouseLeave={stopDrawing}
+                                    width={window.innerWidth * 0.75}
+                                    height={window.innerHeight - 150}
+                                    className='w-full h-full'
+                                />
+                            </div>
+
+                            {/* Right Side: Participants List */}
+                            <div className='w-72 border-l border-white/10 bg-black/20 flex flex-col'>
+                                <div className='p-4 border-b border-white/5 bg-white/5'>
+                                    <h4 className='text-xs font-black uppercase tracking-widest text-gray-500 flex items-center gap-2'>
+                                        <Users className='w-3.5 h-3.5' />
+                                        In Meeting ({peers.length + 1})
+                                    </h4>
+                                </div>
+                                <div className='flex-1 overflow-y-auto p-4 space-y-3'>
+                                    {/* Me */}
+                                    <div className='flex items-center gap-3 p-2 rounded-xl bg-blue-600/10 border border-blue-600/20'>
+                                        <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold'>Me</div>
+                                        <div className='flex flex-col min-w-0'>
+                                            <span className='text-xs font-bold text-blue-400 truncate'>{userData?.name}</span>
+                                            <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
+                                        </div>
+                                    </div>
+                                    {/* Others */}
+                                    {participants.filter(u => u.id !== socketRef.current?.id).map((p) => (
+                                        <div key={p.id} className='flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5'>
+                                            <div className='w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase'>{p.name?.charAt(0)}</div>
+                                            <div className='flex flex-col min-w-0'>
+                                                <span className='text-xs font-bold text-gray-300 truncate'>{p.name}</span>
+                                                <span className='text-[8px] uppercase tracking-tighter text-gray-500 font-black'>{p.isHost ? "Host" : "Participant"}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className='p-4 border-t border-white/5 bg-black/40'>
+                                    <div className='flex items-center justify-center gap-2 opacity-30'>
+                                        <Shield className='w-3 h-3' />
+                                        <span className='text-[8px] font-black uppercase tracking-[0.2em]'>Protected Session</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 )}
@@ -836,6 +982,17 @@ function VideoMeetComponent() {
 
                     {isHost && (
                         <button 
+                            onClick={toggleMeetingLock}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isLocked ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-green-600/10 text-green-500 border border-green-600/20 hover:bg-green-600/20'}`}
+                            title={isLocked ? "Unlock Meeting" : "Lock Meeting"}
+                        >
+                            {isLocked ? <Lock className='w-3.5 h-3.5' /> : <Unlock className='w-3.5 h-3.5' />}
+                            <span className='hidden lg:inline'>{isLocked ? 'Meeting Locked' : 'Lock Meeting'}</span>
+                        </button>
+                    )}
+
+                    {isHost && (
+                        <button 
                             onClick={() => setShowHostPanel(true)}
                             className='flex items-center gap-2 px-3 py-2 bg-blue-600/10 text-blue-500 rounded-xl text-xs font-bold border border-blue-600/20 hover:bg-blue-600/20 transition-all'
                         >
@@ -844,6 +1001,45 @@ function VideoMeetComponent() {
                         </button>
                     )}
                 </div>
+            </div>
+
+            {/* Admission Requests Popup */}
+            <div className='fixed top-24 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
+                <AnimatePresence>
+                    {isHost && admissionRequests.map(req => (
+                        <motion.div 
+                            key={req.id}
+                            initial={{ y: -100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -100, opacity: 0 }}
+                            className='bg-[#1a1a1a] border border-white/10 p-5 rounded-3xl shadow-2xl flex items-center justify-between gap-4 backdrop-blur-xl'
+                        >
+                            <div className='flex items-center gap-3'>
+                                <div className='w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-bold uppercase'>
+                                    {req.name?.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className='text-xs font-black text-gray-400 uppercase tracking-widest'>Admission Request</p>
+                                    <h4 className='font-bold text-sm text-white truncate max-w-[120px]'>{req.name}</h4>
+                                </div>
+                            </div>
+                            <div className='flex gap-2'>
+                                <button 
+                                    onClick={() => handleAdmissionResponse(req.id, false)}
+                                    className='p-2.5 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all'
+                                >
+                                    <X className='w-4 h-4' />
+                                </button>
+                                <button 
+                                    onClick={() => handleAdmissionResponse(req.id, true)}
+                                    className='p-2.5 bg-green-600/10 text-green-500 hover:bg-green-600 hover:text-white rounded-xl transition-all'
+                                >
+                                    <Check className='w-4 h-4' />
+                                </button>
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </div>
 
             {/* Notifications */}
