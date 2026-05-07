@@ -122,8 +122,6 @@ function VideoMeetComponent() {
 
     useEffect(() => {
         const init = async () => {
-            if (showLobby) return;
-            if (!userData.name) return; // Wait for name to be available
             if (isInitializingRef.current || localStreamRef.current) return;
             isInitializingRef.current = true;
             
@@ -134,7 +132,10 @@ function VideoMeetComponent() {
                 if (localVideoRef.current) localVideoRef.current.srcObject = userStream
 
                 socketRef.current = io(server)
-                socketRef.current.emit("join-call", url, userData.name)
+
+                if (showLobby === false) {
+                    socketRef.current.emit("join-call", url, userData.name)
+                }
 
                 socketRef.current.on("user-joined", (joinerId, clients, usersList, hostId) => {
                     setParticipants(usersList)
