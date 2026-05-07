@@ -51,10 +51,10 @@ export default function Authentication() {
                                     dividerText: 'dark:text-gray-400 uppercase text-[10px] font-bold tracking-widest',
                                     formFieldLabel: 'dark:text-gray-300 font-semibold text-xs uppercase tracking-wider',
                                     formFieldInput: 'dark:bg-white/5 dark:border-white/10 dark:text-white rounded-xl py-3 px-4 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all',
-                                    footerActionText: 'dark:text-gray-400',
-                                    footerActionLink: 'text-blue-600 hover:text-blue-500 font-bold',
+                                    footerAction: 'hidden', // Hide Clerk's default footer link
                                     identityPreviewText: 'dark:text-white',
-                                    identityPreviewEditButtonIcon: 'dark:text-blue-400'
+                                    identityPreviewEditButtonIcon: 'dark:text-blue-400',
+                                    footer: 'dark:bg-[#1a1a1a] border-t dark:border-white/5'
                                 }
                             }}
                         />
@@ -75,13 +75,24 @@ export default function Authentication() {
                                     dividerText: 'dark:text-gray-400 uppercase text-[10px] font-bold tracking-widest',
                                     formFieldLabel: 'dark:text-gray-300 font-semibold text-xs uppercase tracking-wider',
                                     formFieldInput: 'dark:bg-white/5 dark:border-white/10 dark:text-white rounded-xl py-3 px-4 border-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-all',
-                                    footerActionText: 'dark:text-gray-400',
-                                    footerActionLink: 'text-blue-600 hover:text-blue-500 font-bold'
+                                    footerAction: 'hidden', // Hide Clerk's default footer link
+                                    footer: 'dark:bg-[#1a1a1a] border-t dark:border-white/5'
                                 }
                             }}
                         />
                     )}
                 </motion.div>
+
+                {/* Single, Unified Navigation Link at the Bottom */}
+                <p className='mt-8 text-center text-sm text-gray-600 dark:text-gray-400'>
+                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                    <button 
+                        onClick={() => setIsLogin(!isLogin)}
+                        className='font-bold text-blue-600 hover:text-blue-500 transition-colors underline decoration-2 underline-offset-4'
+                    >
+                        {isLogin ? 'Sign up' : 'Sign in'}
+                    </button>
+                </p>
             </div>
         </div>
     )
