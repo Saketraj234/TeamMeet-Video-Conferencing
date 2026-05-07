@@ -2,23 +2,19 @@ import React, { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { Video, Plus, Keyboard, History, Sun, Moon, Calendar } from 'lucide-react'
+import { Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { UserButton, useUser } from '@clerk/clerk-react'
+import withAuth from '../utils/withAuth'
 
 function HomeComponent() {
-    const [meetingCode, setMeetingCode] = useState("");
-    const [showScheduleModal, setShowScheduleModal] = useState(false);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-    const [scheduleDate, setScheduleDate] = useState("");
-    const [scheduleTime, setScheduleTime] = useState("");
-
-    const navigate = useNavigate();
-    const { user } = useUser();
-    const { addToUserHistory } = useContext(AuthContext);
-    const { isDark, toggleTheme } = useTheme();
-
-    const userName = user?.fullName || user?.firstName || "User";
+    const navigate = useNavigate()
+    const [meetingCode, setMeetingCode] = useState("")
+    const [showScheduleModal, setShowScheduleModal] = useState(false)
+    const [showCreateModal, setShowCreateModal] = useState(false)
+    const [scheduleDate, setScheduleDate] = useState("")
+    const [scheduleTime, setScheduleTime] = useState("")
+    const { addToUserHistory, userData } = useContext(AuthContext)
+    const { isDark, toggleTheme } = useTheme()
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -29,9 +25,7 @@ function HomeComponent() {
 
     const handleJoinMeeting = async () => {
         if (meetingCode.trim()) {
-            if (typeof addToUserHistory === 'function') {
-                await addToUserHistory(meetingCode)
-            }
+            await addToUserHistory(meetingCode)
             navigate(`/${meetingCode}`)
         }
     }
@@ -42,9 +36,7 @@ function HomeComponent() {
 
     const confirmCreate = async () => {
         const code = Math.random().toString(36).substring(2, 12)
-        if (typeof addToUserHistory === 'function') {
-            await addToUserHistory(code)
-        }
+        await addToUserHistory(code)
         setShowCreateModal(false)
         navigate(`/${code}`, { state: { fromCreate: true } })
     }
@@ -53,11 +45,14 @@ function HomeComponent() {
         e.preventDefault()
         const code = Math.random().toString(36).substring(2, 12)
         const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`)
-        if (typeof addToUserHistory === 'function') {
-            await addToUserHistory(code, scheduledAt)
-        }
-        setShowScheduleModal(false)
+        await addToUserHistory(code, scheduledAt)
+        setShowCreateModal(false)
         alert(`Meeting scheduled for ${scheduledAt.toLocaleString()}. Meeting code: ${code}`)
+    }
+
+    const handleLogout = () => {
+        localStorage.removeItem("token")
+        navigate("/auth")
     }
 
     return (
@@ -86,10 +81,27 @@ function HomeComponent() {
                     >
                         <History className='w-5 h-5' />
                     </button>
-                    
-                    <div className='flex items-center gap-3 ml-2'>
-                        <UserButton afterSignOutUrl="/" />
-                    </div>
+                    <button 
+                        onClick={() => navigate("/profile")}
+                        className='p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center'
+                        title="Profile Settings"
+                    >
+                        {userData?.profileImg ? (
+                            <img src={userData.profileImg} alt="Profile" className='w-7 h-7 rounded-full object-cover' />
+                        ) : (
+                            <div className='w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold'>
+                                <User className='w-4 h-4' />
+                            </div>
+                        )}
+                    </button>
+                    <div className='h-8 w-[1px] bg-gray-200 dark:bg-white/10 mx-4' />
+                    <button 
+                        onClick={handleLogout}
+                        className='flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors'
+                    >
+                        <LogOut className='w-4 h-4' />
+                        Logout
+                    </button>
                 </div>
             </nav>
 
@@ -100,7 +112,7 @@ function HomeComponent() {
                         animate={{ opacity: 1, x: 0 }}
                     >
                         <div className='mb-4 flex items-center gap-3 bg-blue-600/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full w-fit text-sm font-bold animate-pulse'>
-                            <span>👋</span> {getGreeting()}, {userName}
+                            <span>👋</span> {getGreeting()}, {userData?.name || "User"}
                         </div>
                         <h2 className='text-4xl md:text-5xl font-bold leading-tight mb-6'>
                             Premium video meetings. <br />
@@ -278,4 +290,4 @@ function HomeComponent() {
     )
 }
 
-export default HomeComponent
+export default withAuth(HomeComponent)

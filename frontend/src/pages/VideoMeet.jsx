@@ -1,25 +1,79 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useContext } from 'react'
 import { io } from 'socket.io-client'
 import Peer from 'simple-peer'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, MessageSquare, 
-    Users, Share, Hand, Send, X, Copy, Check, Circle, ExternalLink, Shield, Lock, Sparkles,
+    Users, Share, Hand, Send, X, Check, Circle, Shield, Lock, Sparkles,
     Square as WhiteboardIcon, Trash2, Type, Unlock, Pencil
 } from 'lucide-react'
 import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AuthContext } from '../contexts/AuthContext'
+import withAuth from '../utils/withAuth'
 
-import { useUser } from '@clerk/clerk-react'
+const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove }) => {
+    const videoRef = useRef()
+
+    useEffect(() => {
+        peer.on("stream", (stream) => {
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream
+            }
+        })
+    }, [peer])
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl transition-all hover:border-blue-500/50'
+        >
+            <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className='w-full h-full object-cover'
+            />
+            <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500' />
+            
+            <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
+                <div className='w-1.5 h-1.5 bg-blue-500 rounded-full' />
+                <span className='text-[10px] font-bold text-gray-300 uppercase tracking-wider'>
+                    {name} {isRemoteHost && "(Host)"}
+                </span>
+                {handRaised && (
+                    <div className='flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/20 rounded-full border border-yellow-500/30'>
+                        <Hand className='w-2.5 h-2.5 text-yellow-500' />
+                        <span className='text-[8px] font-black text-yellow-500 uppercase'>Raised</span>
+                    </div>
+                )}
+            </div>
+
+            {isHost && (
+                <button 
+                    onClick={onRemove}
+                    className='absolute top-4 right-4 p-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 shadow-lg'
+                    title="Remove participant"
+                >
+                    <X className='w-4 h-4' />
+                </button>
+            )}
+        </motion.div>
+    )
+}
 
 function VideoMeetComponent() {
     const { url } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
-    const { user } = useUser()
     const socketRef = useRef()
-    // ...
-    const userName = user?.fullName || user?.firstName || "Guest"
+    const localVideoRef = useRef()
+    const [peers, setPeers] = useState([])
+    const peersRef = useRef([])
+    const [participants, setParticipants] = useState([]) // Array of {id, name, isHost}
+    const participantsRef = useRef([])
+    const { userData } = useContext(AuthContext)
     const [micOn, setMicOn] = useState(true)
     const [videoOn, setVideoOn] = useState(true)
     const [showChat, setShowChat] = useState(false)
@@ -47,8 +101,6 @@ function VideoMeetComponent() {
     const recordedChunksRef = useRef([])
     const mediaRecorderRef = useRef(null)
     const localStreamRef = useRef(null)
-    const isInitializingRef = useRef(false)
-    const screenStreamRef = useRef()
     const [stream, setStream] = useState(null)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
@@ -61,37 +113,28 @@ function VideoMeetComponent() {
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [waitingStatus, setWaitingStatus] = useState(null) // 'waiting', 'accepted', 'rejected'
 
-    const localVideoRef = useRef()
-    const [peers, setPeers] = useState([])
-    const peersRef = useRef([])
-    const [participants, setParticipants] = useState([]) // Array of {id, name, isHost}
-    const participantsRef = useRef([])
-
     const stopScreenShare = React.useCallback(() => {
-        if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach(track => track.stop())
+        if (localStreamRef.current && screenShareOn) {
+            const videoTrack = localStreamRef.current.getVideoTracks()[0];
+            if (videoTrack) videoTrack.stop();
             
-            // Revert back to camera in all peers
-            peersRef.current.forEach(p => {
-                p.peer.replaceTrack(
-                    screenStreamRef.current.getVideoTracks()[0],
-                    localStreamRef.current.getVideoTracks()[0],
-                    localStreamRef.current
-                )
-            })
-
-            if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current
-            setScreenShareOn(false)
+            // Switch back to camera
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(camStream => {
+                    const camVideoTrack = camStream.getVideoTracks()[0];
+                    const sender = peersRef.current[0]?.peer?.replaceTrack(
+                        videoTrack,
+                        camVideoTrack,
+                        localStreamRef.current
+                    );
+                    
+                    localStreamRef.current.removeTrack(videoTrack);
+                    localStreamRef.current.addTrack(camVideoTrack);
+                    if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+                    setScreenShareOn(false);
+                });
         }
-    }, [])
-
-    const addNotification = (text) => {
-        const id = Date.now()
-        setNotifications(prev => [...prev, { id, text }])
-        setTimeout(() => {
-            setNotifications(prev => prev.filter(n => n.id !== id))
-        }, 3000)
-    }
+    }, [screenShareOn]);
 
     const createPeer = React.useCallback((userToSignal, callerID, stream) => {
         const peer = new Peer({
@@ -100,8 +143,8 @@ function VideoMeetComponent() {
             stream,
         })
 
-        peer.on("signal", signal => {
-            if (socketRef.current) socketRef.current.emit("signal", userToSignal, signal)
+        peer.on("signal", (signal) => {
+            socketRef.current.emit("sending-signal", { userToSignal, callerID, signal })
         })
 
         return peer
@@ -114,13 +157,16 @@ function VideoMeetComponent() {
             stream,
         })
 
-        peer.on("signal", signal => {
-            if (socketRef.current) socketRef.current.emit("signal", callerID, signal)
+        peer.on("signal", (signal) => {
+            socketRef.current.emit("returning-signal", { signal, callerID })
         })
 
         peer.signal(incomingSignal)
+
         return peer
     }, [])
+
+    const isInitializingRef = useRef(false)
 
     useEffect(() => {
         const init = async () => {
@@ -136,7 +182,7 @@ function VideoMeetComponent() {
                 socketRef.current = io(server)
 
                 if (showLobby === false) {
-                    socketRef.current.emit("join-call", url, userName)
+                    socketRef.current.emit("join-call", url, userData.name)
                 }
 
                 socketRef.current.on("user-joined", (joinerId, clients, usersList, hostId) => {
@@ -185,85 +231,41 @@ function VideoMeetComponent() {
                     addNotification(`Host updated: ${host?.name || 'Unknown'} is now the host`)
                 })
 
-                socketRef.current.on("user-left", id => {
-                    const leavingUser = participantsRef.current.find(u => u.id === id)
-                    addNotification(`${leavingUser?.name || 'A participant'} has left`)
-                    const peerObj = peersRef.current.find(p => p.peerID === id)
+                socketRef.current.on("receiving-returned-signal", (data) => {
+                    const item = peersRef.current.find((p) => p.peerID === data.id)
+                    if (item) {
+                        item.peer.signal(data.signal)
+                    }
+                })
+
+                socketRef.current.on("user-left", (id) => {
+                    const peerObj = peersRef.current.find((p) => p.peerID === id)
                     if (peerObj) {
                         peerObj.peer.destroy()
                     }
-                    const updatedPeers = peersRef.current.filter(p => p.peerID !== id)
-                    peersRef.current = updatedPeers
-                    setPeers(updatedPeers)
+                    const newPeers = peersRef.current.filter((p) => p.peerID !== id)
+                    peersRef.current = newPeers
+                    setPeers(newPeers)
+                    addNotification("A participant left the meeting")
                 })
 
-                socketRef.current.on("signal", (fromId, signal) => {
-                    const peerObj = peersRef.current.find(p => p.peerID === fromId)
-                    if (peerObj) {
-                        if (peerObj.peer && !peerObj.peer.destroyed) {
-                            try {
-                                if (signal.renegotiate || signal.transceiverRequest) return;
-                                peerObj.peer.signal(signal)
-                            } catch (e) {
-                                console.warn("Error signaling peer:", e);
-                            }
-                        }
-                    } else {
-                        const peer = addPeer(signal, fromId, userStream)
-                        const newPeerObj = {
-                            peerID: fromId,
-                            peer,
-                        }
-                        peersRef.current.push(newPeerObj)
-                        
-                        setPeers(prev => {
-                            if (prev.find(p => p.peerID === fromId)) return prev;
-                            return [...prev, newPeerObj];
-                        })
-                    }
-                })
-
-                socketRef.current.on("chat-message", (data, sender, id) => {
-                    setMessages(prev => [...prev, { data, sender, id, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }])
-                })
-
-                socketRef.current.on("hand-raised", (id, status) => {
-                    setHandsRaised(prev => ({ ...prev, [id]: status }))
-                })
-
-                socketRef.current.on("mute-all", () => {
-                    if (localStreamRef.current) {
-                        localStreamRef.current.getAudioTracks()[0].enabled = false
-                        setMicOn(false)
-                        addNotification("Host has muted everyone's audio.")
+                socketRef.current.on("chat-message", (data, sender, socketIdSender) => {
+                    setMessages((prev) => [...prev, { data, sender, socketIdSender }])
+                    if (!showChat) {
+                        addNotification(`New message from ${sender}`)
                     }
                 })
 
                 socketRef.current.on("feature-toggled", (feature, status) => {
-                    if (!isHostRef.current) {
-                        setPermissions(prev => ({ ...prev, [feature]: status }))
-                        
-                        if (feature === 'mic' && !status) {
-                            if (localStreamRef.current) localStreamRef.current.getAudioTracks()[0].enabled = false
-                            setMicOn(false)
-                            addNotification("Host has disabled audio.")
-                        }
-                        if (feature === 'video' && !status) {
-                            if (localStreamRef.current) localStreamRef.current.getVideoTracks()[0].enabled = false
-                            setVideoOn(false)
-                            addNotification("Host has disabled video.")
-                        }
-                        if (feature === 'chat' && !status) {
-                            setShowChat(false)
-                            addNotification("Host has disabled chat.")
-                        }
-                        if (feature === 'screenShare' && !status) {
-                            stopScreenShare()
-                            addNotification("Host has disabled screen sharing.")
-                        }
-                        if (status) {
-                            addNotification(`Host has enabled ${feature === 'mic' ? 'audio' : feature}.`)
-                        }
+                    setPermissions(prev => ({ ...prev, [feature]: status }))
+                    addNotification(`${feature} has been ${status ? 'enabled' : 'disabled'} by host.`)
+                })
+
+                socketRef.current.on("mute-all", () => {
+                    if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
+                        localStreamRef.current.getAudioTracks()[0].enabled = false
+                        setMicOn(false)
+                        addNotification("Host has muted everyone's audio.")
                     }
                 })
 
@@ -346,14 +348,7 @@ function VideoMeetComponent() {
                     setWaitingStatus('rejected')
                 })
             } catch (err) {
-                console.error("Error accessing media devices:", err)
-                if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-                    addNotification("Camera/Microphone is already in use by another application.")
-                } else {
-                    addNotification("Could not access camera/microphone. Please check permissions.")
-                }
-                // Don't leave user stuck if permissions denied
-                isInitializingRef.current = false;
+                console.error("Initialization error:", err)
             }
         }
         init()
@@ -373,111 +368,56 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, showLobby, stopScreenShare, userName, createPeer, addPeer])
-
-    const toggleScreenShare = async () => {
-        if (!isHost && !permissions.screenShare) {
-            addNotification("Screen sharing is disabled by host.")
-            return
-        }
-        try {
-            if (!screenShareOn) {
-                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true })
-                screenStreamRef.current = screenStream
-                
-                // Replace stream in all peers
-                peersRef.current.forEach(p => {
-                    p.peer.replaceTrack(
-                        stream.getVideoTracks()[0],
-                        screenStream.getVideoTracks()[0],
-                        stream
-                    )
-                })
-
-                if (localVideoRef.current) localVideoRef.current.srcObject = screenStream
-                
-                screenStream.getVideoTracks()[0].onended = () => {
-                    stopScreenShare()
-                }
-
-                setScreenShareOn(true)
-            } else {
-                stopScreenShare()
-            }
-        } catch (err) {
-            console.error(err)
-        }
-    }
+    }, [url, navigate, showLobby, stopScreenShare, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
-        if (!stream) return
-        if (!isHost && !permissions.mic) {
-            addNotification("Audio is disabled by host.")
-            return
+        if (localStreamRef.current) {
+            localStreamRef.current.getAudioTracks()[0].enabled = !micOn
+            setMicOn(!micOn)
         }
-        stream.getAudioTracks()[0].enabled = !micOn
-        setMicOn(!micOn)
     }
 
     const toggleVideo = () => {
-        if (!stream) return
-        if (!isHost && !permissions.video) {
-            addNotification("Video is disabled by host.")
-            return
+        if (localStreamRef.current) {
+            localStreamRef.current.getVideoTracks()[0].enabled = !videoOn
+            setVideoOn(!videoOn)
         }
-        stream.getVideoTracks()[0].enabled = !videoOn
-        setVideoOn(!videoOn)
     }
 
-    const sendMessage = (e) => {
-        e.preventDefault()
-        if (!isHost && !permissions.chat) {
-            addNotification("Chat is disabled by host.")
-            return
-        }
-        if (message.trim()) {
-            socketRef.current.emit("chat-message", message, "Me")
+    const handleSendMessage = () => {
+        if (message.trim() && socketRef.current) {
+            socketRef.current.emit("chat-message", message, userData.name)
             setMessage("")
         }
     }
 
-    const copyLink = () => {
+    const copyUrl = () => {
         navigator.clipboard.writeText(window.location.href)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
 
-    const toggleHand = () => {
-        const newStatus = !raiseHand
-        setRaiseHand(newStatus)
-        socketRef.current.emit("hand-raised", url, newStatus)
+    const toggleRaiseHand = () => {
+        setRaiseHand(!raiseHand)
+        socketRef.current.emit("raise-hand", url, !raiseHand)
     }
 
-    const startRecording = () => {
-        recordedChunksRef.current = []
-        const options = { mimeType: 'video/webm;codecs=vp9,opus' }
-        const mediaRecorder = new MediaRecorder(stream, options)
-
-        mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
-                recordedChunksRef.current.push(event.data)
-            }
+    const startRecording = async () => {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+        mediaRecorderRef.current = new MediaRecorder(stream)
+        mediaRecorderRef.current.ondataavailable = (e) => {
+            if (e.data.size > 0) recordedChunksRef.current.push(e.data)
         }
-
-        mediaRecorder.onstop = () => {
+        mediaRecorderRef.current.onstop = () => {
             const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
-            a.style.display = 'none'
             a.href = url
-            a.download = `meeting-recording-${new Date().toISOString()}.webm`
-            document.body.appendChild(a)
+            a.download = `meeting-record-${Date.now()}.webm`
             a.click()
-            window.URL.revokeObjectURL(url)
+            recordedChunksRef.current = []
         }
-
-        mediaRecorder.start()
-        mediaRecorderRef.current = mediaRecorder
+        mediaRecorderRef.current.start()
         setIsRecording(true)
     }
 
@@ -486,6 +426,14 @@ function VideoMeetComponent() {
             mediaRecorderRef.current.stop()
             setIsRecording(false)
         }
+    }
+
+    const addNotification = (text) => {
+        const id = Date.now()
+        setNotifications(prev => [...prev, { id, text }])
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(n => n.id !== id))
+        }, 5000)
     }
 
     const muteAllParticipants = () => {
@@ -598,141 +546,55 @@ function VideoMeetComponent() {
         socketRef.current.emit("admission-response", id, url, accepted);
     };
 
-    return (
-        <div className='h-screen bg-[#111] flex flex-col text-white overflow-hidden font-sans relative'>
-            {/* Host Control Panel Modal */}
-            <AnimatePresence>
-                {showHostPanel && isHost && (
-                    <div className='fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm'>
+    if (showLobby) {
+        return (
+            <div className='min-h-screen bg-[#0a0a0a] flex items-center justify-center p-6 font-sans relative overflow-hidden'>
+                {/* Background Decorations */}
+                <div className='absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20'>
+                    <div className='absolute -top-24 -left-24 w-96 h-96 bg-blue-600 rounded-full blur-[120px]' />
+                    <div className='absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-600 rounded-full blur-[120px]' />
+                </div>
+
+                <motion.div 
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className='w-full max-w-xl bg-[#111] border border-white/5 rounded-[3rem] p-12 shadow-2xl relative z-10 backdrop-blur-3xl'
+                >
+                    <div className='flex flex-col items-center text-center space-y-10'>
                         <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className='bg-[#1a1a1a] rounded-[2.5rem] border border-white/10 p-8 max-w-md w-full shadow-2xl relative'
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className='p-6 bg-blue-600/10 rounded-[2.5rem] border border-blue-500/20'
                         >
-                            <button onClick={() => setShowHostPanel(false)} className='absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full'>
-                                <X className='w-5 h-5 text-gray-400' />
-                            </button>
-                            
-                            <div className='flex items-center gap-4 mb-8'>
-                                <div className='p-3 bg-blue-600/20 rounded-2xl'>
-                                    <Shield className='w-8 h-8 text-blue-500' />
-                                </div>
-                                <div>
-                                    <h3 className='text-xl font-bold'>Host Control Center</h3>
-                                    <p className='text-xs text-gray-500 uppercase tracking-widest mt-1'>Manage participant permissions</p>
-                                </div>
-                            </div>
-
-                            <div className='space-y-4'>
-                                {[
-                                    { id: 'mic', icon: Mic, label: 'Allow Microphone' },
-                                    { id: 'video', icon: Video, label: 'Allow Video' },
-                                    { id: 'chat', icon: MessageSquare, label: 'Allow Chat' },
-                                    { id: 'screenShare', icon: Share, label: 'Allow Screen Share' }
-                                ].map((item) => (
-                                    <div key={item.id} className='flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5'>
-                                        <div className='flex items-center gap-3'>
-                                            <item.icon className={`w-5 h-5 ${permissions[item.id] ? 'text-blue-500' : 'text-gray-500'}`} />
-                                            <span className='font-bold text-sm'>{item.label}</span>
-                                        </div>
-                                        <button 
-                                            onClick={() => toggleFeaturePermission(item.id)}
-                                            className={`w-12 h-6 rounded-full relative transition-all duration-300 ${permissions[item.id] ? 'bg-blue-600' : 'bg-gray-700'}`}
-                                        >
-                                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${permissions[item.id] ? 'right-1' : 'left-1'}`} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button 
-                                onClick={muteAllParticipants}
-                                className='w-full mt-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-red-600/20 flex items-center justify-center gap-2'
-                            >
-                                <MicOff className='w-5 h-5' />
-                                Mute Everyone Now
-                            </button>
+                            <Video className='w-16 h-16 text-blue-500' />
                         </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
-            {/* Lobby / Join Modal */}
-            <AnimatePresence>
-                {showLobby && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className='fixed inset-0 z-[250] flex items-center justify-center bg-[#050505]/90 backdrop-blur-2xl'
-                    >
-                        {/* Animated background elements */}
-                        <div className='absolute inset-0 overflow-hidden pointer-events-none'>
-                            <motion.div 
-                                animate={{ 
-                                    scale: [1, 1.2, 1],
-                                    rotate: [0, 90, 0],
-                                    opacity: [0.1, 0.2, 0.1]
-                                }}
-                                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                className='absolute -top-1/2 -left-1/2 w-full h-full bg-blue-600/20 blur-[120px] rounded-full' 
-                            />
-                            <motion.div 
-                                animate={{ 
-                                    scale: [1.2, 1, 1.2],
-                                    rotate: [0, -90, 0],
-                                    opacity: [0.1, 0.2, 0.1]
-                                }}
-                                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                                className='absolute -bottom-1/2 -right-1/2 w-full h-full bg-purple-600/20 blur-[120px] rounded-full' 
-                            />
+                        <div className='space-y-4'>
+                            <motion.div
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <h1 className='text-5xl font-black tracking-tighter mb-2 bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent'>
+                                    Ready to join?
+                                </h1>
+                                <p className='text-gray-500 font-medium'>Hello <span className='text-blue-400'>{userData?.name}</span>, your meeting is active.</p>
+                            </motion.div>
                         </div>
 
-                        <motion.div 
-                            initial={{ scale: 0.8, y: 40, opacity: 0 }}
-                            animate={{ scale: 1, y: 0, opacity: 1 }}
-                            transition={{ type: "spring", damping: 20, stiffness: 100 }}
-                            className='max-w-xl w-full p-10 text-center space-y-10 bg-[#121212]/80 border border-white/10 rounded-[3.5rem] shadow-[0_32px_64px_rgba(0,0,0,0.5)] relative overflow-hidden'
-                        >
-                            <div className='absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent' />
-                            
-                            <div className='space-y-6'>
-                                <motion.div 
-                                    initial={{ rotate: -10, scale: 0.5, opacity: 0 }}
-                                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                                    transition={{ delay: 0.2, duration: 0.5 }}
-                                    className='w-28 h-28 bg-gradient-to-tr from-blue-600/20 to-blue-400/10 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 border border-blue-500/20 shadow-2xl shadow-blue-500/10'
-                                >
-                                    <Video className='w-14 h-14 text-blue-500 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]' />
-                                </motion.div>
-                                
-                                <motion.div
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    transition={{ delay: 0.3 }}
-                                >
-                                    <h1 className='text-5xl font-black tracking-tighter mb-2 bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent'>
-                                        Ready to join?
-                                    </h1>
-                                    <p className='text-gray-500 font-medium'>Hello <span className='text-blue-400'>{userName}</span>, your meeting is active.</p>
-                                </motion.div>
-
-                                <motion.div 
-                                    initial={{ y: 20, opacity: 0 }}
-                                    animate={{ y: 0, opacity: 1 }}
-                                    transition={{ delay: 0.4 }}
-                                    className='flex flex-col items-center gap-3 pt-2'
-                                >
-                                    <span className='text-[10px] font-black uppercase tracking-[0.3em] text-gray-600'>Meeting Identity</span>
-                                    <div className='flex items-center gap-3 bg-white/5 px-6 py-3 rounded-2xl border border-white/10 shadow-inner group hover:border-blue-500/30 transition-all duration-500'>
-                                        <div className='w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]' />
-                                        <span className='text-xl font-mono font-black tracking-[0.2em] text-blue-500'>
-                                            {url}
-                                        </span>
-                                    </div>
-                                </motion.div>
-                            </div>
+                        <div className='w-full space-y-8'>
+                            <motion.div 
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className='space-y-4'
+                            >
+                                <p className='text-[10px] font-black uppercase tracking-[0.3em] text-gray-600'>Meeting Identity</p>
+                                <div className='p-6 bg-black/40 border border-white/5 rounded-[1.5rem] flex items-center justify-center gap-3 group hover:border-blue-500/30 transition-all'>
+                                    <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse' />
+                                    <code className='text-xl font-black tracking-[0.2em] text-blue-400 group-hover:text-blue-300 transition-colors'>{url}</code>
+                                </div>
+                            </motion.div>
 
                             <motion.div 
                                 initial={{ y: 20, opacity: 0 }}
@@ -763,7 +625,7 @@ function VideoMeetComponent() {
                                             onClick={() => {
                                                 console.log("Join clicked, socket state:", socketRef.current?.connected);
                                                 if (socketRef.current) {
-                                                    socketRef.current.emit("join-call", url, userName)
+                                                    socketRef.current.emit("join-call", url, userData.name)
                                                 } else {
                                                     alert("Connection issue. Please refresh.")
                                                 }
@@ -775,27 +637,26 @@ function VideoMeetComponent() {
                                     </>
                                 )}
                             </motion.div>
+                        </div>
 
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.7 }}
-                                className='pt-10 flex items-center justify-center gap-8 text-gray-600 border-t border-white/5'
-                            >
-                                <div className='flex items-center gap-2.5 group cursor-default'>
-                                    <Shield className='w-4 h-4 text-green-500/50 group-hover:text-green-500 transition-colors' />
-                                    <span className='text-[9px] font-black uppercase tracking-[0.2em]'>Private Room</span>
-                                </div>
-                                <div className='flex items-center gap-2.5 group cursor-default'>
-                                    <Lock className='w-4 h-4 text-blue-500/50 group-hover:text-blue-500 transition-colors' />
-                                    <span className='text-[9px] font-black uppercase tracking-[0.2em]'>Encrypted</span>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        <div className='pt-10 flex items-center justify-center gap-8 opacity-20'>
+                            <div className='flex items-center gap-2'>
+                                <Shield className='w-4 h-4' />
+                                <span className='text-[8px] font-black uppercase tracking-[0.2em]'>Private Room</span>
+                            </div>
+                            <div className='flex items-center gap-2'>
+                                <Lock className='w-4 h-4' />
+                                <span className='text-[8px] font-black uppercase tracking-[0.2em]'>Encrypted</span>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        )
+    }
 
+    return (
+        <div className='min-h-screen bg-[#0a0a0a] text-white flex flex-col font-sans selection:bg-blue-500/30 overflow-hidden'>
             {/* Whiteboard Overlay */}
             <AnimatePresence>
                 {showWhiteboard && (
@@ -906,7 +767,7 @@ function VideoMeetComponent() {
                                     <div className='flex items-center gap-3 p-2 rounded-xl bg-blue-600/10 border border-blue-600/20'>
                                         <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold'>Me</div>
                                         <div className='flex flex-col min-w-0'>
-                                            <span className='text-xs font-bold text-blue-400 truncate'>{userName}</span>
+                                            <span className='text-xs font-bold text-blue-400 truncate'>{userData?.name}</span>
                                             <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
                                         </div>
                                     </div>
@@ -932,83 +793,6 @@ function VideoMeetComponent() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Header */}
-            <div className='p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5'>
-                <div className='flex items-center gap-3'>
-                    <div className='bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20'>
-                        <Video className='text-white w-5 h-5' />
-                    </div>
-                    <div className='hidden sm:block'>
-                        <h2 className='font-bold text-sm tracking-tight'>TeamMeet Room</h2>
-                        <div className='flex items-center gap-2'>
-                            <p className='text-[10px] text-gray-500 font-mono uppercase tracking-widest'>{url}</p>
-                            <div className='w-1 h-1 bg-green-500 rounded-full animate-pulse' />
-                            <span className='text-[10px] text-green-500 font-bold uppercase'>Live</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className='flex items-center gap-2'>
-                    {isHost && (
-                        <button 
-                            onClick={() => setShowInviteModal(true)}
-                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
-                        >
-                            <Share className='w-3.5 h-3.5' />
-                            <span className='hidden md:inline'>Invite Others</span>
-                        </button>
-                    )}
-
-                    <div className='h-8 w-[1px] bg-white/10 mx-1' />
-
-                    <div className='flex items-center bg-white/5 rounded-xl p-1 border border-white/5'>
-                        <button 
-                            onClick={() => {
-                                setShowParticipants(!showParticipants)
-                                setShowChat(false)
-                            }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showParticipants ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                            <Users className='w-3.5 h-3.5' />
-                            {peers.length + 1}
-                        </button>
-                        <button 
-                            onClick={() => {
-                                setShowChat(!showChat)
-                                setShowParticipants(false)
-                            }}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showChat ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
-                        >
-                            <MessageSquare className='w-3.5 h-3.5' />
-                            {messages.length > 0 && (
-                                <span className='absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full' />
-                            )}
-                        </button>
-                    </div>
-
-                    {isHost && (
-                        <button 
-                            onClick={toggleMeetingLock}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isLocked ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-green-600/10 text-green-500 border border-green-600/20 hover:bg-green-600/20'}`}
-                            title={isLocked ? "Unlock Meeting" : "Lock Meeting"}
-                        >
-                            {isLocked ? <Lock className='w-3.5 h-3.5' /> : <Unlock className='w-3.5 h-3.5' />}
-                            <span className='hidden lg:inline'>{isLocked ? 'Meeting Locked' : 'Lock Meeting'}</span>
-                        </button>
-                    )}
-
-                    {isHost && (
-                        <button 
-                            onClick={() => setShowHostPanel(true)}
-                            className='flex items-center gap-2 px-3 py-2 bg-blue-600/10 text-blue-500 rounded-xl text-xs font-bold border border-blue-600/20 hover:bg-blue-600/20 transition-all'
-                        >
-                            <Shield className='w-3.5 h-3.5' />
-                            <span className='hidden lg:inline'>Host Controls</span>
-                        </button>
-                    )}
-                </div>
-            </div>
 
             {/* Admission Requests Popup */}
             <div className='fixed top-24 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
@@ -1050,126 +834,91 @@ function VideoMeetComponent() {
             </div>
 
             {/* Notifications */}
-            <div className='fixed top-20 right-4 z-50 flex flex-col gap-2'>
+            <div className='fixed top-6 right-6 z-[300] flex flex-col gap-3 pointer-events-none'>
                 <AnimatePresence>
                     {notifications.map(n => (
-                        <motion.div 
+                        <motion.div
                             key={n.id}
                             initial={{ x: 100, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 100, opacity: 0 }}
-                            className='bg-blue-600/90 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-3 border border-white/20'
+                            className='bg-white/10 backdrop-blur-md border border-white/10 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 min-w-[300px]'
                         >
-                            <div className='bg-white/20 p-1.5 rounded-full'>
-                                <Users className='w-4 h-4' />
-                            </div>
-                            {n.text}
+                            <div className='w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]' />
+                            <p className='text-xs font-bold text-gray-200'>{n.text}</p>
                         </motion.div>
                     ))}
                 </AnimatePresence>
             </div>
 
-            {/* Invite Modal */}
-            <AnimatePresence>
-                {showInviteModal && (
-                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm'>
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className='bg-[#1a1a1a] rounded-3xl border border-white/10 p-8 max-w-md w-full shadow-2xl relative overflow-hidden'
-                        >
-                            <div className='absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600' />
-                            <button 
-                                onClick={() => setShowInviteModal(false)}
-                                className='absolute top-4 right-4 p-2 hover:bg-white/5 rounded-full transition-colors'
-                            >
-                                <X className='w-5 h-5 text-gray-400' />
-                            </button>
-
-                            <div className='text-center space-y-4 mb-8'>
-                                <div className='w-20 h-20 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-600/20'>
-                                    <Share className='w-10 h-10 text-white' />
-                                </div>
-                                <h3 className='text-3xl font-black tracking-tight'>Invite Participants</h3>
-                                <p className='text-gray-400 text-sm max-w-[250px] mx-auto'>Share this unique meeting link with your team to start collaborating.</p>
-                            </div>
-
-                            <div className='space-y-6'>
-                                <div className='bg-black/40 rounded-2xl p-4 border border-white/5 flex items-center justify-between gap-4'>
-                                    <span className='text-sm font-mono text-gray-300 truncate'>{window.location.href}</span>
-                                    <button 
-                                        onClick={copyLink}
-                                        className={`flex-shrink-0 p-3 rounded-xl transition-all ${copied ? 'bg-green-500/20 text-green-500' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20'}`}
-                                    >
-                                        {copied ? <Check className='w-5 h-5' /> : <Copy className='w-5 h-5' />}
-                                    </button>
-                                </div>
-
-                                <div className='flex items-center gap-4'>
-                                    <button 
-                                        onClick={() => {
-                                            const text = `Join my TeamMeet meeting: ${window.location.href}`;
-                                            if (navigator.share) {
-                                                navigator.share({
-                                                    title: 'TeamMeet Meeting',
-                                                    text: text,
-                                                    url: window.location.href,
-                                                })
-                                            } else {
-                                                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`)
-                                            }
-                                        }}
-                                        className='flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 py-4 rounded-2xl font-bold transition-all group'
-                                    >
-                                        <ExternalLink className='w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform' />
-                                        Share Invite
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button 
-                                onClick={() => setShowInviteModal(false)}
-                                className='w-full mt-8 text-gray-500 hover:text-white text-sm font-medium transition-colors'
-                            >
-                                Skip for now
-                            </button>
-                        </motion.div>
+            {/* Header */}
+            <div className='p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5'>
+                <div className='flex items-center gap-4'>
+                    <div className='flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5'>
+                        <div className='w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse' />
+                        <span className='text-[10px] font-black uppercase tracking-widest text-gray-400'>Live Session</span>
                     </div>
-                )}
-            </AnimatePresence>
+                    <div className='h-4 w-[1px] bg-white/10' />
+                    <div className='flex items-center gap-2'>
+                        <Users className='w-4 h-4 text-blue-500' />
+                        <span className='text-sm font-bold text-gray-300'>{peers.length + 1} Participants</span>
+                    </div>
+                </div>
 
-            {/* Main Grid */}
-            <div className='flex-1 flex overflow-hidden relative p-4 gap-4'>
-                <div className={`flex-1 grid gap-4 transition-all duration-500 ${
-                    peers.length === 0 ? 'grid-cols-1' : 
+                <div className='flex items-center gap-2'>
+                    {isHost && (
+                        <button 
+                            onClick={toggleMeetingLock}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isLocked ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-green-600/10 text-green-500 border border-green-600/20 hover:bg-green-600/20'}`}
+                            title={isLocked ? "Unlock Meeting" : "Lock Meeting"}
+                        >
+                            {isLocked ? <Lock className='w-3.5 h-3.5' /> : <Unlock className='w-3.5 h-3.5' />}
+                            <span className='hidden lg:inline'>{isLocked ? 'Meeting Locked' : 'Lock Meeting'}</span>
+                        </button>
+                    )}
+
+                    {isHost && (
+                        <button 
+                            onClick={() => setShowHostPanel(true)}
+                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
+                        >
+                            <Shield className='w-3.5 h-3.5' />
+                            <span className='hidden md:inline'>Admin Controls</span>
+                        </button>
+                    )}
+                    
+                    {isHost && (
+                        <button 
+                            onClick={() => setShowInviteModal(true)}
+                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
+                        >
+                            <Share className='w-3.5 h-3.5' />
+                            <span className='hidden md:inline'>Invite Others</span>
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Main Video Grid */}
+            <div className='flex-1 relative p-6 overflow-y-auto custom-scrollbar'>
+                <div className={`grid gap-6 h-full w-full ${
+                    peers.length === 0 ? 'grid-cols-1 max-w-4xl mx-auto' : 
                     peers.length === 1 ? 'grid-cols-1 md:grid-cols-2' : 
-                    peers.length === 2 ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 
-                    'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+                    'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
                 }`}>
                     {/* Local Video */}
                     <motion.div 
-                        layout 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className='relative rounded-3xl overflow-hidden bg-[#222] border-2 border-blue-600 shadow-2xl group'
+                        layout
+                        className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border-2 border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.15)] transition-all'
                     >
                         <video 
-                            muted 
                             ref={localVideoRef} 
                             autoPlay 
+                            muted 
                             playsInline 
-                            style={{ filter: currentFilter === 'blur' ? 'blur(10px)' : currentFilter === 'sepia' ? 'sepia(0.8)' : currentFilter === 'grayscale' ? 'grayscale(1)' : 'none' }}
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${videoOn ? 'opacity-100' : 'opacity-0'}`} 
+                            className={`w-full h-full object-cover ${currentFilter}`} 
                         />
-                        {!videoOn && (
-                            <div className='absolute inset-0 flex flex-col items-center justify-center bg-[#2a2a2a]'>
-                                <div className='w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold shadow-2xl border-4 border-white/10'>
-                                    Me
-                                </div>
-                                <p className='mt-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Camera is Off</p>
-                            </div>
-                        )}
+                        <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent' />
                         <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
                             <div className='w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse' />
                             {!micOn && <MicOff className='w-3 h-3 text-red-500' />}
@@ -1177,14 +926,20 @@ function VideoMeetComponent() {
                                 {isHost ? "Host (You)" : "You"}
                             </span>
                             {raiseHand && (
-                                <motion.div 
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className='bg-yellow-500 p-1 rounded-full'
-                                >
-                                    <Hand className='w-2.5 h-2.5 text-black fill-black' />
-                                </motion.div>
+                                <div className='flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/20 rounded-full border border-yellow-500/30'>
+                                    <Hand className='w-2.5 h-2.5 text-yellow-500' />
+                                    <span className='text-[8px] font-black text-yellow-500 uppercase'>Raised</span>
+                                </div>
                             )}
+                        </div>
+                        
+                        <div className='absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity'>
+                            <button 
+                                onClick={() => setShowFilters(!showFilters)}
+                                className='p-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 hover:bg-blue-600 transition-all'
+                            >
+                                <Sparkles className='w-4 h-4' />
+                            </button>
                         </div>
                     </motion.div>
 
@@ -1205,290 +960,310 @@ function VideoMeetComponent() {
                         )
                     })}
                 </div>
-
-                {/* Sidebar - Chat & Participants */}
-                <AnimatePresence>
-                    {(showChat || showParticipants) && (
-                        <motion.div 
-                            initial={{ x: 400, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 400, opacity: 0 }}
-                            className='w-80 bg-[#1a1a1a] rounded-3xl border border-white/5 flex flex-col shadow-2xl overflow-hidden'
-                        >
-                            {showChat ? (
-                                <>
-                                    <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
-                                        <h3 className='font-bold flex items-center gap-2'>
-                                            <MessageSquare className='w-4 h-4 text-blue-500' />
-                                            In-call messages
-                                        </h3>
-                                        <button onClick={() => setShowChat(false)} className='p-2 hover:bg-white/10 rounded-xl transition-all'>
-                                            <X className='w-4 h-4' />
-                                        </button>
-                                    </div>
-                                    <div className='flex-1 overflow-y-auto p-4 space-y-4'>
-                                        {messages.length === 0 ? (
-                                            <div className='h-full flex flex-col items-center justify-center text-center p-6 space-y-4 opacity-40'>
-                                                <div className='w-12 h-12 bg-white/10 rounded-full flex items-center justify-center'>
-                                                    <MessageSquare className='w-6 h-6' />
-                                                </div>
-                                                <p className='text-xs font-medium'>No messages yet. Send one to start the conversation!</p>
-                                            </div>
-                                        ) : (
-                                            messages.map((msg, idx) => (
-                                                <div key={idx} className={`flex flex-col ${msg.sender === "Me" ? 'items-end' : 'items-start'}`}>
-                                                    <div className='flex items-center gap-2 mb-1'>
-                                                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{msg.sender}</span>
-                                                        <span className='text-[10px] text-gray-600'>{msg.time}</span>
-                                                    </div>
-                                                    <div className={`px-4 py-2 rounded-2xl text-sm max-w-[90%] shadow-sm ${
-                                                        msg.sender === "Me" ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white/5 text-gray-200 rounded-tl-none'
-                                                    }`}>
-                                                        {msg.data}
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                    <form onSubmit={sendMessage} className='p-4 border-t border-white/5 flex gap-2 bg-white/5'>
-                                        <input 
-                                            type="text" 
-                                            value={message}
-                                            onChange={(e) => setMessage(e.target.value)}
-                                            placeholder="Send a message..."
-                                            className='flex-1 bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-600 transition-all'
-                                        />
-                                        <button type='submit' className='bg-blue-600 p-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20'>
-                                            <Send className='w-4 h-4' />
-                                        </button>
-                                    </form>
-                                </>
-                            ) : (
-                                <>
-                                    <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
-                                        <h3 className='font-bold flex items-center gap-2'>
-                                            <Users className='w-4 h-4 text-blue-500' />
-                                            Participants ({peers.length + 1})
-                                        </h3>
-                                        <button onClick={() => setShowParticipants(false)} className='p-2 hover:bg-white/10 rounded-xl transition-all'>
-                                            <X className='w-4 h-4' />
-                                        </button>
-                                    </div>
-                                    <div className='flex-1 overflow-y-auto p-4 space-y-2'>
-                                        {/* Local User */}
-                                        <div className='flex items-center justify-between p-3 bg-blue-600/10 border border-blue-600/20 rounded-2xl'>
-                                            <div className='flex items-center gap-3'>
-                                                <div className='w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-[10px] font-bold'>Me</div>
-                                                <span className='text-sm font-bold text-blue-400'>
-                                                    {isHost ? "You (Host)" : "You"}
-                                                </span>
-                                            </div>
-                                            <div className='flex items-center gap-2'>
-                                                {!micOn && <MicOff className='w-3.5 h-3.5 text-red-500' />}
-                                                {!videoOn && <VideoOff className='w-3.5 h-3.5 text-red-500' />}
-                                            </div>
-                                        </div>
-                                        {/* Remote Users */}
-                                        {peers.map((peerObj) => {
-                                            const participant = participants.find(u => u.id === peerObj.peerID)
-                                            const pName = participant?.name || 'Participant'
-                                            return (
-                                                <div key={peerObj.peerID} className='flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-2xl hover:bg-white/10 transition-all group'>
-                                                    <div className='flex items-center gap-3'>
-                                                        <div className='w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-[10px] font-bold uppercase'>{pName.charAt(0)}</div>
-                                                        <span className='text-sm font-medium text-gray-300 truncate max-w-[100px]'>
-                                                            {pName} {participant?.isHost && "(Host)"}
-                                                        </span>
-                                                    </div>
-                                                    {isHost && (
-                                                        <button 
-                                                            onClick={() => removeParticipant(peerObj.peerID)}
-                                                            className='opacity-0 group-hover:opacity-100 p-1.5 bg-red-600/20 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all'
-                                                        >
-                                                            <X className='w-3.5 h-3.5' />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </>
-                            )}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
 
-            {/* Controls */}
-            <div className='p-6 flex justify-center items-center gap-4 bg-gradient-to-t from-black to-transparent pb-8'>
-                <div className='flex items-center gap-3 bg-[#1a1a1a]/80 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl'>
+            {/* Toolbar */}
+            <div className='p-8 flex items-center justify-center relative'>
+                <motion.div 
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className='flex items-center gap-4 bg-[#1a1a1a]/80 backdrop-blur-2xl px-8 py-4 rounded-[2.5rem] border border-white/5 shadow-2xl'
+                >
                     <button 
                         onClick={toggleMic}
-                        className={`p-3 rounded-xl transition-all ${micOn ? 'bg-white/5 hover:bg-white/10' : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'}`}
+                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
                     >
-                        {micOn ? <Mic className='w-5 h-5' /> : <MicOff className='w-5 h-5' />}
-                    </button>
-                    <button 
-                        onClick={toggleVideo}
-                        className={`p-3 rounded-xl transition-all ${videoOn ? 'bg-white/5 hover:bg-white/10' : 'bg-red-500/20 text-red-500 hover:bg-red-500/30'}`}
-                    >
-                        {videoOn ? <Video className='w-5 h-5' /> : <VideoOff className='w-5 h-5' />}
-                    </button>
-                    <button 
-                        onClick={toggleScreenShare}
-                        className={`p-3 rounded-xl transition-all ${screenShareOn ? 'bg-blue-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
-                    >
-                        <Share className='w-5 h-5' />
-                    </button>
-                    <button 
-                        onClick={toggleHand}
-                        className={`p-3 rounded-xl transition-all ${raiseHand ? 'bg-yellow-500/20 text-yellow-500' : 'bg-white/5 hover:bg-white/10'}`}
-                    >
-                        <Hand className='w-5 h-5' />
-                    </button>
-                    <button 
-                        onClick={isRecording ? stopRecording : startRecording}
-                        className={`p-3 rounded-xl transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10'}`}
-                    >
-                        <Circle className='w-5 h-5 fill-current' />
-                    </button>
-                    <button 
-                        onClick={() => setShowChat(!showChat)}
-                        className={`p-3 rounded-xl transition-all ${showChat ? 'bg-blue-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
-                    >
-                        <MessageSquare className='w-5 h-5' />
+                        {micOn ? <Mic className='w-6 h-6' /> : <MicOff className='w-6 h-6' />}
                     </button>
                     
+                    <button 
+                        onClick={toggleVideo}
+                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                    >
+                        {videoOn ? <Video className='w-6 h-6' /> : <VideoOff className='w-6 h-6' />}
+                    </button>
+
+                    <div className='h-8 w-[1px] bg-white/10 mx-2' />
+
+                    <button 
+                        onClick={toggleRaiseHand}
+                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                    >
+                        <Hand className='w-6 h-6' />
+                    </button>
+
+                    <button 
+                        onClick={isRecording ? stopRecording : startRecording}
+                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                    >
+                        <Circle className={`w-6 h-6 ${isRecording ? 'fill-current' : ''}`} />
+                    </button>
+
+                    <button 
+                        onClick={() => setShowChat(!showChat)}
+                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                    >
+                        <MessageSquare className='w-6 h-6' />
+                    </button>
+
                     {isHost && (
                         <button 
                             onClick={toggleWhiteboard}
-                            className={`p-3 rounded-xl transition-all ${showWhiteboard ? 'bg-blue-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                             title="Whiteboard"
                         >
-                            <WhiteboardIcon className='w-5 h-5' />
+                            <WhiteboardIcon className='w-6 h-6' />
                         </button>
                     )}
-                    
-                    <div className='relative'>
-                        <button 
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`p-3 rounded-xl transition-all ${currentFilter !== 'none' ? 'bg-purple-600 text-white' : 'bg-white/5 hover:bg-white/10'}`}
-                        >
-                            <Sparkles className='w-5 h-5' />
-                        </button>
-                        
-                        <AnimatePresence>
-                            {showFilters && (
-                                <motion.div 
-                                    initial={{ y: -20, opacity: 0 }}
-                                    animate={{ y: -100, opacity: 1 }}
-                                    exit={{ y: -20, opacity: 0 }}
-                                    className='absolute left-1/2 -translate-x-1/2 flex gap-2 bg-[#1a1a1a] p-3 rounded-2xl border border-white/10 shadow-2xl'
-                                >
-                                    {[
-                                        { id: 'none', label: 'None' },
-                                        { id: 'blur', label: 'Blur' },
-                                        { id: 'sepia', label: 'Sepia' },
-                                        { id: 'grayscale', label: 'Gray' }
-                                    ].map(f => (
-                                        <button 
-                                            key={f.id}
-                                            onClick={() => {
-                                                setCurrentFilter(f.id)
-                                                setShowFilters(false)
-                                            }}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${currentFilter === f.id ? 'bg-purple-600' : 'bg-white/5 hover:bg-white/10'}`}
-                                        >
-                                            {f.label}
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
 
-                    <div className='w-[1px] h-8 bg-white/10 mx-1' />
+                    <div className='h-8 w-[1px] bg-white/10 mx-2' />
+
                     <button 
                         onClick={() => navigate("/home")}
-                        className='bg-red-600 hover:bg-red-700 p-3 rounded-xl transition-all shadow-lg shadow-red-600/20'
+                        className='p-4 bg-red-600 hover:bg-red-700 text-white rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
                     >
-                        <PhoneOff className='w-5 h-5' />
+                        <PhoneOff className='w-6 h-6' />
                     </button>
-                </div>
+                </motion.div>
             </div>
+
+            {/* Chat Sidebar */}
+            <AnimatePresence>
+                {showChat && (
+                    <motion.div 
+                        initial={{ x: 400 }}
+                        animate={{ x: 0 }}
+                        exit={{ x: 400 }}
+                        className='fixed right-0 top-0 bottom-0 w-full max-w-sm bg-[#111] border-l border-white/5 z-[150] flex flex-col shadow-2xl'
+                    >
+                        <div className='p-6 border-b border-white/5 flex items-center justify-between bg-white/5'>
+                            <div className='flex items-center gap-3'>
+                                <div className='p-2 bg-blue-600/20 rounded-xl'>
+                                    <MessageSquare className='w-5 h-5 text-blue-500' />
+                                </div>
+                                <h3 className='text-lg font-bold'>Messages</h3>
+                            </div>
+                            <button onClick={() => setShowChat(false)} className='p-2 hover:bg-white/5 rounded-xl transition-all'>
+                                <X className='w-5 h-5 text-gray-500' />
+                            </button>
+                        </div>
+                        
+                        <div className='flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar'>
+                            {messages.map((msg, idx) => (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    key={idx} 
+                                    className={`flex flex-col ${msg.sender === userData.name ? 'items-end' : 'items-start'}`}
+                                >
+                                    <span className='text-[10px] font-black uppercase tracking-widest text-gray-600 mb-2'>{msg.sender}</span>
+                                    <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm font-medium shadow-sm ${
+                                        msg.sender === userData.name 
+                                        ? 'bg-blue-600 text-white rounded-tr-none' 
+                                        : 'bg-white/5 text-gray-300 rounded-tl-none border border-white/5'
+                                    }`}>
+                                        {msg.data}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        <div className='p-6 bg-white/5 border-t border-white/5'>
+                            <div className='relative flex items-center gap-2'>
+                                <input 
+                                    type="text" 
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                    placeholder='Type a message...'
+                                    className='w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:border-blue-600 transition-all pr-14'
+                                />
+                                <button 
+                                    onClick={handleSendMessage}
+                                    className='absolute right-2 p-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-white transition-all transform active:scale-95 shadow-lg'
+                                >
+                                    <Send className='w-4 h-4' />
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Admin Controls Panel */}
+            <AnimatePresence>
+                {showHostPanel && (
+                    <div className='fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-[#1a1a1a] w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]'
+                        >
+                            <div className='p-8 border-b border-white/5 bg-white/5 flex justify-between items-center'>
+                                <div className='flex items-center gap-4'>
+                                    <div className='p-3 bg-blue-600/20 rounded-2xl'>
+                                        <Shield className='w-6 h-6 text-blue-500' />
+                                    </div>
+                                    <h3 className='text-xl font-bold'>Admin Control Panel</h3>
+                                </div>
+                                <button onClick={() => setShowHostPanel(false)} className='p-2 hover:bg-white/5 rounded-xl transition-all'>
+                                    <X className='w-5 h-5 text-gray-500' />
+                                </button>
+                            </div>
+
+                            <div className='flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar'>
+                                <div className='space-y-4'>
+                                    <h4 className='text-xs font-black uppercase tracking-widest text-gray-500'>Meeting Permissions</h4>
+                                    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                                        {[
+                                            { id: 'mic', label: 'Allow Microphone', icon: Mic },
+                                            { id: 'video', label: 'Allow Camera', icon: Video },
+                                            { id: 'chat', label: 'Allow Chat', icon: MessageSquare },
+                                            { id: 'screenShare', label: 'Allow Sharing', icon: Share }
+                                        ].map(feature => (
+                                            <button 
+                                                key={feature.id}
+                                                onClick={() => toggleFeaturePermission(feature.id)}
+                                                className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                                                    permissions[feature.id] 
+                                                    ? 'bg-blue-600/10 border-blue-600/30 text-blue-400' 
+                                                    : 'bg-white/5 border-white/5 text-gray-500'
+                                                }`}
+                                            >
+                                                <div className='flex items-center gap-3'>
+                                                    <feature.icon className='w-4 h-4' />
+                                                    <span className='text-xs font-bold'>{feature.label}</span>
+                                                </div>
+                                                <div className={`w-8 h-4 rounded-full relative transition-colors ${permissions[feature.id] ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                                                    <div className={`absolute top-1 w-2 h-2 bg-white rounded-full transition-all ${permissions[feature.id] ? 'right-1' : 'left-1'}`} />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className='space-y-4'>
+                                    <h4 className='text-xs font-black uppercase tracking-widest text-gray-500'>Quick Actions</h4>
+                                    <button 
+                                        onClick={muteAllParticipants}
+                                        className='w-full flex items-center justify-center gap-3 p-4 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-2xl border border-red-600/20 transition-all font-bold text-sm'
+                                    >
+                                        <MicOff className='w-4 h-4' />
+                                        Mute Everyone
+                                    </button>
+                                </div>
+
+                                <div className='space-y-4'>
+                                    <h4 className='text-xs font-black uppercase tracking-widest text-gray-500'>Participants</h4>
+                                    <div className='space-y-3'>
+                                        {participants.map(p => (
+                                            <div key={p.id} className='flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5'>
+                                                <div className='flex items-center gap-3'>
+                                                    <div className='w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center font-bold text-xs uppercase'>{p.name.charAt(0)}</div>
+                                                    <span className='text-sm font-bold'>{p.name} {p.id === socketRef.current.id && "(You)"}</span>
+                                                </div>
+                                                {p.id !== socketRef.current.id && (
+                                                    <button 
+                                                        onClick={() => removeParticipant(p.id)}
+                                                        className='p-2 bg-red-600/10 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all'
+                                                    >
+                                                        <PhoneOff className='w-4 h-4' />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Invite Modal */}
+            <AnimatePresence>
+                {showInviteModal && (
+                    <div className='fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-[#1a1a1a] w-full max-w-md rounded-[2.5rem] p-8 border border-white/10 shadow-2xl text-center'
+                        >
+                            <div className='w-20 h-20 bg-blue-600/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-600/20'>
+                                <Share className='w-10 h-10 text-blue-500' />
+                            </div>
+                            <h3 className='text-2xl font-bold mb-2'>Invite Others</h3>
+                            <p className='text-gray-500 text-sm mb-8'>Share this link with people you want in the meeting</p>
+                            
+                            <div className='flex flex-col gap-4'>
+                                <div className='p-4 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-between gap-3'>
+                                    <code className='text-xs text-blue-400 truncate flex-1'>{window.location.href}</code>
+                                    <button 
+                                        onClick={copyUrl}
+                                        className={`p-2 rounded-xl transition-all ${copied ? 'bg-green-600 text-white' : 'bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white'}`}
+                                    >
+                                        {copied ? <Check className='w-4 h-4' /> : <Copy className='w-4 h-4' />}
+                                    </button>
+                                </div>
+                                <button 
+                                    onClick={() => setShowInviteModal(false)}
+                                    className='w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-sm font-bold text-gray-300 transition-all border border-white/5'
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Camera Filters Modal */}
+            <AnimatePresence>
+                {showFilters && (
+                    <div className='fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-[#1a1a1a] w-full max-w-sm rounded-[2.5rem] p-8 border border-white/10 shadow-2xl'
+                        >
+                            <h3 className='text-xl font-bold mb-6 flex items-center gap-3'>
+                                <Sparkles className='text-blue-500' />
+                                Visual Effects
+                            </h3>
+                            <div className='grid grid-cols-2 gap-3'>
+                                {[
+                                    { id: 'none', label: 'None' },
+                                    { id: 'grayscale', label: 'B&W' },
+                                    { id: 'sepia', label: 'Sepia' },
+                                    { id: 'blur-sm', label: 'Soft Blur' },
+                                    { id: 'brightness-125', label: 'Bright' },
+                                    { id: 'contrast-125', label: 'Contrast' }
+                                ].map(filter => (
+                                    <button 
+                                        key={filter.id}
+                                        onClick={() => {
+                                            setCurrentFilter(filter.id === 'none' ? '' : filter.id)
+                                            setShowFilters(false)
+                                        }}
+                                        className={`p-4 rounded-2xl border text-xs font-bold transition-all ${
+                                            (currentFilter === filter.id || (currentFilter === '' && filter.id === 'none'))
+                                            ? 'bg-blue-600 border-blue-600 text-white' 
+                                            : 'bg-white/5 border-white/5 text-gray-400 hover:bg-white/10'
+                                        }`}
+                                    >
+                                        {filter.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
 
-export default VideoMeetComponent;
-
-const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove }) => {
-    const ref = useRef()
-    const [stream, setStream] = useState(null)
-
-    useEffect(() => {
-        const handleStream = (remoteStream) => {
-            setStream(remoteStream)
-            if (ref.current) ref.current.srcObject = remoteStream
-        }
-        
-        peer.on("stream", handleStream)
-        
-        return () => {
-            peer.off("stream", handleStream)
-        }
-    }, [peer])
-
-    return (
-        <motion.div 
-            layout 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className='relative rounded-3xl overflow-hidden bg-[#222] border border-white/5 shadow-2xl group'
-        >
-            <video 
-                playsInline 
-                autoPlay 
-                ref={ref} 
-                className={`w-full h-full object-cover transition-opacity duration-500 ${stream ? 'opacity-100' : 'opacity-0'}`} 
-            />
-            
-            {!stream && (
-                <div className='absolute inset-0 flex flex-col items-center justify-center bg-[#2a2a2a] space-y-4'>
-                    <div className='w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center text-2xl font-bold animate-pulse uppercase'>
-                        {name.charAt(0)}
-                    </div>
-                    <p className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Connecting...</p>
-                </div>
-            )}
-
-            <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
-                <div className='w-1.5 h-1.5 bg-blue-500 rounded-full' />
-                <span className='text-[10px] font-bold text-gray-300 uppercase tracking-wider'>
-                    {name} {isRemoteHost && "(Host)"}
-                </span>
-                {handRaised && (
-                    <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className='bg-yellow-500 p-1 rounded-full'
-                    >
-                        <Hand className='w-2.5 h-2.5 text-black fill-black' />
-                    </motion.div>
-                )}
-            </div>
-
-            {isHost && (
-                <div className='absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0'>
-                    <button 
-                        onClick={onRemove}
-                        className='p-2 bg-red-600 hover:bg-red-700 backdrop-blur-md rounded-xl border border-white/10 text-white shadow-xl transition-all'
-                        title="Remove Participant"
-                    >
-                        <X className='w-4 h-4' />
-                    </button>
-                </div>
-            )}
-        </motion.div>
-    )
-}
+export default withAuth(VideoMeetComponent)

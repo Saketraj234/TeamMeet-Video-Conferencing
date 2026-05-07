@@ -26,6 +26,11 @@ export const connectToSocket = (server) => {
         console.log("SOMETHING CONNECTED")
 
         socket.on("join-call", (path, name) => {
+            if (connections[path] && connections[path].length >= 100) {
+                socket.emit("meeting-full");
+                return;
+            }
+
             if (lockedMeetings[path] && hosts[path] !== socket.id) {
                 socket.emit("meeting-locked");
                 return;
@@ -105,7 +110,7 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("mute-all", (path) => {
-            io.to(path).emit("mute-all")
+            socket.to(path).emit("mute-all")
         })
 
         socket.on("remove-user", (path, id) => {

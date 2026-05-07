@@ -5,23 +5,14 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { Buffer } from 'buffer';
 import process from 'process';
-import { ClerkProvider } from '@clerk/clerk-react';
 
 window.Buffer = Buffer;
 window.process = process;
 
-const PUBLISHABLE_KEY = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
-
-if (!PUBLISHABLE_KEY) {
-  throw new Error("Missing Publishable Key")
-}
-
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-      <App />
-    </ClerkProvider>
+    <App />
   </React.StrictMode>
 );
 
