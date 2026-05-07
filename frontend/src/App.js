@@ -9,30 +9,39 @@ import HomeComponent from './pages/home';
 import History from './pages/history';
 import ProfilePage from './pages/profile';
 
+import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+
 function App() {
   return (
     <div className="App">
-
       <Router>
-
         <ThemeProvider>
           <AuthProvider>
-
-
             <Routes>
-
               <Route path='/' element={<LandingPage />} />
-
               <Route path='/auth' element={<Authentication />} />
 
-              <Route path='/home' element={<HomeComponent />} />
-              <Route path='/history' element={<History />} />
-              <Route path='/profile' element={<ProfilePage />} />
-              <Route path='/:url' element={<VideoMeetComponent />} />
+              <Route path='/home' element={
+                <>
+                  <SignedIn><HomeComponent /></SignedIn>
+                  <SignedOut><RedirectToSignIn /></SignedOut>
+                </>
+              } />
+              <Route path='/history' element={
+                <>
+                  <SignedIn><History /></SignedIn>
+                  <SignedOut><RedirectToSignIn /></SignedOut>
+                </>
+              } />
+              <Route path='/:url' element={
+                <>
+                  <SignedIn><VideoMeetComponent /></SignedIn>
+                  <SignedOut><RedirectToSignIn /></SignedOut>
+                </>
+              } />
             </Routes>
           </AuthProvider>
         </ThemeProvider>
-
       </Router>
     </div>
   );

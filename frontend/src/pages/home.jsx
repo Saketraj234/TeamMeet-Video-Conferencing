@@ -6,15 +6,18 @@ import { useTheme } from '../contexts/ThemeContext'
 import { Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
+import { UserButton, useUser } from '@clerk/clerk-react'
+
 function HomeComponent() {
     const navigate = useNavigate()
+    const { user } = useUser()
     const [meetingCode, setMeetingCode] = useState("")
-    const [showScheduleModal, setShowScheduleModal] = useState(false)
-    const [showCreateModal, setShowCreateModal] = useState(false)
-    const [scheduleDate, setScheduleDate] = useState("")
-    const [scheduleTime, setScheduleTime] = useState("")
-    const { addToUserHistory, userData } = useContext(AuthContext)
+    // ... rest of state remains same
+    const { addToUserHistory } = useContext(AuthContext)
     const { isDark, toggleTheme } = useTheme()
+
+    // Replace userData?.name with user?.fullName
+    const userName = user?.fullName || user?.firstName || "User"
 
     const getGreeting = () => {
         const hour = new Date().getHours()
@@ -25,7 +28,9 @@ function HomeComponent() {
 
     const handleJoinMeeting = async () => {
         if (meetingCode.trim()) {
-            await addToUserHistory(meetingCode)
+            if (typeof addToUserHistory === 'function') {
+                await addToUserHistory(meetingCode)
+            }
             navigate(`/${meetingCode}`)
         }
     }
@@ -36,7 +41,10 @@ function HomeComponent() {
 
     const confirmCreate = async () => {
         const code = Math.random().toString(36).substring(2, 12)
-        await addToUserHistory(code)
+        // Check if addToUserHistory exists and is a function
+        if (typeof addToUserHistory === 'function') {
+            await addToUserHistory(code)
+        }
         setShowCreateModal(false)
         navigate(`/${code}`, { state: { fromCreate: true } })
     }
@@ -46,12 +54,15 @@ function HomeComponent() {
         const code = Math.random().toString(36).substring(2, 12)
         const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`)
         // Add to history with schedule
-        await addToUserHistory(code, scheduledAt)
+        if (typeof addToUserHistory === 'function') {
+            await addToUserHistory(code, scheduledAt)
+        }
         setShowScheduleModal(false)
         alert(`Meeting scheduled for ${scheduledAt.toLocaleString()}. Meeting code: ${code}`)
     }
 
     const handleLogout = () => {
+        // Use Clerk sign out if needed, or just let UserButton handle it
         localStorage.removeItem("token")
         navigate("/auth")
     }
@@ -82,27 +93,10 @@ function HomeComponent() {
                     >
                         <History className='w-5 h-5' />
                     </button>
-                    <button 
-                        onClick={() => navigate("/profile")}
-                        className='p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors flex items-center justify-center'
-                        title="Profile Settings"
-                    >
-                        {userData?.profileImg ? (
-                            <img src={userData.profileImg} alt="Profile" className='w-7 h-7 rounded-full object-cover' />
-                        ) : (
-                            <div className='w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold'>
-                                <User className='w-4 h-4' />
-                            </div>
-                        )}
-                    </button>
-                    <div className='h-8 w-[1px] bg-gray-200 dark:bg-white/10 mx-4' />
-                    <button 
-                        onClick={handleLogout}
-                        className='flex items-center gap-3 px-5 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors'
-                    >
-                        <LogOut className='w-4 h-4' />
-                        Logout
-                    </button>
+                    
+                    <div className='flex items-center gap-3 ml-2'>
+                        <UserButton afterSignOutUrl="/" />
+                    </div>
                 </div>
             </nav>
 
@@ -113,7 +107,7 @@ function HomeComponent() {
                         animate={{ opacity: 1, x: 0 }}
                     >
                         <div className='mb-4 flex items-center gap-3 bg-blue-600/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full w-fit text-sm font-bold animate-pulse'>
-                            <span>👋</span> {getGreeting()}, {userData?.name || "User"}
+                            <span>👋</span> {getGreeting()}, {userName}
                         </div>
                         <h2 className='text-4xl md:text-5xl font-bold leading-tight mb-6'>
                             Premium video meetings. <br />

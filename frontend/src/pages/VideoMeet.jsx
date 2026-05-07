@@ -13,17 +13,16 @@ import { AuthContext } from '../contexts/AuthContext'
 
 import withAuth from '../utils/withAuth'
 
+import { useUser } from '@clerk/clerk-react'
+
 function VideoMeetComponent() {
     const { url } = useParams()
     const navigate = useNavigate()
     const location = useLocation()
+    const { user } = useUser()
     const socketRef = useRef()
-    const localVideoRef = useRef()
-    const [peers, setPeers] = useState([])
-    const peersRef = useRef([])
-    const [participants, setParticipants] = useState([]) // Array of {id, name, isHost}
-    const participantsRef = useRef([])
-    const { userData } = useContext(AuthContext)
+    // ...
+    const userName = user?.fullName || user?.firstName || "Guest"
     const [micOn, setMicOn] = useState(true)
     const [videoOn, setVideoOn] = useState(true)
     const [showChat, setShowChat] = useState(false)
@@ -64,6 +63,12 @@ function VideoMeetComponent() {
     const [isLocked, setIsLocked] = useState(false)
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [waitingStatus, setWaitingStatus] = useState(null) // 'waiting', 'accepted', 'rejected'
+
+    const localVideoRef = useRef()
+    const [peers, setPeers] = useState([])
+    const peersRef = useRef([])
+    const [participants, setParticipants] = useState([]) // Array of {id, name, isHost}
+    const participantsRef = useRef([])
 
     const stopScreenShare = React.useCallback(() => {
         if (screenStreamRef.current) {
@@ -134,7 +139,7 @@ function VideoMeetComponent() {
                 socketRef.current = io(server)
 
                 if (showLobby === false) {
-                    socketRef.current.emit("join-call", url, userData.name)
+                    socketRef.current.emit("join-call", url, userName)
                 }
 
                 socketRef.current.on("user-joined", (joinerId, clients, usersList, hostId) => {
@@ -321,6 +326,7 @@ function VideoMeetComponent() {
                 })
 
                 socketRef.current.on("meeting-lock-status", (status) => {
+                    console.log("Lock status received:", status);
                     setIsLocked(status)
                     addNotification(`Meeting has been ${status ? 'locked' : 'unlocked'} by host.`)
                 })
@@ -516,7 +522,7 @@ function VideoMeetComponent() {
 
         if (whiteboardMode === 'text') {
             const text = prompt("Enter text to add to whiteboard:");
-            if (text) {
+            if (text && text.trim() !== "") {
                 const ctx = canvas.getContext('2d');
                 ctx.font = `${lineWidth * 5}px Arial`;
                 ctx.fillStyle = color;
@@ -524,7 +530,7 @@ function VideoMeetComponent() {
                 
                 socketRef.current.emit("whiteboard-draw", url, {
                     type: 'text',
-                    x, y, color, lineWidth, text
+                    x, y, color, lineWidth, text: text.trim()
                 });
             }
             return;
@@ -712,7 +718,7 @@ function VideoMeetComponent() {
                                     <h1 className='text-5xl font-black tracking-tighter mb-2 bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent'>
                                         Ready to join?
                                     </h1>
-                                    <p className='text-gray-500 font-medium'>Hello <span className='text-blue-400'>{userData?.name}</span>, your meeting is active.</p>
+                                    <p className='text-gray-500 font-medium'>Hello <span className='text-blue-400'>{userName}</span>, your meeting is active.</p>
                                 </motion.div>
 
                                 <motion.div 
@@ -758,8 +764,11 @@ function VideoMeetComponent() {
                                         </button>
                                         <button 
                                             onClick={() => {
+                                                console.log("Join clicked, socket state:", socketRef.current?.connected);
                                                 if (socketRef.current) {
-                                                    socketRef.current.emit("join-call", url, userData.name)
+                                                    socketRef.current.emit("join-call", url, userName)
+                                                } else {
+                                                    alert("Connection issue. Please refresh.")
                                                 }
                                             }}
                                             className='w-full sm:w-auto px-16 py-5 rounded-[1.5rem] bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-widest transition-all shadow-[0_20px_40px_rgba(37,99,235,0.3)] hover:shadow-[0_25px_50px_rgba(37,99,235,0.4)] hover:-translate-y-1 active:scale-95'
@@ -900,7 +909,7 @@ function VideoMeetComponent() {
                                     <div className='flex items-center gap-3 p-2 rounded-xl bg-blue-600/10 border border-blue-600/20'>
                                         <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold'>Me</div>
                                         <div className='flex flex-col min-w-0'>
-                                            <span className='text-xs font-bold text-blue-400 truncate'>{userData?.name}</span>
+                                            <span className='text-xs font-bold text-blue-400 truncate'>{userName}</span>
                                             <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
                                         </div>
                                     </div>
