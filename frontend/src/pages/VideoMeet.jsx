@@ -374,7 +374,7 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, showLobby, stopScreenShare, userData?.name, createPeer, addPeer])
+    }, [url, navigate, showLobby, stopScreenShare, userName, createPeer, addPeer])
 
     const toggleScreenShare = async () => {
         if (!isHost && !permissions.screenShare) {
