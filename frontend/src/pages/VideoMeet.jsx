@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useContext } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { io } from 'socket.io-client'
 import Peer from 'simple-peer'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
@@ -9,7 +9,6 @@ import {
 } from 'lucide-react'
 import server from '../environment'
 import { motion, AnimatePresence } from 'framer-motion'
-import { AuthContext } from '../contexts/AuthContext'
 
 import { useUser } from '@clerk/clerk-react'
 

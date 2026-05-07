@@ -7,9 +7,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import VideoMeetComponent from './pages/VideoMeet';
 import HomeComponent from './pages/home';
 import History from './pages/history';
-import ProfilePage from './pages/profile';
 
-import { ClerkProvider, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 
 function App() {
   return (
