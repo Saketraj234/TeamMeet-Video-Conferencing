@@ -125,6 +125,7 @@ function VideoMeetComponent() {
     const [waitingStatus, setWaitingStatus] = useState(null) // 'waiting', 'accepted', 'rejected'
     const [typingPos, setTypingPos] = useState(null)
     const [typingText, setTypingText] = useState("")
+    const [showWhiteboardParticipants, setShowWhiteboardParticipants] = useState(true)
 
     // Sync showChatRef with showChat state
     useEffect(() => {
@@ -772,8 +773,8 @@ function VideoMeetComponent() {
                                         <MessageSquare className='w-4 h-4' />
                                     </button>
                                     <button 
-                                        onClick={() => setShowHostPanel(!showHostPanel)}
-                                        className={`p-2 rounded-lg transition-all ${showHostPanel ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        onClick={() => setShowWhiteboardParticipants(!showWhiteboardParticipants)}
+                                        className={`p-2 rounded-lg transition-all ${showWhiteboardParticipants ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
                                         title="Toggle Participants"
                                     >
                                         <Users className='w-4 h-4' />
@@ -887,49 +888,51 @@ function VideoMeetComponent() {
                             </div>
 
                             {/* Right Side: Participants List */}
-                            <div className='w-72 border-l border-white/10 bg-black/20 flex flex-col'>
-                                <div className='p-4 border-b border-white/5 bg-white/5'>
-                                    <h4 className='text-xs font-black uppercase tracking-widest text-gray-500 flex items-center gap-2'>
-                                        <Users className='w-3.5 h-3.5' />
-                                        In Meeting ({peers.length + 1})
-                                    </h4>
-                                </div>
-                                <div className='flex-1 overflow-y-auto p-4 space-y-3'>
-                                    {/* Me */}
-                                    <div className='flex items-center gap-3 p-2 rounded-xl bg-blue-600/10 border border-blue-600/20'>
-                                        <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold'>Me</div>
-                                        <div className='flex flex-col min-w-0'>
-                                            <span className='text-xs font-bold text-blue-400 truncate'>{userData?.name}</span>
-                                            <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
+                            {showWhiteboardParticipants && (
+                                <div className='w-72 border-l border-white/10 bg-black/20 flex flex-col'>
+                                    <div className='p-4 border-b border-white/5 bg-white/5'>
+                                        <h4 className='text-xs font-black uppercase tracking-widest text-gray-500 flex items-center gap-2'>
+                                            <Users className='w-3.5 h-3.5' />
+                                            In Meeting ({peers.length + 1})
+                                        </h4>
+                                    </div>
+                                    <div className='flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar'>
+                                        {/* Me */}
+                                        <div className='flex items-center gap-3 p-2 rounded-xl bg-blue-600/10 border border-blue-600/20'>
+                                            <div className='w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[10px] font-bold'>Me</div>
+                                            <div className='flex flex-col min-w-0'>
+                                                <span className='text-xs font-bold text-blue-400 truncate'>{userData?.name}</span>
+                                                <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
+                                            </div>
+                                        </div>
+                                    {participants.filter(u => u.id !== socketRef.current?.id).map((p) => (
+                                        <div key={p.id} className='flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5'>
+                                            <div className='w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden'>
+                                                {p.profileImg ? <img src={p.profileImg} alt="" className='w-full h-full object-cover' /> : p.name?.charAt(0)}
+                                            </div>
+                                            <div className='flex flex-col min-w-0 flex-1'>
+                                                <span className='text-xs font-bold text-gray-300 truncate'>{p.name}</span>
+                                                <span className='text-[8px] uppercase tracking-tighter text-gray-500 font-black'>{p.isHost ? "Host" : "Participant"}</span>
+                                            </div>
+                                            {isHost && (
+                                                <button 
+                                                    onClick={() => removeParticipant(p.id)}
+                                                    className='p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all'
+                                                >
+                                                    <X className='w-3 h-3' />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    </div>
+                                    <div className='p-4 border-t border-white/5 bg-black/40'>
+                                        <div className='flex items-center justify-center gap-2 opacity-30'>
+                                            <Shield className='w-3 h-3' />
+                                            <span className='text-[8px] font-black uppercase tracking-[0.2em]'>Protected Session</span>
                                         </div>
                                     </div>
-                                {participants.filter(u => u.id !== socketRef.current?.id).map((p) => (
-                                    <div key={p.id} className='flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5'>
-                                        <div className='w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden'>
-                                            {p.profileImg ? <img src={p.profileImg} alt="" className='w-full h-full object-cover' /> : p.name?.charAt(0)}
-                                        </div>
-                                        <div className='flex flex-col min-w-0 flex-1'>
-                                            <span className='text-xs font-bold text-gray-300 truncate'>{p.name}</span>
-                                            <span className='text-[8px] uppercase tracking-tighter text-gray-500 font-black'>{p.isHost ? "Host" : "Participant"}</span>
-                                        </div>
-                                        {isHost && (
-                                            <button 
-                                                onClick={() => removeParticipant(p.id)}
-                                                className='p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all'
-                                            >
-                                                <X className='w-3 h-3' />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
                                 </div>
-                                <div className='p-4 border-t border-white/5 bg-black/40'>
-                                    <div className='flex items-center justify-center gap-2 opacity-30'>
-                                        <Shield className='w-3 h-3' />
-                                        <span className='text-[8px] font-black uppercase tracking-[0.2em]'>Protected Session</span>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
@@ -1206,7 +1209,7 @@ function VideoMeetComponent() {
                         initial={{ x: 400 }}
                         animate={{ x: 0 }}
                         exit={{ x: 400 }}
-                        className='fixed right-0 top-0 bottom-0 w-full max-w-sm bg-[#111] border-l border-white/5 z-[150] flex flex-col shadow-2xl'
+                        className='fixed right-0 top-0 bottom-0 w-full max-w-sm bg-[#111] border-l border-white/5 z-[300] flex flex-col shadow-2xl'
                     >
                         <div className='p-6 border-b border-white/5 flex items-center justify-between bg-white/5'>
                             <div className='flex items-center gap-3'>
