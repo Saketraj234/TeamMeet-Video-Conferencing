@@ -16,11 +16,22 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
     const videoRef = useRef()
 
     useEffect(() => {
-        peer.on("stream", (stream) => {
+        const handleStream = (stream) => {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream
             }
-        })
+        };
+
+        peer.on("stream", handleStream);
+
+        // Check if stream already exists
+        if (peer.streams && peer.streams[0]) {
+            handleStream(peer.streams[0]);
+        }
+
+        return () => {
+            peer.off("stream", handleStream);
+        };
     }, [peer])
 
     return (
@@ -570,7 +581,7 @@ function VideoMeetComponent() {
     };
 
     const draw = (e) => {
-        if (!isDrawing || !isHost) return;
+        if (!isDrawing) return;
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / canvas.width;
@@ -587,7 +598,6 @@ function VideoMeetComponent() {
     };
 
     const stopDrawing = () => {
-        if (!isHost) return;
         setIsDrawing(false);
         socketRef.current.emit("whiteboard-draw", url, { type: 'end' });
     };
@@ -785,28 +795,28 @@ function VideoMeetComponent() {
                                         <Type className='w-4 h-4' />
                                     </button>
                                 </div>
+                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                    {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
+                                        <button 
+                                            key={c}
+                                            onClick={() => setColor(c)}
+                                            className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
+                                            style={{ backgroundColor: c }}
+                                        />
+                                    ))}
+                                </div>
+                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                    <input 
+                                        type="range" 
+                                        min="1" 
+                                        max="20" 
+                                        value={lineWidth}
+                                        onChange={(e) => setLineWidth(parseInt(e.target.value))}
+                                        className='w-24 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
+                                    />
+                                </div>
                                 {isHost && (
                                     <>
-                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
-                                            {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
-                                                <button 
-                                                    key={c}
-                                                    onClick={() => setColor(c)}
-                                                    className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
-                                                    style={{ backgroundColor: c }}
-                                                />
-                                            ))}
-                                        </div>
-                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
-                                            <input 
-                                                type="range" 
-                                                min="1" 
-                                                max="20" 
-                                                value={lineWidth}
-                                                onChange={(e) => setLineWidth(parseInt(e.target.value))}
-                                                className='w-24 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
-                                            />
-                                        </div>
                                         <button 
                                             onClick={clearWhiteboard}
                                             className='p-3 bg-red-600/10 text-red-500 hover:bg-red-600/20 rounded-xl transition-all border border-red-600/20'
@@ -841,7 +851,7 @@ function VideoMeetComponent() {
                                     height={window.innerHeight - 150}
                                     className='w-full h-full'
                                 />
-                                {isHost && typingPos && (
+                                {typingPos && (
                                     <input
                                         autoFocus
                                         type="text"
