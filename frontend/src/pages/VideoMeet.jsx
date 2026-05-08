@@ -451,7 +451,7 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, userData?.name, createPeer, addPeer])
+    }, [url, navigate, userData?.name, createPeer, addPeer, showLobby])
 
     const toggleMic = () => {
         if (localStreamRef.current) {
@@ -765,92 +765,90 @@ function VideoMeetComponent() {
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
-                        className='fixed inset-4 z-[200] bg-[#1a1a1a] rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col'
+                        className='fixed inset-0 md:inset-4 z-[200] bg-[#1a1a1a] rounded-none md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col'
                     >
-                        <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
-                            <div className='flex items-center gap-4'>
-                                <div className='p-3 bg-blue-600/20 rounded-2xl'>
-                                    <WhiteboardIcon className='w-6 h-6 text-blue-500' />
+                        <div className='p-4 md:p-6 border-b border-white/5 flex justify-between items-center bg-white/5 flex-wrap gap-4'>
+                            <div className='flex items-center gap-2 md:gap-4'>
+                                <div className='p-2 md:p-3 bg-blue-600/20 rounded-xl md:rounded-2xl'>
+                                    <WhiteboardIcon className='w-5 h-5 md:w-6 md:h-6 text-blue-500' />
                                 </div>
                                 <div>
-                                    <h3 className='text-xl font-bold'>Collaborative Whiteboard</h3>
-                                    <p className='text-[10px] text-gray-500 uppercase tracking-widest mt-0.5'>
+                                    <h3 className='text-sm md:text-xl font-bold'>Whiteboard</h3>
+                                    <p className='text-[8px] md:text-[10px] text-gray-500 uppercase tracking-widest mt-0.5'>
                                         {isHost ? "You are presenting" : "Interactive Whiteboard"}
                                     </p>
                                 </div>
                             </div>
                             
-                            <div className='flex items-center gap-4'>
-                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                            <div className='flex items-center gap-2 md:gap-4 ml-auto'>
+                                <div className='flex items-center gap-1 md:gap-2 bg-black/20 p-1 md:p-2 rounded-lg md:rounded-xl border border-white/5'>
                                     <button 
                                         onClick={() => setShowChat(!showChat)}
-                                        className={`p-2 rounded-lg transition-all ${showChat ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        className={`p-1.5 md:p-2 rounded-lg transition-all ${showChat ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
                                         title="Toggle Chat"
                                     >
-                                        <MessageSquare className='w-4 h-4' />
+                                        <MessageSquare className='w-3.5 h-3.5 md:w-4 md:h-4' />
                                     </button>
                                     <button 
                                         onClick={() => setShowWhiteboardParticipants(!showWhiteboardParticipants)}
-                                        className={`p-2 rounded-lg transition-all ${showWhiteboardParticipants ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        className={`p-1.5 md:p-2 rounded-lg transition-all ${showWhiteboardParticipants ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
                                         title="Toggle Participants"
                                     >
-                                        <Users className='w-4 h-4' />
+                                        <Users className='w-3.5 h-3.5 md:w-4 md:h-4' />
                                     </button>
                                 </div>
-                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                <div className='flex items-center gap-1 md:gap-2 bg-black/20 p-1 md:p-2 rounded-lg md:rounded-xl border border-white/5'>
                                     <button 
                                         onClick={() => setWhiteboardMode('pencil')}
-                                        className={`p-2 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        className={`p-1.5 md:p-2 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
                                         title="Pencil Mode"
                                     >
-                                        <Pencil className='w-4 h-4' />
+                                        <Pencil className='w-3.5 h-3.5 md:w-4 md:h-4' />
                                     </button>
                                     <button 
                                         onClick={() => setWhiteboardMode('text')}
-                                        className={`p-2 rounded-lg transition-all ${whiteboardMode === 'text' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        className={`p-1.5 md:p-2 rounded-lg transition-all ${whiteboardMode === 'text' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
                                         title="Text Mode"
                                     >
-                                        <Type className='w-4 h-4' />
+                                        <Type className='w-3.5 h-3.5 md:w-4 md:h-4' />
                                     </button>
                                 </div>
-                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
-                                    {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
+                                <div className='hidden sm:flex items-center gap-1 md:gap-2 bg-black/20 p-1 md:p-2 rounded-lg md:rounded-xl border border-white/5'>
+                                    {['#3b82f6', '#ef4444', '#10b981', '#ffffff'].map(c => (
                                         <button 
                                             key={c}
                                             onClick={() => setColor(c)}
-                                            className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
+                                            className={`w-4 h-4 md:w-6 md:h-6 rounded-full border-2 transition-all ${color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
                                             style={{ backgroundColor: c }}
                                         />
                                     ))}
                                 </div>
-                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                <div className='hidden lg:flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
                                     <input 
                                         type="range" 
                                         min="1" 
                                         max="20" 
                                         value={lineWidth}
                                         onChange={(e) => setLineWidth(parseInt(e.target.value))}
-                                        className='w-24 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
+                                        className='w-16 md:w-24 h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600'
                                     />
                                 </div>
                                 {isHost && (
-                                    <>
-                                        <button 
-                                            onClick={clearWhiteboard}
-                                            className='p-3 bg-red-600/10 text-red-500 hover:bg-red-600/20 rounded-xl transition-all border border-red-600/20'
-                                            title="Clear All"
-                                        >
-                                            <Trash2 className='w-5 h-5' />
-                                        </button>
-                                    </>
+                                    <button 
+                                        onClick={clearWhiteboard}
+                                        className='p-2 md:p-3 bg-red-600/10 text-red-500 hover:bg-red-600/20 rounded-lg md:rounded-xl transition-all border border-red-600/20'
+                                        title="Clear All"
+                                    >
+                                        <Trash2 className='w-4 h-4 md:w-5 md:h-5' />
+                                    </button>
                                 )}
-                                <div className='h-8 w-[1px] bg-white/10 mx-2' />
+                                <div className='h-8 w-[1px] bg-white/10 mx-1 md:mx-2' />
                                 {isHost && (
                                     <button 
                                         onClick={toggleWhiteboard} 
-                                        className='p-3 hover:bg-white/5 rounded-xl transition-all'
+                                        className='p-2 md:p-3 hover:bg-white/5 rounded-lg md:rounded-xl transition-all'
                                     >
-                                        <X className='w-6 h-6 text-gray-400' />
+                                        <X className='w-5 h-5 md:w-6 md:h-6 text-gray-400' />
                                     </button>
                                 )}
                             </div>
@@ -858,15 +856,31 @@ function VideoMeetComponent() {
 
                         <div className='flex-1 flex relative bg-white/5 overflow-hidden'>
                             {/* Left Side: Canvas */}
-                            <div className='flex-1 relative cursor-crosshair'>
+                            <div className='flex-1 relative cursor-crosshair overflow-hidden'>
                                 <canvas 
                                     ref={canvasRef}
                                     onMouseDown={startDrawing}
                                     onMouseMove={draw}
                                     onMouseUp={stopDrawing}
                                     onMouseLeave={stopDrawing}
-                                    width={window.innerWidth * 0.75}
-                                    height={window.innerHeight - 150}
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        startDrawing({
+                                            clientX: touch.clientX,
+                                            clientY: touch.clientY,
+                                            stopPropagation: () => e.stopPropagation()
+                                        });
+                                    }}
+                                    onTouchMove={(e) => {
+                                        const touch = e.touches[0];
+                                        draw({
+                                            clientX: touch.clientX,
+                                            clientY: touch.clientY
+                                        });
+                                    }}
+                                    onTouchEnd={stopDrawing}
+                                    width={window.innerWidth}
+                                    height={window.innerHeight}
                                     className='w-full h-full'
                                 />
                                 {typingPos && (
@@ -956,7 +970,7 @@ function VideoMeetComponent() {
             </AnimatePresence>
 
             {/* Admission Requests Popup */}
-            <div className='fixed bottom-32 right-6 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
+            <div className='fixed bottom-24 md:bottom-32 right-0 md:right-6 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
                 <AnimatePresence>
                     {isHost && admissionRequests.map(req => (
                         <motion.div 
@@ -1062,10 +1076,10 @@ function VideoMeetComponent() {
 
             {/* Main Video Grid */}
             <div className='flex-1 relative p-6 overflow-y-auto custom-scrollbar'>
-                <div className={`grid gap-6 h-full w-full ${
+                <div className={`grid gap-4 md:gap-6 h-full w-full ${
                     peers.length === 0 ? 'grid-cols-1 max-w-4xl mx-auto' : 
                     peers.length === 1 ? 'grid-cols-1 md:grid-cols-2' : 
-                    'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
+                    'grid-cols-2 md:grid-cols-2 lg:grid-cols-3'
                 }`}>
                     {/* Local Video */}
                     <motion.div 
@@ -1133,97 +1147,97 @@ function VideoMeetComponent() {
             </div>
 
             {/* Toolbar */}
-            <div className='p-8 flex items-center justify-center relative'>
+            <div className='p-4 md:p-8 flex items-center justify-center relative'>
                 <motion.div 
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    className='flex items-center gap-4 bg-[#1a1a1a]/80 backdrop-blur-2xl px-8 py-4 rounded-[2.5rem] border border-white/5 shadow-2xl'
+                    className='flex items-center gap-2 md:gap-4 bg-[#1a1a1a]/80 backdrop-blur-2xl px-4 md:px-8 py-3 md:py-4 rounded-3xl md:rounded-[2.5rem] border border-white/5 shadow-2xl overflow-x-auto max-w-full custom-scrollbar'
                 >
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={toggleMic}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
                         >
-                            {micOn ? <Mic className='w-6 h-6' /> : <MicOff className='w-6 h-6' />}
+                            {micOn ? <Mic className='w-5 h-5 md:w-6 md:h-6' /> : <MicOff className='w-5 h-5 md:w-6 md:h-6' />}
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{micOn ? "Mute" : "Unmute"}</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{micOn ? "Mute" : "Unmute"}</span>
                     </div>
                     
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={toggleVideo}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
                         >
-                            {videoOn ? <Video className='w-6 h-6' /> : <VideoOff className='w-6 h-6' />}
+                            {videoOn ? <Video className='w-5 h-5 md:w-6 md:h-6' /> : <VideoOff className='w-5 h-5 md:w-6 md:h-6' />}
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{videoOn ? "Stop" : "Start"}</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{videoOn ? "Stop" : "Start"}</span>
                     </div>
 
-                    <div className='h-8 w-[1px] bg-white/10 mx-2' />
+                    <div className='h-8 w-[1px] bg-white/10 mx-1 md:mx-2 shrink-0' />
 
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={handleScreenShare}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${screenShareOn ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${screenShareOn ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Share className='w-6 h-6' />
+                            <Share className='w-5 h-5 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{screenShareOn ? "Stop" : "Share"}</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{screenShareOn ? "Stop" : "Share"}</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={toggleRaiseHand}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Hand className='w-6 h-6' />
+                            <Hand className='w-5 h-5 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Hand</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Hand</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={isRecording ? stopRecording : startRecording}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Circle className={`w-6 h-6 ${isRecording ? 'fill-current' : ''}`} />
+                            <Circle className={`w-5 h-5 md:w-6 md:h-6 ${isRecording ? 'fill-current' : ''}`} />
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{isRecording ? "Stop" : "Record"}</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{isRecording ? "Stop" : "Record"}</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={() => setShowChat(!showChat)}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <MessageSquare className='w-6 h-6' />
+                            <MessageSquare className='w-5 h-5 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Chat</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Chat</span>
                     </div>
 
                     {isHost && (
-                        <div className='flex flex-col items-center gap-1'>
+                        <div className='flex flex-col items-center gap-1 min-w-fit'>
                             <button 
                                 onClick={toggleWhiteboard}
-                                className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                                className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                                 title="Whiteboard"
                             >
-                                <WhiteboardIcon className='w-6 h-6' />
+                                <WhiteboardIcon className='w-5 h-5 md:w-6 md:h-6' />
                             </button>
-                            <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Board</span>
+                            <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Board</span>
                         </div>
                     )}
 
-                    <div className='h-8 w-[1px] bg-white/10 mx-2' />
+                    <div className='h-8 w-[1px] bg-white/10 mx-1 md:mx-2 shrink-0' />
 
-                    <div className='flex flex-col items-center gap-1'>
+                    <div className='flex flex-col items-center gap-1 min-w-fit'>
                         <button 
                             onClick={() => navigate("/home")}
-                            className='p-4 bg-red-600 hover:bg-red-700 text-white rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
+                            className='p-3 md:p-4 bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
                         >
-                            <PhoneOff className='w-6 h-6' />
+                            <PhoneOff className='w-5 h-5 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>End</span>
+                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>End</span>
                     </div>
                 </motion.div>
             </div>
@@ -1294,12 +1308,12 @@ function VideoMeetComponent() {
             {/* Admin Controls Panel */}
             <AnimatePresence>
                 {showHostPanel && (
-                    <div className='fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                    <div className='fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
                         <motion.div 
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
-                            className='bg-[#1a1a1a] w-full max-w-lg rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]'
+                            className='bg-[#1a1a1a] w-full max-w-lg rounded-[2rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]'
                         >
                             <div className='p-8 border-b border-white/5 bg-white/5 flex justify-between items-center'>
                                 <div className='flex items-center gap-4'>
