@@ -102,7 +102,7 @@ function VideoMeetComponent() {
     const [message, setMessage] = useState("")
     const [copied, setCopied] = useState(false)
     const [raiseHand, setRaiseHand] = useState(false)
-    const [handsRaised] = useState({})
+    const [handsRaised, setHandsRaised] = useState({})
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
     const isHostRef = useRef(false)
@@ -409,6 +409,10 @@ function VideoMeetComponent() {
                     setWaitingStatus('waiting')
                 })
 
+                socketRef.current.on("hand-raised", (id, status) => {
+                    setHandsRaised(prev => ({ ...prev, [id]: status }))
+                })
+
                 socketRef.current.on("admission-request", (id, name) => {
                     setAdmissionRequests(prev => {
                         if (prev.find(r => r.id === id)) return prev;
@@ -485,28 +489,63 @@ function VideoMeetComponent() {
     }
 
     const toggleRaiseHand = () => {
-        setRaiseHand(!raiseHand)
-        socketRef.current.emit("raise-hand", url, !raiseHand)
+        const newStatus = !raiseHand
+        setRaiseHand(newStatus)
+        socketRef.current.emit("hand-raised", url, newStatus)
     }
 
     const startRecording = async () => {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
-        mediaRecorderRef.current = new MediaRecorder(stream)
-        mediaRecorderRef.current.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunksRef.current.push(e.data)
+        try {
+            addNotification("Please select the meeting tab to start recording.");
+            const stream = await navigator.mediaDevices.getDisplayMedia({ 
+                video: { cursor: "always" }, 
+                audio: { echoCancellation: true, noiseSuppression: true } 
+            });
+            
+            mediaRecorderRef.current = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9,opus'
+            });
+
+            recordedChunksRef.current = [];
+            
+            mediaRecorderRef.current.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunksRef.current.push(e.data);
+            };
+
+            mediaRecorderRef.current.onstop = () => {
+                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `TeamMeet-Recording-${new Date().toLocaleString()}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+                
+                // Stop all tracks of the captured stream
+                stream.getTracks().forEach(track => track.stop());
+                addNotification("Recording saved to your downloads.");
+            };
+
+            // Handle manual stop from browser "Stop Sharing" button
+            stream.getVideoTracks()[0].onended = () => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                    stopRecording();
+                }
+            };
+
+            mediaRecorderRef.current.start(1000); // Collect data every second
+            setIsRecording(true);
+            addNotification("Recording started...");
+        } catch (err) {
+            console.error("Error starting recording:", err);
+            addNotification("Recording cancelled or failed.");
         }
-        mediaRecorderRef.current.onstop = () => {
-            const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `meeting-record-${Date.now()}.webm`
-            a.click()
-            recordedChunksRef.current = []
-        }
-        mediaRecorderRef.current.start()
-        setIsRecording(true)
-    }
+    };
 
     const stopRecording = () => {
         if (mediaRecorderRef.current) {
