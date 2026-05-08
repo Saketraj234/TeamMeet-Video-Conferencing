@@ -238,6 +238,16 @@ function VideoMeetComponent() {
                     addNotification(`Host updated: ${host?.name || 'Unknown'} is now the host`)
                 })
 
+                socketRef.current.on("receiving-signal", (data) => {
+                    const peer = addPeer(data.signal, data.callerID, userStream)
+                    const newPeerObj = {
+                        peerID: data.callerID,
+                        peer,
+                    }
+                    peersRef.current.push(newPeerObj)
+                    setPeers(prev => [...prev, newPeerObj])
+                })
+
                 socketRef.current.on("receiving-returned-signal", (data) => {
                     const item = peersRef.current.find((p) => p.peerID === data.id)
                     if (item) {
@@ -342,7 +352,10 @@ function VideoMeetComponent() {
                 })
 
                 socketRef.current.on("admission-request", (id, name) => {
-                    setAdmissionRequests(prev => [...prev, { id, name }])
+                    setAdmissionRequests(prev => {
+                        if (prev.find(r => r.id === id)) return prev;
+                        return [...prev, { id, name }];
+                    })
                     addNotification(`Admission request from ${name}`)
                 })
 
@@ -375,7 +388,7 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, showLobby, stopScreenShare, userData?.name, createPeer, addPeer])
+    }, [url, navigate, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
         if (localStreamRef.current) {
@@ -782,8 +795,11 @@ function VideoMeetComponent() {
                                         onChange={(e) => setTypingText(e.target.value)}
                                         onKeyDown={handleTypingSubmit}
                                         onBlur={() => {
-                                            setTypingPos(null);
-                                            setTypingText("");
+                                            // Only clear if the text is empty, otherwise let Enter handle it
+                                            if (typingText.trim() === "") {
+                                                setTypingPos(null);
+                                                setTypingText("");
+                                            }
                                         }}
                                         style={{
                                             position: 'absolute',
@@ -795,8 +811,12 @@ function VideoMeetComponent() {
                                             border: 'none',
                                             outline: 'none',
                                             fontFamily: 'Arial',
-                                            minWidth: '100px',
-                                            caretColor: color
+                                            minWidth: '200px',
+                                            caretColor: color,
+                                            zIndex: 1000,
+                                            padding: 0,
+                                            margin: 0,
+                                            lineHeight: 1
                                         }}
                                     />
                                 )}
@@ -843,7 +863,7 @@ function VideoMeetComponent() {
             </AnimatePresence>
 
             {/* Admission Requests Popup */}
-            <div className='fixed top-24 left-1/2 -translate-x-1/2 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
+            <div className='fixed top-24 right-6 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
                 <AnimatePresence>
                     {isHost && admissionRequests.map(req => (
                         <motion.div 
@@ -1017,19 +1037,25 @@ function VideoMeetComponent() {
                     animate={{ y: 0, opacity: 1 }}
                     className='flex items-center gap-4 bg-[#1a1a1a]/80 backdrop-blur-2xl px-8 py-4 rounded-[2.5rem] border border-white/5 shadow-2xl'
                 >
-                    <button 
-                        onClick={toggleMic}
-                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
-                    >
-                        {micOn ? <Mic className='w-6 h-6' /> : <MicOff className='w-6 h-6' />}
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={toggleMic}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                        >
+                            {micOn ? <Mic className='w-6 h-6' /> : <MicOff className='w-6 h-6' />}
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{micOn ? "Mute" : "Unmute"}</span>
+                    </div>
                     
-                    <button 
-                        onClick={toggleVideo}
-                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
-                    >
-                        {videoOn ? <Video className='w-6 h-6' /> : <VideoOff className='w-6 h-6' />}
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={toggleVideo}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                        >
+                            {videoOn ? <Video className='w-6 h-6' /> : <VideoOff className='w-6 h-6' />}
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{videoOn ? "Stop" : "Start"}</span>
+                    </div>
 
                     <div className='h-8 w-[1px] bg-white/10 mx-2' />
 

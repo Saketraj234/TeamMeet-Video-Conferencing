@@ -101,6 +101,14 @@ export const connectToSocket = (server) => {
             }
         }
 
+        socket.on("sending-signal", (payload) => {
+            io.to(payload.userToSignal).emit('receiving-signal', { signal: payload.signal, callerID: payload.callerID });
+        })
+
+        socket.on("returning-signal", (payload) => {
+            io.to(payload.callerID).emit('receiving-returned-signal', { signal: payload.signal, id: socket.id });
+        })
+
         socket.on("signal", (toId, message) => {
             io.to(toId).emit("signal", socket.id, message);
         })

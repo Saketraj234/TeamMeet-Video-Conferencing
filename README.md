@@ -165,12 +165,10 @@ npm start
 
 # 🔥 Upcoming Features
 
-- Meeting Recording
 - AI Noise Suppression
 - Virtual Backgrounds
 - Google Authentication
 - File Sharing
-- Meeting Scheduling
 - Live Captions
 
 ---

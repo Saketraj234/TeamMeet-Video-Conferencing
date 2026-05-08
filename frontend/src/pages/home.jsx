@@ -2,7 +2,10 @@ import React, { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import { Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User } from 'lucide-react'
+import { 
+    Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
+    Sparkles, Shield, Users, X, Square as WhiteboardIcon 
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
 
@@ -11,6 +14,7 @@ function HomeComponent() {
     const [meetingCode, setMeetingCode] = useState("")
     const [showScheduleModal, setShowScheduleModal] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showLearnMore, setShowLearnMore] = useState(false)
     const [scheduleDate, setScheduleDate] = useState("")
     const [scheduleTime, setScheduleTime] = useState("")
     const { addToUserHistory, userData } = useContext(AuthContext)
@@ -46,7 +50,7 @@ function HomeComponent() {
         const code = Math.random().toString(36).substring(2, 12)
         const scheduledAt = new Date(`${scheduleDate}T${scheduleTime}`)
         await addToUserHistory(code, scheduledAt)
-        setShowCreateModal(false)
+        setShowScheduleModal(false)
         alert(`Meeting scheduled for ${scheduledAt.toLocaleString()}. Meeting code: ${code}`)
     }
 
@@ -162,7 +166,7 @@ function HomeComponent() {
 
                     <div className='pt-8 border-t border-gray-100 dark:border-white/5'>
                         <p className='text-sm text-gray-500 dark:text-gray-400'>
-                            <span className='text-blue-600 hover:underline cursor-pointer'>Learn more</span> about TeamMeet
+                            <span onClick={() => setShowLearnMore(true)} className='text-blue-600 hover:underline cursor-pointer'>Learn more</span> about TeamMeet
                         </p>
                     </div>
                 </div>
@@ -196,6 +200,29 @@ function HomeComponent() {
                     </div>
                 </motion.div>
             </main>
+
+            {/* Footer */}
+            <footer className='border-t border-gray-100 dark:border-white/5 py-12 bg-gray-50 dark:bg-black/20 mt-12'>
+                <div className='max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-8'>
+                    <div className='flex items-center gap-2'>
+                        <div className='bg-blue-600 p-1.5 rounded-lg'>
+                            <Video className='text-white w-4 h-4' />
+                        </div>
+                        <span className='font-bold text-lg'>TeamMeet</span>
+                    </div>
+                    
+                    <div className='flex items-center gap-8 text-sm text-gray-500 dark:text-gray-400'>
+                        <span className='hover:text-blue-600 cursor-pointer transition-colors'>Privacy Policy</span>
+                        <span className='hover:text-blue-600 cursor-pointer transition-colors'>Terms of Service</span>
+                        <span className='hover:text-blue-600 cursor-pointer transition-colors'>Support</span>
+                        <span className='hover:text-blue-600 cursor-pointer transition-colors'>Contact Us</span>
+                    </div>
+
+                    <p className='text-sm text-gray-500 dark:text-gray-400'>
+                        © 2024 TeamMeet Inc. All rights reserved.
+                    </p>
+                </div>
+            </footer>
 
             {/* Create Meeting Modal */}
             <AnimatePresence>
@@ -282,6 +309,71 @@ function HomeComponent() {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Learn More Modal */}
+            <AnimatePresence>
+                {showLearnMore && (
+                    <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-white dark:bg-[#1a1a1a] w-full max-w-2xl rounded-3xl p-8 shadow-2xl border border-gray-100 dark:border-white/5 max-h-[80vh] overflow-y-auto custom-scrollbar'
+                        >
+                            <div className='flex justify-between items-center mb-8'>
+                                <h3 className='text-3xl font-black flex items-center gap-3'>
+                                    <Sparkles className='text-blue-600 w-8 h-8' />
+                                    About TeamMeet
+                                </h3>
+                                <button onClick={() => setShowLearnMore(false)} className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all'>
+                                    <X className='w-6 h-6 text-gray-400' />
+                                </button>
+                            </div>
+                            
+                            <div className='space-y-8'>
+                                <section className='space-y-4'>
+                                    <h4 className='text-xl font-bold text-blue-600'>Our Mission</h4>
+                                    <p className='text-gray-600 dark:text-gray-400 leading-relaxed'>
+                                        TeamMeet was built with a simple goal: to provide high-quality, secure, and accessible video conferencing for everyone. Whether you're hosting a professional business meeting or catching up with friends, we ensure a seamless experience.
+                                    </p>
+                                </section>
+
+                                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                                    <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                        <Shield className='w-8 h-8 text-green-500 mb-4' />
+                                        <h5 className='font-bold mb-2'>Secure by Design</h5>
+                                        <p className='text-sm text-gray-500'>End-to-end encryption and robust host controls keep your meetings private and safe.</p>
+                                    </div>
+                                    <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                        <Users className='w-8 h-8 text-blue-500 mb-4' />
+                                        <h5 className='font-bold mb-2'>100+ Participants</h5>
+                                        <p className='text-sm text-gray-500'>Host large-scale meetings without compromising on video or audio quality.</p>
+                                    </div>
+                                    <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                        <WhiteboardIcon className='w-8 h-8 text-purple-500 mb-4' />
+                                        <h5 className='font-bold mb-2'>Interactive Tools</h5>
+                                        <p className='text-sm text-gray-500'>Built-in collaborative whiteboard, chat, and screen sharing to enhance productivity.</p>
+                                    </div>
+                                    <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                        <Calendar className='w-8 h-8 text-orange-500 mb-4' />
+                                        <h5 className='font-bold mb-2'>Smart Scheduling</h5>
+                                        <p className='text-sm text-gray-500'>Easily schedule future meetings and manage your history with our intuitive dashboard.</p>
+                                    </div>
+                                </div>
+
+                                <section className='pt-6 border-t border-gray-100 dark:border-white/5'>
+                                    <button 
+                                        onClick={() => setShowLearnMore(false)}
+                                        className='w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg'
+                                    >
+                                        Got it, thanks!
+                                    </button>
+                                </section>
+                            </div>
                         </motion.div>
                     </div>
                 )}
