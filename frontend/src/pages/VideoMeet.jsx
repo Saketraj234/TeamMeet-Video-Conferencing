@@ -120,7 +120,7 @@ function VideoMeetComponent() {
         showChatRef.current = showChat
     }, [showChat])
 
-    const stopScreenShare = React.useCallback(() => {
+    /* const stopScreenShare = React.useCallback(() => {
         if (localStreamRef.current && screenShareOn) {
             const videoTrack = localStreamRef.current.getVideoTracks()[0];
             if (videoTrack) videoTrack.stop();
@@ -141,7 +141,7 @@ function VideoMeetComponent() {
                     setScreenShareOn(false);
                 });
         }
-    }, [screenShareOn]);
+    }, [screenShareOn]); */
 
     const createPeer = React.useCallback((userToSignal, callerID, stream) => {
         const peer = new Peer({
@@ -388,7 +388,7 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, userData?.name, createPeer, addPeer])
+    }, [url, navigate, userData?.name, createPeer, addPeer, showLobby])
 
     const toggleMic = () => {
         if (localStreamRef.current) {
