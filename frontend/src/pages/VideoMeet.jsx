@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AuthContext } from '../contexts/AuthContext'
 import withAuth from '../utils/withAuth'
 
-const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove }) => {
+const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemove, status }) => {
     const videoRef = useRef()
 
     useEffect(() => {
@@ -40,12 +40,20 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
             animate={{ opacity: 1, scale: 1 }}
             className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl transition-all hover:border-blue-500/50'
         >
-            <video 
-                ref={videoRef} 
-                autoPlay 
-                playsInline 
-                className='w-full h-full object-cover'
-            />
+            {status?.video ? (
+                <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    className='w-full h-full object-cover'
+                />
+            ) : (
+                <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
+                    <div className='w-24 h-24 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
+                        <span className='text-4xl font-black text-blue-500 uppercase'>{name?.charAt(0)}</span>
+                    </div>
+                </div>
+            )}
             <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500' />
             
             <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
@@ -417,6 +425,11 @@ function VideoMeetComponent() {
                 socketRef.current.on("admission-rejected", () => {
                     setWaitingStatus('rejected')
                 })
+
+                socketRef.current.on("user-status-updated", (id, status, usersList) => {
+                    setParticipants(usersList)
+                    participantsRef.current = usersList
+                })
             } catch (err) {
                 console.error("Initialization error:", err)
             }
@@ -438,19 +451,23 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, userData?.name, createPeer, addPeer, showLobby])
+    }, [url, navigate, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
         if (localStreamRef.current) {
-            localStreamRef.current.getAudioTracks()[0].enabled = !micOn
-            setMicOn(!micOn)
+            const newStatus = !micOn
+            localStreamRef.current.getAudioTracks()[0].enabled = newStatus
+            setMicOn(newStatus)
+            socketRef.current.emit("update-status", url, { mic: newStatus, video: videoOn })
         }
     }
 
     const toggleVideo = () => {
         if (localStreamRef.current) {
-            localStreamRef.current.getVideoTracks()[0].enabled = !videoOn
-            setVideoOn(!videoOn)
+            const newStatus = !videoOn
+            localStreamRef.current.getVideoTracks()[0].enabled = newStatus
+            setVideoOn(newStatus)
+            socketRef.current.emit("update-status", url, { mic: micOn, video: newStatus })
         }
     }
 
@@ -860,26 +877,26 @@ function VideoMeetComponent() {
                                         onChange={(e) => setTypingText(e.target.value)}
                                         onKeyDown={handleTypingSubmit}
                                         onBlur={() => {
-                                            // Only clear if the text is empty, otherwise let Enter handle it
                                             if (typingText.trim() === "") {
                                                 setTypingPos(null);
                                                 setTypingText("");
                                             }
                                         }}
+                                        onClick={(e) => e.stopPropagation()}
                                         style={{
                                             position: 'absolute',
                                             left: typingPos.x,
                                             top: typingPos.y - (lineWidth * 2.5),
                                             color: color,
                                             fontSize: `${lineWidth * 5}px`,
-                                            background: 'transparent',
-                                            border: 'none',
+                                            background: 'rgba(0,0,0,0.1)',
+                                            border: '1px dashed #3b82f6',
                                             outline: 'none',
                                             fontFamily: 'Arial',
                                             minWidth: '200px',
                                             caretColor: color,
                                             zIndex: 1000,
-                                            padding: 0,
+                                            padding: '4px',
                                             margin: 0,
                                             lineHeight: 1
                                         }}
@@ -939,7 +956,7 @@ function VideoMeetComponent() {
             </AnimatePresence>
 
             {/* Admission Requests Popup */}
-            <div className='fixed top-24 right-6 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
+            <div className='fixed bottom-32 right-6 z-[300] flex flex-col gap-3 w-full max-w-sm px-4'>
                 <AnimatePresence>
                     {isHost && admissionRequests.map(req => (
                         <motion.div 
@@ -1055,13 +1072,21 @@ function VideoMeetComponent() {
                         layout
                         className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border-2 border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.15)] transition-all'
                     >
-                        <video 
-                            ref={localVideoRef} 
-                            autoPlay 
-                            muted 
-                            playsInline 
-                            className={`w-full h-full object-cover ${currentFilter}`} 
-                        />
+                        {videoOn ? (
+                            <video 
+                                ref={localVideoRef} 
+                                autoPlay 
+                                muted 
+                                playsInline 
+                                className={`w-full h-full object-cover ${currentFilter}`} 
+                            />
+                        ) : (
+                            <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
+                                <div className='w-32 h-32 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
+                                    <span className='text-5xl font-black text-blue-500 uppercase'>{userData?.name?.charAt(0)}</span>
+                                </div>
+                            </div>
+                        )}
                         <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent' />
                         <div className='absolute bottom-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10'>
                             <div className='w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse' />
@@ -1100,6 +1125,7 @@ function VideoMeetComponent() {
                                 handRaised={handsRaised[peerObj.peerID]} 
                                 isHost={isHost}
                                 onRemove={() => removeParticipant(peerObj.peerID)}
+                                status={participant?.status}
                             />
                         )
                     })}

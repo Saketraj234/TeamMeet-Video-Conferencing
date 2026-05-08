@@ -9,6 +9,7 @@ let hosts = {} // To store host socket.id by path
 let whiteboardStates = {} // To store whiteboard drawings by path
 let whiteboardVisible = {} // To store whiteboard visibility status by path
 let lockedMeetings = {} // To store locked status by path
+let userStatus = {} // To store mic/video status by socket.id
 
 export const connectToSocket = (server) => {
     const io = new Server(server, {
@@ -71,13 +72,17 @@ export const connectToSocket = (server) => {
                 connections[path].push(socket.id)
             }
             names[socket.id] = name || "Guest"
+            if (!userStatus[socket.id]) {
+                userStatus[socket.id] = { mic: true, video: true }
+            }
 
             timeOnline[socket.id] = new Date();
 
             const usersInRoom = connections[path].map(id => ({ 
                 id, 
                 name: names[id],
-                isHost: id === hosts[path]
+                isHost: id === hosts[path],
+                status: userStatus[id]
             }))
             
             // Notify everyone in the room
@@ -151,6 +156,17 @@ export const connectToSocket = (server) => {
             io.to(path).emit("meeting-lock-status", status);
         })
 
+        socket.on("update-status", (path, status) => {
+            userStatus[socket.id] = status;
+            const usersInRoom = connections[path]?.map(id => ({ 
+                id, 
+                name: names[id],
+                isHost: id === hosts[path],
+                status: userStatus[id]
+            })) || [];
+            io.to(path).emit("user-status-updated", socket.id, status, usersInRoom);
+        })
+
         socket.on("chat-message", (data, sender) => {
             // Find room by socket.rooms
             const rooms = Array.from(socket.rooms);
@@ -189,7 +205,8 @@ export const connectToSocket = (server) => {
                         const usersInRoom = connections[path].map(id => ({ 
                             id, 
                             name: names[id],
-                            isHost: id === hosts[path]
+                            isHost: id === hosts[path],
+                            status: userStatus[id]
                         }))
 
                         io.to(path).emit('user-left', socket.id);
@@ -215,6 +232,7 @@ export const connectToSocket = (server) => {
             console.log("SOCKET DISCONNECTED:", socket.id);
             delete timeOnline[socket.id];
             delete names[socket.id];
+            delete userStatus[socket.id];
         })
 
 
