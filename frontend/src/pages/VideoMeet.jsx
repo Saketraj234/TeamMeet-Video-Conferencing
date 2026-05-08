@@ -102,7 +102,7 @@ function VideoMeetComponent() {
     const mediaRecorderRef = useRef(null)
     const localStreamRef = useRef(null)
     const [, setStream] = useState(null)
-    // const [screenShareOn, setScreenShareOn] = useState(false)
+    const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const canvasRef = useRef(null)
     const [isDrawing, setIsDrawing] = useState(false)
@@ -120,28 +120,53 @@ function VideoMeetComponent() {
         showChatRef.current = showChat
     }, [showChat])
 
-    /* const stopScreenShare = React.useCallback(() => {
-        if (localStreamRef.current && screenShareOn) {
-            const videoTrack = localStreamRef.current.getVideoTracks()[0];
-            if (videoTrack) videoTrack.stop();
-            
-            // Switch back to camera
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(camStream => {
-                    const camVideoTrack = camStream.getVideoTracks()[0];
-                    peersRef.current[0]?.peer?.replaceTrack(
+    const handleScreenShare = async () => {
+        if (!screenShareOn) {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const videoTrack = screenStream.getVideoTracks()[0];
+                
+                // Replace track for all peers
+                peersRef.current.forEach(p => {
+                    p.peer.replaceTrack(
+                        localStreamRef.current.getVideoTracks()[0],
                         videoTrack,
+                        localStreamRef.current
+                    );
+                });
+
+                videoTrack.onended = () => {
+                    stopScreenShare();
+                };
+
+                if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
+                setScreenShareOn(true);
+            } catch (err) {
+                console.error("Error sharing screen:", err);
+            }
+        } else {
+            stopScreenShare();
+        }
+    };
+
+    const stopScreenShare = () => {
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            .then(camStream => {
+                const camVideoTrack = camStream.getVideoTracks()[0];
+                
+                peersRef.current.forEach(p => {
+                    p.peer.replaceTrack(
+                        localStreamRef.current.getVideoTracks()[0],
                         camVideoTrack,
                         localStreamRef.current
                     );
-                    
-                    localStreamRef.current.removeTrack(videoTrack);
-                    localStreamRef.current.addTrack(camVideoTrack);
-                    if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
-                    setScreenShareOn(false);
                 });
-        }
-    }, [screenShareOn]); */
+
+                if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
+                localStreamRef.current = camStream;
+                setScreenShareOn(false);
+            });
+    };
 
     const createPeer = React.useCallback((userToSignal, callerID, stream) => {
         const peer = new Peer({
@@ -239,13 +264,26 @@ function VideoMeetComponent() {
                 })
 
                 socketRef.current.on("receiving-signal", (data) => {
+                    // console.log("Receiving signal from:", data.callerID);
                     const peer = addPeer(data.signal, data.callerID, userStream)
                     const newPeerObj = {
                         peerID: data.callerID,
                         peer,
                     }
+                    
+                    // Check if peer already exists in ref
+                    const existingPeer = peersRef.current.find(p => p.peerID === data.callerID);
+                    if (existingPeer) {
+                        // console.log("Peer already exists, signaling instead of adding new");
+                        existingPeer.peer.signal(data.signal);
+                        return;
+                    }
+
                     peersRef.current.push(newPeerObj)
-                    setPeers(prev => [...prev, newPeerObj])
+                    setPeers(prev => {
+                        if (prev.find(p => p.peerID === data.callerID)) return prev;
+                        return [...prev, newPeerObj];
+                    })
                 })
 
                 socketRef.current.on("receiving-returned-signal", (data) => {
@@ -479,7 +517,6 @@ function VideoMeetComponent() {
     }
 
     const startDrawing = (e) => {
-        if (!isHost) return;
         const canvas = canvasRef.current;
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / canvas.width;
@@ -491,6 +528,7 @@ function VideoMeetComponent() {
             return;
         }
 
+        if (!isHost) return;
         setIsDrawing(true);
         const ctx = canvas.getContext('2d');
         ctx.beginPath();
@@ -709,30 +747,46 @@ function VideoMeetComponent() {
                                 <div>
                                     <h3 className='text-xl font-bold'>Collaborative Whiteboard</h3>
                                     <p className='text-[10px] text-gray-500 uppercase tracking-widest mt-0.5'>
-                                        {isHost ? "You are presenting" : "Viewing Host's whiteboard"}
+                                        {isHost ? "You are presenting" : "Interactive Whiteboard"}
                                     </p>
                                 </div>
                             </div>
                             
                             <div className='flex items-center gap-4'>
+                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                    <button 
+                                        onClick={() => setShowChat(!showChat)}
+                                        className={`p-2 rounded-lg transition-all ${showChat ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        title="Toggle Chat"
+                                    >
+                                        <MessageSquare className='w-4 h-4' />
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowHostPanel(!showHostPanel)}
+                                        className={`p-2 rounded-lg transition-all ${showHostPanel ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        title="Toggle Participants"
+                                    >
+                                        <Users className='w-4 h-4' />
+                                    </button>
+                                </div>
+                                <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
+                                    <button 
+                                        onClick={() => setWhiteboardMode('pencil')}
+                                        className={`p-2 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        title="Pencil Mode"
+                                    >
+                                        <Pencil className='w-4 h-4' />
+                                    </button>
+                                    <button 
+                                        onClick={() => setWhiteboardMode('text')}
+                                        className={`p-2 rounded-lg transition-all ${whiteboardMode === 'text' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
+                                        title="Text Mode"
+                                    >
+                                        <Type className='w-4 h-4' />
+                                    </button>
+                                </div>
                                 {isHost && (
                                     <>
-                                        <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
-                                            <button 
-                                                onClick={() => setWhiteboardMode('pencil')}
-                                                className={`p-2 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
-                                                title="Pencil Mode"
-                                            >
-                                                <Pencil className='w-4 h-4' />
-                                            </button>
-                                            <button 
-                                                onClick={() => setWhiteboardMode('text')}
-                                                className={`p-2 rounded-lg transition-all ${whiteboardMode === 'text' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}
-                                                title="Text Mode"
-                                            >
-                                                <Type className='w-4 h-4' />
-                                            </button>
-                                        </div>
                                         <div className='flex items-center gap-2 bg-black/20 p-2 rounded-xl border border-white/5'>
                                             {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ffffff'].map(c => (
                                                 <button 
@@ -839,16 +893,25 @@ function VideoMeetComponent() {
                                             <span className='text-[8px] uppercase tracking-tighter text-blue-500/50 font-black'>{isHost ? "Host" : "Participant"}</span>
                                         </div>
                                     </div>
-                                    {/* Others */}
-                                    {participants.filter(u => u.id !== socketRef.current?.id).map((p) => (
-                                        <div key={p.id} className='flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5'>
-                                            <div className='w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase'>{p.name?.charAt(0)}</div>
-                                            <div className='flex flex-col min-w-0'>
-                                                <span className='text-xs font-bold text-gray-300 truncate'>{p.name}</span>
-                                                <span className='text-[8px] uppercase tracking-tighter text-gray-500 font-black'>{p.isHost ? "Host" : "Participant"}</span>
-                                            </div>
+                                {participants.filter(u => u.id !== socketRef.current?.id).map((p) => (
+                                    <div key={p.id} className='flex items-center gap-3 p-2 rounded-xl bg-white/5 border border-white/5'>
+                                        <div className='w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold uppercase overflow-hidden'>
+                                            {p.profileImg ? <img src={p.profileImg} alt="" className='w-full h-full object-cover' /> : p.name?.charAt(0)}
                                         </div>
-                                    ))}
+                                        <div className='flex flex-col min-w-0 flex-1'>
+                                            <span className='text-xs font-bold text-gray-300 truncate'>{p.name}</span>
+                                            <span className='text-[8px] uppercase tracking-tighter text-gray-500 font-black'>{p.isHost ? "Host" : "Participant"}</span>
+                                        </div>
+                                        {isHost && (
+                                            <button 
+                                                onClick={() => removeParticipant(p.id)}
+                                                className='p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-all'
+                                            >
+                                                <X className='w-3 h-3' />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
                                 </div>
                                 <div className='p-4 border-t border-white/5 bg-black/40'>
                                     <div className='flex items-center justify-center gap-2 opacity-30'>
@@ -1059,45 +1122,70 @@ function VideoMeetComponent() {
 
                     <div className='h-8 w-[1px] bg-white/10 mx-2' />
 
-                    <button 
-                        onClick={toggleRaiseHand}
-                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
-                    >
-                        <Hand className='w-6 h-6' />
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={handleScreenShare}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${screenShareOn ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                        >
+                            <Share className='w-6 h-6' />
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{screenShareOn ? "Stop" : "Share"}</span>
+                    </div>
 
-                    <button 
-                        onClick={isRecording ? stopRecording : startRecording}
-                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
-                    >
-                        <Circle className={`w-6 h-6 ${isRecording ? 'fill-current' : ''}`} />
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={toggleRaiseHand}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                        >
+                            <Hand className='w-6 h-6' />
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Hand</span>
+                    </div>
 
-                    <button 
-                        onClick={() => setShowChat(!showChat)}
-                        className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
-                    >
-                        <MessageSquare className='w-6 h-6' />
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={isRecording ? stopRecording : startRecording}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                        >
+                            <Circle className={`w-6 h-6 ${isRecording ? 'fill-current' : ''}`} />
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{isRecording ? "Stop" : "Record"}</span>
+                    </div>
+
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={() => setShowChat(!showChat)}
+                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                        >
+                            <MessageSquare className='w-6 h-6' />
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Chat</span>
+                    </div>
 
                     {isHost && (
-                        <button 
-                            onClick={toggleWhiteboard}
-                            className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
-                            title="Whiteboard"
-                        >
-                            <WhiteboardIcon className='w-6 h-6' />
-                        </button>
+                        <div className='flex flex-col items-center gap-1'>
+                            <button 
+                                onClick={toggleWhiteboard}
+                                className={`p-4 rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                                title="Whiteboard"
+                            >
+                                <WhiteboardIcon className='w-6 h-6' />
+                            </button>
+                            <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Board</span>
+                        </div>
                     )}
 
                     <div className='h-8 w-[1px] bg-white/10 mx-2' />
 
-                    <button 
-                        onClick={() => navigate("/home")}
-                        className='p-4 bg-red-600 hover:bg-red-700 text-white rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
-                    >
-                        <PhoneOff className='w-6 h-6' />
-                    </button>
+                    <div className='flex flex-col items-center gap-1'>
+                        <button 
+                            onClick={() => navigate("/home")}
+                            className='p-4 bg-red-600 hover:bg-red-700 text-white rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
+                        >
+                            <PhoneOff className='w-6 h-6' />
+                        </button>
+                        <span className='text-[10px] font-bold text-gray-500 uppercase tracking-widest'>End</span>
+                    </div>
                 </motion.div>
             </div>
 
