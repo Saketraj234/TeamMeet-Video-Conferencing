@@ -102,7 +102,7 @@ function VideoMeetComponent() {
     const mediaRecorderRef = useRef(null)
     const localStreamRef = useRef(null)
     const [, setStream] = useState(null)
-    const [screenShareOn, setScreenShareOn] = useState(false)
+    // const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const canvasRef = useRef(null)
     const [isDrawing, setIsDrawing] = useState(false)
