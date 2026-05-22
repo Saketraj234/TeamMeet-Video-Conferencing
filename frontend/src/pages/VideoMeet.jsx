@@ -19,6 +19,16 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
         const handleStream = (stream) => {
             if (videoRef.current) {
                 videoRef.current.srcObject = stream
+                // Use a direct play attempt
+                const playPromise = videoRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(e => {
+                        console.error("Autoplay prevented or error:", e);
+                        // Some mobile browsers require a user gesture to play video with sound,
+                        // but since these are usually muted (or we want them to play), 
+                        // we ensure they are muted first if autoplay fails.
+                    });
+                }
             }
         };
 
@@ -48,10 +58,10 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
                 ref={videoRef} 
                 autoPlay 
                 playsInline 
-                className={`w-full h-full object-cover ${!status?.video ? 'hidden' : ''}`}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${!status?.video ? 'opacity-0' : 'opacity-100'}`}
             />
             {!status?.video && (
-                <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
+                <div className='absolute inset-0 flex items-center justify-center bg-[#1a1a1a]'>
                     <div className='w-24 h-24 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
                         <span className='text-4xl font-black text-blue-500 uppercase'>{name?.charAt(0)}</span>
                     </div>
@@ -97,7 +107,9 @@ function VideoMeetComponent() {
     const participantsRef = useRef([])
     const { userData } = useContext(AuthContext)
     const [micOn, setMicOn] = useState(true)
+    const micOnRef = useRef(true)
     const [videoOn, setVideoOn] = useState(true)
+    const videoOnRef = useRef(true)
     const [showChat, setShowChat] = useState(false)
     const showChatRef = useRef(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
@@ -116,9 +128,22 @@ function VideoMeetComponent() {
         chat: true,
         screenShare: true
     })
+    const permissionsRef = useRef({
+        mic: true,
+        video: true,
+        chat: true,
+        screenShare: true
+    })
+
+    // Sync refs with state
+    useEffect(() => { micOnRef.current = micOn }, [micOn])
+    useEffect(() => { videoOnRef.current = videoOn }, [videoOn])
+    useEffect(() => { permissionsRef.current = permissions }, [permissions])
+    useEffect(() => { showChatRef.current = showChat }, [showChat])
+    useEffect(() => { isHostRef.current = isHost }, [isHost])
     const [showHostPanel, setShowHostPanel] = useState(false)
     const [showFilters, setShowFilters] = useState(false)
-    const [currentFilter, setCurrentFilter] = useState('none')
+    const [currentFilter, setCurrentFilter] = useState('')
     const [notifications, setNotifications] = useState([])
     const recordedChunksRef = useRef([])
     const mediaRecorderRef = useRef(null)
@@ -138,15 +163,14 @@ function VideoMeetComponent() {
     const [typingText, setTypingText] = useState("")
     const [showWhiteboardParticipants, setShowWhiteboardParticipants] = useState(true)
 
-    // Sync showChatRef with showChat state
-    useEffect(() => {
-        showChatRef.current = showChat
-    }, [showChat])
-
     // Ensure local video element gets the stream when it's toggled back on
     useEffect(() => {
         if (videoOn && localVideoRef.current && localStreamRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current;
+            const playPromise = localVideoRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(e => console.error("Local video play error:", e));
+            }
         }
     }, [videoOn]);
 
@@ -348,6 +372,24 @@ function VideoMeetComponent() {
                 socketRef.current.on("feature-toggled", (feature, status) => {
                     setPermissions(prev => ({ ...prev, [feature]: status }))
                     addNotification(`${feature} has been ${status ? 'enabled' : 'disabled'} by host.`)
+
+                    // Force mute/stop video if permission is removed and user is not host
+                    if (!isHostRef.current) {
+                        if (feature === 'mic' && !status) {
+                            if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
+                                localStreamRef.current.getAudioTracks()[0].enabled = false
+                                setMicOn(false)
+                                socketRef.current.emit("update-status", url, { mic: false, video: videoOnRef.current })
+                            }
+                        }
+                        if (feature === 'video' && !status) {
+                            if (localStreamRef.current && localStreamRef.current.getVideoTracks().length > 0) {
+                                localStreamRef.current.getVideoTracks()[0].enabled = false
+                                setVideoOn(false)
+                                socketRef.current.emit("update-status", url, { mic: micOnRef.current, video: false })
+                            }
+                        }
+                    }
                 })
 
                 socketRef.current.on("mute-all", () => {
@@ -355,7 +397,7 @@ function VideoMeetComponent() {
                         localStreamRef.current.getAudioTracks()[0].enabled = false
                         setMicOn(false)
                         // Notify server so others see the muted status
-                        socketRef.current.emit("update-status", url, { mic: false, video: videoOn })
+                        socketRef.current.emit("update-status", url, { mic: false, video: videoOnRef.current })
                         addNotification("Host has muted everyone's audio.")
                     }
                 })
@@ -474,24 +516,40 @@ function VideoMeetComponent() {
     }, [url, navigate, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
+        if (!isHost && !permissions.mic) {
+            addNotification("Microphone is disabled by host.")
+            return
+        }
+
         if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
-            const newStatus = !micOn
-            localStreamRef.current.getAudioTracks()[0].enabled = newStatus
-            setMicOn(newStatus)
-            if (socketRef.current) {
-                socketRef.current.emit("update-status", url, { mic: newStatus, video: videoOn })
-            }
+            const track = localStreamRef.current.getAudioTracks()[0]
+            setMicOn(prev => {
+                const newStatus = !prev
+                track.enabled = newStatus
+                if (socketRef.current) {
+                    socketRef.current.emit("update-status", url, { mic: newStatus, video: videoOnRef.current })
+                }
+                return newStatus
+            })
         }
     }
 
     const toggleVideo = () => {
+        if (!isHost && !permissions.video) {
+            addNotification("Camera is disabled by host.")
+            return
+        }
+
         if (localStreamRef.current && localStreamRef.current.getVideoTracks().length > 0) {
-            const newStatus = !videoOn
-            localStreamRef.current.getVideoTracks()[0].enabled = newStatus
-            setVideoOn(newStatus)
-            if (socketRef.current) {
-                socketRef.current.emit("update-status", url, { mic: micOn, video: newStatus })
-            }
+            const track = localStreamRef.current.getVideoTracks()[0]
+            setVideoOn(prev => {
+                const newStatus = !prev
+                track.enabled = newStatus
+                if (socketRef.current) {
+                    socketRef.current.emit("update-status", url, { mic: micOnRef.current, video: newStatus })
+                }
+                return newStatus
+            })
         }
     }
 
@@ -516,10 +574,10 @@ function VideoMeetComponent() {
 
     const startRecording = async () => {
         try {
-            addNotification("Please select the meeting tab to start recording.");
+            addNotification("To record the meeting, please select the 'Entire Screen' or 'Window' and make sure to check 'Share System Audio'.");
             const stream = await navigator.mediaDevices.getDisplayMedia({ 
                 video: { cursor: "always" }, 
-                audio: { echoCancellation: true, noiseSuppression: true } 
+                audio: true
             });
             
             mediaRecorderRef.current = new MediaRecorder(stream, {
@@ -1086,59 +1144,56 @@ function VideoMeetComponent() {
             </div>
 
             {/* Header */}
-            <div className='p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5'>
-                <div className='flex items-center gap-4'>
-                    <div className='flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5'>
+            <div className='p-3 md:p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-[150]'>
+                <div className='flex items-center gap-2 md:gap-4 min-w-0'>
+                    <div className='hidden sm:flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5'>
                         <div className='w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse' />
-                        <span className='text-[10px] font-black uppercase tracking-widest text-gray-400'>Live Session</span>
+                        <span className='text-[10px] font-black uppercase tracking-widest text-gray-400'>Live</span>
                     </div>
-                    <div className='h-4 w-[1px] bg-white/10' />
-                    <div className='flex items-center gap-2'>
-                        <Users className='w-4 h-4 text-blue-500' />
-                        <span className='text-sm font-bold text-gray-300'>{peers.length + 1} Participants</span>
+                    <div className='flex items-center gap-2 bg-black/40 px-2 md:px-3 py-1.5 rounded-full border border-white/5'>
+                        <Users className='w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500' />
+                        <span className='text-xs font-bold text-gray-300'>{peers.length + 1}</span>
                     </div>
                 </div>
 
-                <div className='flex items-center gap-2'>
+                <div className='flex items-center gap-1.5 md:gap-2'>
                     {isHost && (
                         <button 
                             onClick={toggleMeetingLock}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold transition-all ${isLocked ? 'bg-red-600 text-white shadow-lg shadow-red-600/20' : 'bg-green-600/10 text-green-500 border border-green-600/20 hover:bg-green-600/20'}`}
-                            title={isLocked ? "Unlock Meeting" : "Lock Meeting"}
+                            className={`p-2 rounded-xl transition-all ${isLocked ? 'bg-red-600 text-white' : 'bg-green-600/10 text-green-500 border border-green-600/20'}`}
+                            title={isLocked ? "Unlock" : "Lock"}
                         >
                             {isLocked ? <Lock className='w-3.5 h-3.5' /> : <Unlock className='w-3.5 h-3.5' />}
-                            <span className='hidden lg:inline'>{isLocked ? 'Meeting Locked' : 'Lock Meeting'}</span>
                         </button>
                     )}
 
                     {isHost && (
                         <button 
                             onClick={() => setShowHostPanel(true)}
-                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
+                            className='p-2 bg-blue-600 hover:bg-blue-700 rounded-xl transition-all text-white'
+                            title="Admin Controls"
                         >
                             <Shield className='w-3.5 h-3.5' />
-                            <span className='hidden md:inline'>Admin Controls</span>
                         </button>
                     )}
                     
-                    {isHost && (
-                        <button 
-                            onClick={() => setShowInviteModal(true)}
-                            className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 border border-blue-500/20'
-                        >
-                            <Share className='w-3.5 h-3.5' />
-                            <span className='hidden md:inline'>Invite Others</span>
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => setShowInviteModal(true)}
+                        className='flex items-center gap-2 px-3 md:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20'
+                    >
+                        <Share className='w-3.5 h-3.5' />
+                        <span className='hidden md:inline'>Invite</span>
+                    </button>
                 </div>
             </div>
 
             {/* Main Video Grid */}
             <div className='flex-1 relative p-6 overflow-y-auto custom-scrollbar'>
-                <div className={`grid gap-4 md:gap-6 h-full w-full ${
+                <div className={`grid gap-3 md:gap-6 h-full w-full content-center justify-center ${
                     peers.length === 0 ? 'grid-cols-1 max-w-4xl mx-auto' : 
                     peers.length === 1 ? 'grid-cols-1 md:grid-cols-2' : 
-                    'grid-cols-2 md:grid-cols-2 lg:grid-cols-3'
+                    peers.length === 2 ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3' :
+                    'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
                 }`}>
                     {/* Local Video */}
                     <motion.div 
@@ -1150,10 +1205,10 @@ function VideoMeetComponent() {
                             autoPlay 
                             muted 
                             playsInline 
-                            className={`w-full h-full object-cover ${currentFilter} ${(!videoOn && !screenShareOn) ? 'hidden' : ''}`} 
+                            className={`w-full h-full object-cover transition-opacity duration-300 ${currentFilter} ${(!videoOn && !screenShareOn) ? 'opacity-0' : 'opacity-100'}`} 
                         />
                         {!videoOn && !screenShareOn && (
-                            <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
+                            <div className='absolute inset-0 flex items-center justify-center bg-[#1a1a1a]'>
                                 <div className='w-32 h-32 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
                                     <span className='text-5xl font-black text-blue-500 uppercase'>{userData?.name?.charAt(0)}</span>
                                 </div>
@@ -1205,97 +1260,101 @@ function VideoMeetComponent() {
             </div>
 
             {/* Toolbar */}
-            <div className='p-4 md:p-8 flex items-center justify-center relative'>
+            <div className='p-2 md:p-8 flex items-center justify-center relative z-[150] w-full'>
                 <motion.div 
                     initial={{ y: 50, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    className='flex items-center gap-2 md:gap-4 bg-[#1a1a1a]/80 backdrop-blur-2xl px-4 md:px-8 py-3 md:py-4 rounded-3xl md:rounded-[2.5rem] border border-white/5 shadow-2xl overflow-x-auto max-w-full custom-scrollbar'
+                    className='flex items-center gap-2 md:gap-4 bg-[#1a1a1a]/90 backdrop-blur-2xl px-3 md:px-8 py-3 md:py-4 rounded-[1.5rem] md:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-x-auto max-w-[98vw] md:max-w-full no-scrollbar'
                 >
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={toggleMic}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${micOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'} ${(!isHost && !permissions.mic) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {micOn ? <Mic className='w-5 h-5 md:w-6 md:h-6' /> : <MicOff className='w-5 h-5 md:w-6 md:h-6' />}
+                            {micOn ? <Mic className='w-4 h-4 md:w-6 md:h-6' /> : <MicOff className='w-4 h-4 md:w-6 md:h-6' />}
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{micOn ? "Mute" : "Unmute"}</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>
+                            {(!isHost && !permissions.mic) ? "Off" : (micOn ? "Mute" : "Unmute")}
+                        </span>
                     </div>
                     
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={toggleVideo}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${videoOn ? 'bg-white/5 hover:bg-white/10 text-gray-300' : 'bg-red-600 text-white shadow-lg shadow-red-600/30'} ${(!isHost && !permissions.video) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            {videoOn ? <Video className='w-5 h-5 md:w-6 md:h-6' /> : <VideoOff className='w-5 h-5 md:w-6 md:h-6' />}
+                            {videoOn ? <Video className='w-4 h-4 md:w-6 md:h-6' /> : <VideoOff className='w-4 h-4 md:w-6 md:h-6' />}
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{videoOn ? "Stop" : "Start"}</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>
+                            {(!isHost && !permissions.video) ? "Off" : (videoOn ? "Stop" : "Start")}
+                        </span>
                     </div>
 
-                    <div className='h-8 w-[1px] bg-white/10 mx-1 md:mx-2 shrink-0' />
+                    <div className='h-6 md:h-8 w-[1px] bg-white/10 mx-0.5 md:mx-2 shrink-0' />
 
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={handleScreenShare}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${screenShareOn ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${screenShareOn ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Share className='w-5 h-5 md:w-6 md:h-6' />
+                            <Share className='w-4 h-4 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{screenShareOn ? "Stop" : "Share"}</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Share</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={toggleRaiseHand}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${raiseHand ? 'bg-yellow-500 text-black shadow-lg shadow-yellow-500/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Hand className='w-5 h-5 md:w-6 md:h-6' />
+                            <Hand className='w-4 h-4 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Hand</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Hand</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={isRecording ? stopRecording : startRecording}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${isRecording ? 'bg-red-600 text-white animate-pulse' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <Circle className={`w-5 h-5 md:w-6 md:h-6 ${isRecording ? 'fill-current' : ''}`} />
+                            <Circle className={`w-4 h-4 md:w-6 md:h-6 ${isRecording ? 'fill-current' : ''}`} />
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>{isRecording ? "Stop" : "Record"}</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Record</span>
                     </div>
 
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={() => setShowChat(!showChat)}
-                            className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                            className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${showChat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                         >
-                            <MessageSquare className='w-5 h-5 md:w-6 md:h-6' />
+                            <MessageSquare className='w-4 h-4 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Chat</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Chat</span>
                     </div>
 
                     {isHost && (
-                        <div className='flex flex-col items-center gap-1 min-w-fit'>
+                        <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                             <button 
                                 onClick={toggleWhiteboard}
-                                className={`p-3 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                                className={`p-2.5 md:p-4 rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 ${showWhiteboard ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                                 title="Whiteboard"
                             >
-                                <WhiteboardIcon className='w-5 h-5 md:w-6 md:h-6' />
+                                <WhiteboardIcon className='w-4 h-4 md:w-6 md:h-6' />
                             </button>
-                            <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Board</span>
+                            <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>Board</span>
                         </div>
                     )}
 
-                    <div className='h-8 w-[1px] bg-white/10 mx-1 md:mx-2 shrink-0' />
+                    <div className='h-6 md:h-8 w-[1px] bg-white/10 mx-0.5 md:mx-2 shrink-0' />
 
-                    <div className='flex flex-col items-center gap-1 min-w-fit'>
+                    <div className='flex flex-col items-center gap-1 min-w-[50px] md:min-w-fit'>
                         <button 
                             onClick={() => navigate("/home")}
-                            className='p-3 md:p-4 bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-95 shadow-lg shadow-red-600/30'
+                            className='p-2.5 md:p-4 bg-red-600 hover:bg-red-700 text-white rounded-xl md:rounded-[1.5rem] transition-all transform active:scale-90 shadow-lg shadow-red-600/30'
                         >
-                            <PhoneOff className='w-5 h-5 md:w-6 md:h-6' />
+                            <PhoneOff className='w-4 h-4 md:w-6 md:h-6' />
                         </button>
-                        <span className='text-[8px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>End</span>
+                        <span className='text-[7px] md:text-[10px] font-bold text-gray-500 uppercase tracking-widest'>End</span>
                     </div>
                 </motion.div>
             </div>
