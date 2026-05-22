@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Video, Users, Shield, Zap, ChevronRight, X, Github, Linkedin } from 'lucide-react'
 import { motion } from 'framer-motion'
 

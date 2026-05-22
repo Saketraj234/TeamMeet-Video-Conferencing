@@ -513,6 +513,7 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [url, navigate, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
