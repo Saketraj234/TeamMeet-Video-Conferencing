@@ -5,9 +5,9 @@ import Peer from 'simple-peer'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
     Mic, MicOff, Video, VideoOff, PhoneOff, Share, MessageSquare, 
-    Users, Plus, Shield, Zap, Sparkles, Hand, Circle, ChevronUp, 
-    X, Check, Lock, Unlock, Copy, Download, Pencil, Trash2, 
-    Type, ArrowRight, Home
+    Users, Hand, Circle, 
+    X, Check, Lock, Unlock, Copy, Pencil, Trash2, 
+    Type
 } from 'lucide-react'
 
 // Icon for Whiteboard
@@ -111,8 +111,6 @@ export default function VideoMeet() {
     const videoOnRef = useRef(true)
     const [showChat, setShowChat] = useState(false)
     const showChatRef = useRef(false)
-    const [showInviteModal, setShowInviteModal] = useState(false)
-    const [copied, setCopied] = useState(false)
     const [raiseHand, setRaiseHand] = useState(false)
     const [handsRaised, setHandsRaised] = useState({})
     const [isRecording, setIsRecording] = useState(false)
@@ -121,21 +119,16 @@ export default function VideoMeet() {
     const [showLobby, setShowLobby] = useState(!location.state?.fromCreate)
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
     const permissionsRef = useRef({ mic: true, video: true, chat: true, screenShare: true })
-    const [showHostPanel, setShowHostPanel] = useState(false)
-    const [showFilters, setShowFilters] = useState(false)
-    const [currentFilter, setCurrentFilter] = useState('')
     const [notifications, setNotifications] = useState([])
     const [waitingStatus, setWaitingStatus] = useState('none') // 'none', 'waiting', 'rejected'
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [isLocked, setIsLocked] = useState(false)
-    const [participants, setParticipants] = useState([])
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [whiteboardMode, setWhiteboardMode] = useState('pencil')
     const [color, setColor] = useState('#3b82f6')
     const [lineWidth, setLineWidth] = useState(5)
     const [isDrawing, setIsDrawing] = useState(false)
-    const [showWhiteboardParticipants, setShowWhiteboardParticipants] = useState(false)
 
     const socketRef = useRef()
     const localStreamRef = useRef()
@@ -270,10 +263,9 @@ export default function VideoMeet() {
             })
 
             socketRef.current.on("update-participants", (list) => {
-                setParticipants(list)
-                const me = list.find(u => u.id === socketRef.current.id)
-                if (me) setIsHost(me.isHost)
-            })
+                    const me = list.find(u => u.id === socketRef.current.id)
+                    if (me) setIsHost(me.isHost)
+                })
 
             socketRef.current.on("status-updated", (id, status) => {
                 setPeers(prev => prev.map(p => p.peerID === id ? { ...p, status } : p))
@@ -594,7 +586,6 @@ export default function VideoMeet() {
                             <div className='flex items-center gap-1.5 md:gap-4 ml-auto'>
                                 <div className='flex items-center gap-1 md:gap-2 bg-black/20 p-1 md:p-2 rounded-lg border border-white/5'>
                                     <button onClick={() => setShowChat(!showChat)} className={`p-1.5 rounded-lg transition-all ${showChat ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}><MessageSquare className='w-3.5 h-3.5' /></button>
-                                    <button onClick={() => setShowWhiteboardParticipants(!showWhiteboardParticipants)} className={`p-1.5 rounded-lg transition-all ${showWhiteboardParticipants ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}><Users className='w-3.5 h-3.5' /></button>
                                 </div>
                                 <div className='flex items-center gap-1 md:gap-2 bg-black/20 p-1 md:p-2 rounded-lg border border-white/5'>
                                     <button onClick={() => setWhiteboardMode('pencil')} className={`p-1.5 rounded-lg transition-all ${whiteboardMode === 'pencil' ? 'bg-blue-600 text-white' : 'hover:bg-white/5 text-gray-400'}`}><Pencil className='w-3.5 h-3.5' /></button>
@@ -621,10 +612,9 @@ export default function VideoMeet() {
                     {isHost && (
                         <>
                             <button onClick={toggleMeetingLock} className={`p-1.5 md:p-2 rounded-lg transition-all ${isLocked ? 'bg-red-600 text-white' : 'bg-green-600/10 text-green-500 border border-green-600/20'}`}>{isLocked ? <Lock className='w-3.5 h-3.5' /> : <Unlock className='w-3.5 h-3.5' />}</button>
-                            <button onClick={() => setShowHostPanel(true)} className='p-1.5 md:p-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white'><Shield className='w-3.5 h-3.5' /></button>
                         </>
                     )}
-                    <button onClick={() => setShowInviteModal(true)} className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><Share className='w-3 h-3 md:w-3.5 md:h-3.5' /><span className='hidden xs:inline'>Invite</span></button>
+                    <button onClick={() => { navigator.clipboard.writeText(window.location.href); addNotification("Link copied to clipboard!") }} className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><Share className='w-3 h-3 md:w-3.5 md:h-3.5' /><span className='hidden xs:inline'>Invite</span></button>
                 </div>
             </div>
 
