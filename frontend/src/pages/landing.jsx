@@ -89,9 +89,10 @@ export default function LandingPage() {
                 >
                     <div className='relative z-10 rounded-3xl overflow-hidden shadow-2xl border-8 border-[#222] bg-white/5 aspect-video md:aspect-square lg:aspect-video flex items-center justify-center'>
                         <img 
-                            src="https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b?auto=format&fit=crop&q=80&w=1000" 
+                            src="https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b?auto=format&fit=crop&q=60&w=800" 
                             alt="Meeting App Interface" 
                             className='object-cover w-full h-full'
+                            loading="eager"
                         />
                         <div className='absolute inset-0 bg-gradient-to-t from-black/60 to-transparent' />
                         <div className='absolute bottom-6 left-6 flex gap-2'>

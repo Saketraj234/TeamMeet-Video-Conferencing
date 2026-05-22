@@ -174,27 +174,27 @@ function HomeComponent() {
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className='flex-1'
+                    className='flex-1 w-full max-w-lg mx-auto md:max-w-none'
                 >
                     <div className='relative'>
-                        <div className='bg-gray-100 dark:bg-white/5 rounded-[2.5rem] p-8 aspect-square flex items-center justify-center overflow-hidden shadow-inner border border-gray-200 dark:border-white/10'>
-                            <div className='relative z-10 text-center space-y-6'>
-                                <div className='w-24 h-24 bg-white dark:bg-[#222] rounded-full flex items-center justify-center mx-auto shadow-md border border-gray-100 dark:border-white/5'>
-                                    <Video className='w-12 h-12 text-blue-600' />
+                        <div className='bg-gray-100 dark:bg-white/5 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 aspect-square flex items-center justify-center overflow-hidden shadow-inner border border-gray-200 dark:border-white/10'>
+                            <div className='relative z-10 text-center space-y-4 md:space-y-6'>
+                                <div className='w-16 h-16 md:w-24 md:h-24 bg-white dark:bg-[#222] rounded-full flex items-center justify-center mx-auto shadow-md border border-gray-100 dark:border-white/5'>
+                                    <Video className='w-8 h-8 md:w-12 md:h-12 text-blue-600' />
                                 </div>
                                 <div>
-                                    <h3 className='text-xl font-bold'>Your meeting is safe</h3>
-                                    <p className='text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-[200px]'>No one can join a meeting unless invited or admitted by the host.</p>
+                                    <h3 className='text-lg md:text-xl font-bold'>Your meeting is safe</h3>
+                                    <p className='text-[10px] md:text-sm text-gray-500 dark:text-gray-400 mt-1 md:mt-2 max-w-[150px] md:max-w-[200px] mx-auto'>No one can join a meeting unless invited or admitted by the host.</p>
                                 </div>
                             </div>
-                            <div className='absolute top-12 left-12 w-12 h-12 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=1" alt="" />
+                            <div className='absolute top-8 md:top-12 left-8 md:left-12 w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=1" alt="" loading="lazy" />
                             </div>
-                            <div className='absolute bottom-20 right-12 w-16 h-16 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=2" alt="" />
+                            <div className='absolute bottom-16 md:bottom-20 right-8 md:right-12 w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=2" alt="" loading="lazy" />
                             </div>
-                            <div className='absolute top-24 right-20 w-10 h-10 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=3" alt="" />
+                            <div className='absolute top-20 md:top-24 right-16 md:right-20 w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=3" alt="" loading="lazy" />
                             </div>
                         </div>
                     </div>
