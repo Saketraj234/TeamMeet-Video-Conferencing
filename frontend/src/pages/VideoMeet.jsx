@@ -181,14 +181,25 @@ export default function VideoMeet() {
         isInitializingRef.current = true
 
         const init = async () => {
-            // Initialize socket immediately
-            socketRef.current = io("https://video-conferencing-backend-f6d0.onrender.com")
+            // Initialize socket with better options for faster connection
+            socketRef.current = io("https://video-conferencing-backend-f6d0.onrender.com", {
+                transports: ["websocket"],
+                reconnectionAttempts: 5,
+                timeout: 10000
+            })
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
-                if (!showLobby || isJoiningRef.current) {
+                console.log("Socket connected:", socketRef.current.id)
+                // If user already clicked "Join Now" before connection, join now
+                if (isJoiningRef.current) {
                     socketRef.current.emit("join-call", url, userData.name)
                 }
+            })
+
+            socketRef.current.on("connect_error", (err) => {
+                console.error("Socket connection error:", err)
+                addNotification("Connection error. Retrying...")
             })
 
             socketRef.current.on("disconnect", () => {
@@ -226,6 +237,7 @@ export default function VideoMeet() {
             // Socket listeners
             socketRef.current.on("waiting-for-admission", () => {
                 setWaitingStatus('waiting')
+                setIsJoining(false)
             })
 
             socketRef.current.on("admission-rejected", () => {
@@ -235,6 +247,7 @@ export default function VideoMeet() {
 
             socketRef.current.on("admission-accepted", () => {
                 setWaitingStatus('none')
+                setIsJoining(false)
                 setShowLobby(false)
             })
 
@@ -246,6 +259,7 @@ export default function VideoMeet() {
             })
 
             socketRef.current.on("all-users", (users) => {
+                setIsJoining(false)
                 const newPeers = []
                 users.forEach(userID => {
                     const peer = createPeer(userID, socketRef.current.id, localStreamRef.current)
