@@ -112,8 +112,6 @@ export default function VideoMeet() {
     const [showChat, setShowChat] = useState(false)
     const showChatRef = useRef(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
-    const [messages, setMessages] = useState([])
-    const [message, setMessage] = useState("")
     const [copied, setCopied] = useState(false)
     const [raiseHand, setRaiseHand] = useState(false)
     const [handsRaised, setHandsRaised] = useState({})
@@ -138,8 +136,6 @@ export default function VideoMeet() {
     const [lineWidth, setLineWidth] = useState(5)
     const [isDrawing, setIsDrawing] = useState(false)
     const [showWhiteboardParticipants, setShowWhiteboardParticipants] = useState(false)
-    const [typingPos, setTypingPos] = useState(null)
-    const [typingText, setTypingText] = useState("")
 
     const socketRef = useRef()
     const localStreamRef = useRef()
@@ -284,9 +280,8 @@ export default function VideoMeet() {
             })
 
             socketRef.current.on("receive-message", (msg) => {
-                setMessages(prev => [...prev, msg])
-                if (!showChatRef.current) addNotification(`New message from ${msg.name}`)
-            })
+                    if (!showChatRef.current) addNotification(`New message from ${msg.name}`)
+                })
 
             socketRef.current.on("hand-toggled", (id, status) => {
                 setHandsRaised(prev => ({ ...prev, [id]: status }))
@@ -386,13 +381,6 @@ export default function VideoMeet() {
             localVideoRef.current.play().catch(e => console.error("Local video play error:", e));
         }
     }, [videoOn]);
-
-    const handleSendMessage = () => {
-        if (message.trim() && socketRef.current) {
-            socketRef.current.emit("send-message", url, { name: userData.name, message: message.trim() })
-            setMessage("")
-        }
-    }
 
     const toggleMic = () => {
         if (!isHost && !permissions.mic) {
@@ -523,7 +511,6 @@ export default function VideoMeet() {
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) / canvas.width;
         const y = (e.clientY - rect.top) / canvas.height;
-        if (whiteboardMode === 'text') { setTypingPos({ x: e.clientX - rect.left, y: e.clientY - rect.top, rawX: x, rawY: y }); setTypingText(""); return; }
         if (!isHost) return;
         setIsDrawing(true);
         const ctx = canvas.getContext('2d');
@@ -543,16 +530,6 @@ export default function VideoMeet() {
     };
 
     const stopDrawing = () => { setIsDrawing(false); socketRef.current.emit("whiteboard-draw", url, { type: 'end' }); };
-
-    const handleTypingSubmit = (e) => {
-        if (e.key === 'Enter' && typingText.trim() !== "" && typingPos) {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-            ctx.font = `${lineWidth * 5}px Arial`; ctx.fillStyle = color; ctx.fillText(typingText, typingPos.rawX * canvas.width, typingPos.rawY * canvas.height);
-            socketRef.current.emit("whiteboard-draw", url, { type: 'text', x: typingPos.rawX, y: typingPos.rawY, color, lineWidth, text: typingText.trim() });
-            setTypingPos(null); setTypingText("");
-        } else if (e.key === 'Escape') { setTypingPos(null); setTypingText(""); }
-    };
 
     if (showLobby) {
         return (
