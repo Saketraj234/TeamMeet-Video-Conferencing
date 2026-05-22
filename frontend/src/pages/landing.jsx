@@ -17,9 +17,12 @@ export default function LandingPage() {
                     <h1 className='text-2xl font-bold tracking-tight text-white'>TeamMeet</h1>
                 </div>
                 <div className='flex items-center gap-3'>
-                    <Link to="/auth" className='bg-blue-600 text-white px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95'>
-                        Get Started
-                    </Link>
+                    <button 
+                        onClick={() => navigate("/auth")}
+                        className='bg-blue-600 text-white px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95'
+                    >
+                        Login / Register
+                    </button>
                 </div>
             </nav>
 

@@ -1,9 +1,11 @@
 import React, { useState, useContext } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
-import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 
 export default function Authentication() {
+    const navigate = useNavigate()
     const [isLogin, setIsLogin] = useState(true)
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
@@ -35,7 +37,27 @@ export default function Authentication() {
     }
 
     return (
-        <div className='min-h-screen bg-[#111] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans transition-colors duration-300'>
+        <div className='min-h-screen bg-[#111] flex flex-col font-sans transition-colors duration-300'>
+            {/* Navigation */}
+            <nav className='flex items-center justify-between px-6 py-6 md:px-12 max-w-7xl mx-auto w-full'>
+                <div className='flex items-center gap-2 cursor-pointer' onClick={() => navigate("/")}>
+                    <div className='bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-600/20'>
+                        <Video className='text-white w-6 h-6' />
+                    </div>
+                    <h1 className='text-2xl font-bold tracking-tight text-white'>TeamMeet</h1>
+                </div>
+                <div className='flex items-center gap-3'>
+                    <button 
+                        onClick={() => navigate("/")}
+                        className='flex items-center gap-2 bg-white/5 text-white px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-white/10 transition-all border border-white/10 active:scale-95'
+                    >
+                        <Home className='w-4 h-4' />
+                        Home
+                    </button>
+                </div>
+            </nav>
+
+            <div className='flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
             <div className='sm:mx-auto sm:w-full sm:max-w-md'>
                 <div className='flex justify-center'>
                     <div className='bg-blue-600 p-3 rounded-2xl shadow-lg'>
