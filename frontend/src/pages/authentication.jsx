@@ -57,32 +57,32 @@ export default function Authentication() {
                 </div>
             </nav>
 
-            <div className='flex-1 flex flex-col justify-center py-4 sm:py-12 sm:px-6 lg:px-8'>
-            <div className='sm:mx-auto sm:w-full sm:max-w-md scale-[0.9] sm:scale-100'>
+            <div className='flex-1 flex flex-col justify-center py-6 px-4 sm:py-12 sm:px-6 lg:px-8'>
+            <div className='sm:mx-auto sm:w-full sm:max-w-md'>
                 <div className='flex justify-center'>
-                    <div className='bg-blue-600 p-2 rounded-xl shadow-lg'>
-                        <Video className='text-white w-6 h-6' />
+                    <div className='bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-600/20'>
+                        <Video className='text-white w-7 h-7' />
                     </div>
                 </div>
-                <h2 className='mt-4 text-center text-2xl font-extrabold text-white'>
-                    {isLogin ? 'Sign in' : 'Create account'}
+                <h2 className='mt-6 text-center text-3xl font-extrabold text-white tracking-tight'>
+                    {isLogin ? 'Sign in to TeamMeet' : 'Create your account'}
                 </h2>
-                <p className='mt-1 text-center text-xs text-gray-400'>
+                <p className='mt-2 text-center text-sm text-gray-400'>
                     {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
                     <button 
                         onClick={() => setIsLogin(!isLogin)}
-                        className='font-medium text-blue-600 hover:text-blue-500 transition-colors'
+                        className='font-bold text-blue-500 hover:text-blue-400 transition-colors'
                     >
-                        {isLogin ? 'Sign up' : 'Log in'}
+                        {isLogin ? 'Sign up for free' : 'Log in now'}
                     </button>
                 </p>
             </div>
 
-            <div className='mt-4 sm:mx-auto sm:w-full sm:max-w-md scale-[0.9] sm:scale-100 origin-top'>
+            <div className='mt-8 sm:mx-auto sm:w-full sm:max-w-md'>
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className='bg-[#1a1a1a] py-6 px-4 shadow-xl sm:rounded-2xl sm:px-10 border border-white/5'
+                    className='bg-[#1a1a1a]/80 backdrop-blur-xl py-8 px-6 shadow-2xl sm:rounded-[2rem] sm:px-10 border border-white/10'
                 >
                     <form className='space-y-4' onSubmit={handleSubmit}>
                         <AnimatePresence mode='wait'>
@@ -92,9 +92,9 @@ export default function Authentication() {
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
                                 >
-                                    <label className='block text-sm font-medium text-gray-300'>Full Name</label>
+                                    <label className='block text-sm font-semibold text-gray-300 mb-1.5'>Full Name</label>
                                     <div className='mt-1 relative'>
-                                        <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+                                        <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
                                             <User className='h-5 w-5 text-gray-400' />
                                         </div>
                                         <input
@@ -102,7 +102,7 @@ export default function Authentication() {
                                             required
                                             value={name}
                                             onChange={(e) => setName(e.target.value)}
-                                            className='appearance-none block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all bg-white/5 text-white'
+                                            className='appearance-none block w-full pl-12 pr-4 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                             placeholder='Enter your name'
                                         />
                                     </div>
@@ -115,17 +115,17 @@ export default function Authentication() {
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                             >
-                                <label className='block text-xs font-medium text-gray-300'>Email Address</label>
+                                <label className='block text-sm font-semibold text-gray-300 mb-1.5'>Email Address</label>
                                 <div className='mt-1 relative'>
-                                    <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                                        <Mail className='h-4 w-4 text-gray-400' />
+                                    <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
+                                        <Mail className='h-5 w-5 text-gray-400' />
                                     </div>
                                     <input
                                         type='email'
                                         required
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className='appearance-none block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all bg-white/5 text-white'
+                                        className='appearance-none block w-full pl-12 pr-4 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                         placeholder='you@example.com'
                                     />
                                 </div>
@@ -133,42 +133,42 @@ export default function Authentication() {
                         )}
 
                         <div>
-                            <label className='block text-xs font-medium text-gray-300'>Username</label>
+                            <label className='block text-sm font-semibold text-gray-300 mb-1.5'>Username</label>
                             <div className='mt-1 relative'>
-                                <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                                    <Mail className='h-4 w-4 text-gray-400' />
+                                <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
+                                    <User className='h-5 w-5 text-gray-400' />
                                 </div>
                                 <input
                                     type='text'
                                     required
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className='appearance-none block w-full pl-10 pr-3 py-2.5 border border-white/10 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all bg-white/5 text-white'
+                                    className='appearance-none block w-full pl-12 pr-4 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                     placeholder='username123'
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className='block text-xs font-medium text-gray-300'>Password</label>
+                            <label className='block text-sm font-semibold text-gray-300 mb-1.5'>Password</label>
                             <div className='mt-1 relative'>
-                                <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                                    <Lock className='h-4 w-4 text-gray-400' />
+                                <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
+                                    <Lock className='h-5 w-5 text-gray-400' />
                                 </div>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className='appearance-none block w-full pl-10 pr-10 py-2.5 border border-white/10 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all bg-white/5 text-white'
+                                    className='appearance-none block w-full pl-12 pr-12 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                     placeholder='••••••••'
                                 />
                                 <button
                                     type='button'
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className='absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-200 transition-colors'
+                                    className='absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white transition-colors'
                                 >
-                                    {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
+                                    {showPassword ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                                 </button>
                             </div>
                         </div>
@@ -216,38 +216,50 @@ export default function Authentication() {
             </div>
 
             {/* Footer */}
-            <footer className='py-6 px-6 md:px-12 bg-[#111] border-t border-white/5 mt-auto'>
-                <div className='max-w-7xl mx-auto flex flex-col items-center gap-4'>
-                    <div className='flex items-center gap-2'>
-                        <div className='bg-blue-600 p-1 rounded-lg'>
-                            <Video className='text-white w-3.5 h-3.5' />
+            <footer className='py-8 px-6 md:px-12 bg-[#0d0d0d] border-t border-white/5 mt-auto relative overflow-hidden'>
+                {/* Decorative background element */}
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent' />
+                
+                <div className='max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 relative z-10'>
+                    <div className='flex flex-col items-center md:items-start gap-4'>
+                        <div className='flex items-center gap-2.5 group cursor-pointer' onClick={() => navigate("/")}>
+                            <div className='bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform'>
+                                <Video className='text-white w-5 h-5' />
+                            </div>
+                            <h1 className='text-xl font-black tracking-tight text-white'>TeamMeet</h1>
                         </div>
-                        <h1 className='text-lg font-bold text-white'>TeamMeet</h1>
+                        <p className='text-gray-500 text-xs max-w-[200px] text-center md:text-left leading-relaxed'>
+                            Secure, high-quality video conferencing for everyone, everywhere.
+                        </p>
                     </div>
                     
-                    <p className='text-gray-500 text-[10px] md:text-xs'>
-                        © 2026 TeamMeet Inc. All rights reserved.
-                    </p>
+                    <div className='flex flex-col items-center gap-6'>
+                        <div className='flex gap-4'>
+                            {[
+                                { icon: <X className='w-5 h-5' />, url: 'https://x.com/saketraj235', label: 'Twitter' },
+                                { icon: <Github className='w-5 h-5' />, url: 'https://github.com/Saketraj234', label: 'GitHub' },
+                                { icon: <Linkedin className='w-5 h-5' />, url: 'https://www.linkedin.com/in/saket-raj62/', label: 'LinkedIn' }
+                            ].map((social, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => window.open(social.url)} 
+                                    className='p-3 bg-white/5 text-gray-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all duration-300 border border-white/5 shadow-xl'
+                                    title={social.label}
+                                >
+                                    {social.icon}
+                                </button>
+                            ))}
+                        </div>
+                        <div className='flex items-center gap-6 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest'>
+                            <span className='hover:text-blue-500 cursor-pointer transition-colors'>Privacy</span>
+                            <span className='hover:text-blue-500 cursor-pointer transition-colors'>Terms</span>
+                            <span className='hover:text-blue-500 cursor-pointer transition-colors'>Security</span>
+                        </div>
+                    </div>
 
-                    <div className='flex gap-4'>
-                        <button 
-                            onClick={() => window.open('https://x.com/saketraj235')} 
-                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
-                        >
-                            <X className='w-4 h-4' />
-                        </button>
-                        <button 
-                            onClick={() => window.open('https://github.com/Saketraj234')} 
-                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-all duration-300'
-                        >
-                            <Github className='w-4 h-4' />
-                        </button>
-                        <button 
-                            onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} 
-                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
-                        >
-                            <Linkedin className='w-4 h-4' />
-                        </button>
+                    <div className='flex flex-col items-center md:items-end gap-2'>
+                        <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
+                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
                     </div>
                 </div>
             </footer>

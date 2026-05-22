@@ -109,64 +109,66 @@ function HomeComponent() {
                 </div>
             </nav>
 
-            <main className='max-w-7xl mx-auto px-6 md:px-12 py-12 md:py-24 flex flex-col md:flex-row items-center gap-16'>
-                <div className='flex-1 space-y-10'>
+            <main className='max-w-7xl mx-auto px-6 md:px-12 py-10 md:py-24 flex flex-col lg:flex-row items-center gap-12 md:gap-16'>
+                <div className='flex-1 space-y-8 md:space-y-10 text-center lg:text-left'>
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                     >
-                        <div className='mb-4 flex items-center gap-3 bg-blue-600/10 text-blue-600 dark:text-blue-400 px-4 py-2 rounded-full w-fit text-sm font-bold animate-pulse'>
-                            <span>👋</span> {getGreeting()}, {userData?.name || "User"}
+                        <div className='mb-6 flex items-center gap-3 bg-blue-600/10 text-blue-600 dark:text-blue-400 px-5 py-2.5 rounded-full w-fit mx-auto lg:mx-0 text-sm font-bold border border-blue-500/20'>
+                            <Sparkles className='w-4 h-4 animate-spin-slow' />
+                            <span>{getGreeting()}, {userData?.name || "User"}</span>
                         </div>
-                        <h2 className='text-4xl md:text-5xl font-bold leading-tight mb-6'>
-                            Premium video meetings. <br />
-                            Now free for everyone.
+                        <h2 className='text-4xl md:text-6xl font-black leading-[1.1] mb-6 tracking-tight'>
+                            Premium video <br className='hidden md:block' />
+                            meetings for <span className='text-blue-600'>everyone.</span>
                         </h2>
-                        <p className='text-lg text-gray-500 dark:text-gray-400 max-w-lg'>
-                            We re-engineered the service we built for secure business meetings, TeamMeet, to make it free and available for all.
+                        <p className='text-lg md:text-xl text-gray-500 dark:text-gray-400 max-w-xl mx-auto lg:mx-0 leading-relaxed'>
+                            TeamMeet provides secure, high-quality video conferencing. Connect with your team from anywhere, on any device.
                         </p>
                     </motion.div>
 
-                    <div className='flex flex-col sm:flex-row items-center gap-3 md:gap-4'>
+                    <div className='flex flex-col sm:flex-row items-stretch lg:items-center gap-4'>
                         <button 
                             onClick={handleCreateMeeting}
-                            className='w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 md:py-3.5 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl'
+                            className='flex-1 sm:flex-none flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/25 active:scale-95'
                         >
                             <Plus className='w-5 h-5' />
                             New Meeting
                         </button>
 
-                        <button 
-                            onClick={() => setShowScheduleModal(true)}
-                            className='w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-white/5 text-blue-600 border border-blue-600 px-6 py-3 md:py-3.5 rounded-lg font-bold hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all'
-                        >
-                            <Calendar className='w-5 h-5' />
-                            Schedule
-                        </button>
+                        <div className='flex-1 flex flex-col sm:flex-row gap-3'>
+                            <div className='flex-1 flex items-center gap-3 bg-gray-50 dark:bg-white/5 border-2 border-transparent focus-within:border-blue-600/50 dark:focus-within:border-blue-500/50 rounded-2xl px-4 py-1 transition-all shadow-sm'>
+                                <Keyboard className='w-5 h-5 text-gray-400 shrink-0' />
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter meeting code"
+                                    value={meetingCode}
+                                    onChange={(e) => setMeetingCode(e.target.value)}
+                                    className='bg-transparent border-none outline-none py-3 w-full text-sm font-bold dark:text-white placeholder-gray-400'
+                                />
+                            </div>
 
-                        <div className='w-full sm:w-auto flex items-center gap-2 bg-white dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 rounded-lg px-3 py-1 focus-within:border-blue-600 transition-colors'>
-                            <Keyboard className='w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0' />
-                            <input 
-                                type="text" 
-                                placeholder="Enter a code or link"
-                                value={meetingCode}
-                                onChange={(e) => setMeetingCode(e.target.value)}
-                                className='bg-transparent border-none outline-none py-2 w-full sm:w-40 md:w-48 text-sm font-medium dark:text-white'
-                            />
+                            <button 
+                                disabled={!meetingCode.trim()}
+                                onClick={handleJoinMeeting}
+                                className='px-8 py-4 bg-white dark:bg-white/5 text-blue-600 dark:text-blue-400 font-black rounded-2xl border-2 border-blue-600/20 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-blue-600/10 transition-all disabled:opacity-30 disabled:grayscale active:scale-95'
+                            >
+                                Join
+                            </button>
                         </div>
-
-                        <button 
-                            disabled={!meetingCode.trim()}
-                            onClick={handleJoinMeeting}
-                            className='w-full sm:w-auto text-blue-600 font-bold px-4 py-2 disabled:text-gray-400 dark:disabled:text-gray-600 disabled:cursor-not-allowed hover:bg-blue-50 dark:hover:bg-blue-900/10 rounded-lg transition-colors text-center'
-                        >
-                            Join
-                        </button>
                     </div>
 
-                    <div className='pt-8 border-t border-gray-100 dark:border-white/5'>
-                        <p className='text-sm text-gray-500 dark:text-gray-400'>
-                            <span onClick={() => setShowLearnMore(true)} className='text-blue-600 hover:underline cursor-pointer'>Learn more</span> about TeamMeet
+                    <div className='pt-8 border-t border-gray-100 dark:border-white/5 flex items-center justify-center lg:justify-start gap-4'>
+                        <div className='flex -space-x-2'>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className='w-8 h-8 rounded-full border-2 border-white dark:border-[#111] bg-gray-200 overflow-hidden'>
+                                    <img src={`https://i.pravatar.cc/100?u=${i+10}`} alt="" />
+                                </div>
+                            ))}
+                        </div>
+                        <p className='text-sm text-gray-500 dark:text-gray-400 font-medium'>
+                            <span onClick={() => setShowLearnMore(true)} className='text-blue-600 hover:underline cursor-pointer font-bold'>Learn more</span> about TeamMeet
                         </p>
                     </div>
                 </div>
@@ -174,28 +176,34 @@ function HomeComponent() {
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className='flex-1 w-full max-w-lg mx-auto md:max-w-none'
+                    className='flex-1 w-full max-w-lg lg:max-w-none'
                 >
-                    <div className='relative'>
-                        <div className='bg-gray-100 dark:bg-white/5 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 aspect-square flex items-center justify-center overflow-hidden shadow-inner border border-gray-200 dark:border-white/10'>
-                            <div className='relative z-10 text-center space-y-4 md:space-y-6'>
-                                <div className='w-16 h-16 md:w-24 md:h-24 bg-white dark:bg-[#222] rounded-full flex items-center justify-center mx-auto shadow-md border border-gray-100 dark:border-white/5'>
-                                    <Video className='w-8 h-8 md:w-12 md:h-12 text-blue-600' />
+                    <div className='relative group'>
+                        <div className='bg-gradient-to-br from-gray-50 to-gray-100 dark:from-white/5 dark:to-white/[0.02] rounded-[2.5rem] md:rounded-[3.5rem] p-8 md:p-12 aspect-square flex items-center justify-center overflow-hidden shadow-2xl border border-gray-200 dark:border-white/10 relative'>
+                            {/* Decorative Blobs */}
+                            <div className='absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full blur-3xl' />
+                            <div className='absolute bottom-0 left-0 w-32 h-32 bg-indigo-600/5 rounded-full blur-3xl' />
+                            
+                            <div className='relative z-10 text-center space-y-6'>
+                                <div className='w-20 h-20 md:w-28 md:h-28 bg-white dark:bg-[#1a1a1a] rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl border border-gray-100 dark:border-white/10 group-hover:scale-110 transition-transform duration-500'>
+                                    <Video className='w-10 h-10 md:w-14 md:h-14 text-blue-600' />
                                 </div>
-                                <div>
-                                    <h3 className='text-lg md:text-xl font-bold'>Your meeting is safe</h3>
-                                    <p className='text-[10px] md:text-sm text-gray-500 dark:text-gray-400 mt-1 md:mt-2 max-w-[150px] md:max-w-[200px] mx-auto'>No one can join a meeting unless invited or admitted by the host.</p>
+                                <div className='space-y-2'>
+                                    <h3 className='text-xl md:text-2xl font-black'>Your meeting is safe</h3>
+                                    <p className='text-xs md:text-sm text-gray-500 dark:text-gray-400 max-w-[200px] md:max-w-[250px] mx-auto leading-relaxed'>No one can join a meeting unless invited or admitted by the host.</p>
                                 </div>
                             </div>
-                            <div className='absolute top-8 md:top-12 left-8 md:left-12 w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=1" alt="" loading="lazy" />
-                            </div>
-                            <div className='absolute bottom-16 md:bottom-20 right-8 md:right-12 w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=2" alt="" loading="lazy" />
-                            </div>
-                            <div className='absolute top-20 md:top-24 right-16 md:right-20 w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white dark:border-white/10 shadow-lg overflow-hidden'>
-                                <img src="https://i.pravatar.cc/150?u=3" alt="" loading="lazy" />
-                            </div>
+                            
+                            {/* Floating User Avatars */}
+                            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity }} className='absolute top-12 left-12 w-12 h-12 md:w-16 md:h-16 rounded-2xl border-4 border-white dark:border-[#1a1a1a] shadow-2xl overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=1" alt="" />
+                            </motion.div>
+                            <motion.div animate={{ y: [0, 10, 0] }} transition={{ duration: 5, repeat: Infinity }} className='absolute bottom-20 right-12 w-16 h-16 md:w-20 md:h-20 rounded-2xl border-4 border-white dark:border-[#1a1a1a] shadow-2xl overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=2" alt="" />
+                            </motion.div>
+                            <motion.div animate={{ x: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity }} className='absolute top-24 right-16 w-10 h-10 md:w-12 md:h-12 rounded-xl border-4 border-white dark:border-[#1a1a1a] shadow-2xl overflow-hidden'>
+                                <img src="https://i.pravatar.cc/150?u=3" alt="" />
+                            </motion.div>
                         </div>
                     </div>
                 </motion.div>
