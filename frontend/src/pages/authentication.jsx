@@ -213,6 +213,7 @@ export default function Authentication() {
                     </div>
                 </motion.div>
             </div>
+            </div>
         </div>
     )
 }
