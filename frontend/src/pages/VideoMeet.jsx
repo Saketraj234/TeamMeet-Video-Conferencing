@@ -22,17 +22,21 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
             }
         };
 
-        peer.on("stream", handleStream);
+        if (peer) {
+            peer.on("stream", handleStream);
 
-        // Check if stream already exists
-        if (peer.streams && peer.streams[0]) {
-            handleStream(peer.streams[0]);
+            // Check if stream already exists
+            if (peer.streams && peer.streams[0]) {
+                handleStream(peer.streams[0]);
+            }
         }
 
         return () => {
-            peer.off("stream", handleStream);
+            if (peer) {
+                peer.off("stream", handleStream);
+            }
         };
-    }, [peer])
+    }, [peer, status?.video])
 
     return (
         <motion.div 
@@ -40,14 +44,13 @@ const RemoteVideo = ({ peer, id, name, isRemoteHost, handRaised, isHost, onRemov
             animate={{ opacity: 1, scale: 1 }}
             className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border border-white/5 shadow-2xl transition-all hover:border-blue-500/50'
         >
-            {status?.video ? (
-                <video 
-                    ref={videoRef} 
-                    autoPlay 
-                    playsInline 
-                    className='w-full h-full object-cover'
-                />
-            ) : (
+            <video 
+                ref={videoRef} 
+                autoPlay 
+                playsInline 
+                className={`w-full h-full object-cover ${!status?.video ? 'hidden' : ''}`}
+            />
+            {!status?.video && (
                 <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
                     <div className='w-24 h-24 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
                         <span className='text-4xl font-black text-blue-500 uppercase'>{name?.charAt(0)}</span>
@@ -140,6 +143,13 @@ function VideoMeetComponent() {
         showChatRef.current = showChat
     }, [showChat])
 
+    // Ensure local video element gets the stream when it's toggled back on
+    useEffect(() => {
+        if (videoOn && localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+        }
+    }, [videoOn]);
+
     const handleScreenShare = async () => {
         if (!screenShareOn) {
             try {
@@ -161,6 +171,8 @@ function VideoMeetComponent() {
 
                 if (localVideoRef.current) localVideoRef.current.srcObject = screenStream;
                 setScreenShareOn(true);
+                // Notify others that video is now active (for screen share)
+                socketRef.current.emit("update-status", url, { mic: micOn, video: true });
             } catch (err) {
                 console.error("Error sharing screen:", err);
             }
@@ -185,13 +197,15 @@ function VideoMeetComponent() {
                 if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
                 localStreamRef.current = camStream;
                 setScreenShareOn(false);
+                // Restore original video status
+                socketRef.current.emit("update-status", url, { mic: micOn, video: videoOn });
             });
     };
 
     const createPeer = React.useCallback((userToSignal, callerID, stream) => {
         const peer = new Peer({
             initiator: true,
-            trickle: false,
+            trickle: true,
             stream,
         })
 
@@ -205,7 +219,7 @@ function VideoMeetComponent() {
     const addPeer = React.useCallback((incomingSignal, callerID, stream) => {
         const peer = new Peer({
             initiator: false,
-            trickle: false,
+            trickle: true,
             stream,
         })
 
@@ -340,6 +354,8 @@ function VideoMeetComponent() {
                     if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
                         localStreamRef.current.getAudioTracks()[0].enabled = false
                         setMicOn(false)
+                        // Notify server so others see the muted status
+                        socketRef.current.emit("update-status", url, { mic: false, video: videoOn })
                         addNotification("Host has muted everyone's audio.")
                     }
                 })
@@ -455,23 +471,27 @@ function VideoMeetComponent() {
             }
             isInitializingRef.current = false
         }
-    }, [url, navigate, userData?.name, createPeer, addPeer, showLobby])
+    }, [url, navigate, userData?.name, createPeer, addPeer])
 
     const toggleMic = () => {
-        if (localStreamRef.current) {
+        if (localStreamRef.current && localStreamRef.current.getAudioTracks().length > 0) {
             const newStatus = !micOn
             localStreamRef.current.getAudioTracks()[0].enabled = newStatus
             setMicOn(newStatus)
-            socketRef.current.emit("update-status", url, { mic: newStatus, video: videoOn })
+            if (socketRef.current) {
+                socketRef.current.emit("update-status", url, { mic: newStatus, video: videoOn })
+            }
         }
     }
 
     const toggleVideo = () => {
-        if (localStreamRef.current) {
+        if (localStreamRef.current && localStreamRef.current.getVideoTracks().length > 0) {
             const newStatus = !videoOn
             localStreamRef.current.getVideoTracks()[0].enabled = newStatus
             setVideoOn(newStatus)
-            socketRef.current.emit("update-status", url, { mic: micOn, video: newStatus })
+            if (socketRef.current) {
+                socketRef.current.emit("update-status", url, { mic: micOn, video: newStatus })
+            }
         }
     }
 
@@ -1125,15 +1145,14 @@ function VideoMeetComponent() {
                         layout
                         className='relative group aspect-video bg-gray-900 rounded-[2rem] overflow-hidden border-2 border-blue-500/50 shadow-[0_0_50px_rgba(59,130,246,0.15)] transition-all'
                     >
-                        {videoOn ? (
-                            <video 
-                                ref={localVideoRef} 
-                                autoPlay 
-                                muted 
-                                playsInline 
-                                className={`w-full h-full object-cover ${currentFilter}`} 
-                            />
-                        ) : (
+                        <video 
+                            ref={localVideoRef} 
+                            autoPlay 
+                            muted 
+                            playsInline 
+                            className={`w-full h-full object-cover ${currentFilter} ${(!videoOn && !screenShareOn) ? 'hidden' : ''}`} 
+                        />
+                        {!videoOn && !screenShareOn && (
                             <div className='w-full h-full flex items-center justify-center bg-[#1a1a1a]'>
                                 <div className='w-32 h-32 rounded-full bg-blue-600/20 flex items-center justify-center border border-blue-500/30'>
                                     <span className='text-5xl font-black text-blue-500 uppercase'>{userData?.name?.charAt(0)}</span>

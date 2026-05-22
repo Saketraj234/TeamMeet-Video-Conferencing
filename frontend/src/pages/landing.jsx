@@ -145,7 +145,7 @@ export default function LandingPage() {
                         <h1 className='text-xl font-bold text-white'>TeamMeet</h1>
                     </div>
                     <p className='text-gray-500 text-sm'>
-                        © 2026 TeamMeet.
+                        © 2026 TeamMeet Inc. All rights reserved.
                     </p>
                     <div className='flex gap-5'>
                         <button 

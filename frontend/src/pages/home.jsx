@@ -219,7 +219,7 @@ function HomeComponent() {
                     </div>
 
                     <p className='text-sm text-gray-500 dark:text-gray-400'>
-                        © 2024 TeamMeet Inc. All rights reserved.
+                        © 2026 TeamMeet Inc. All rights reserved.
                     </p>
                 </div>
             </footer>
