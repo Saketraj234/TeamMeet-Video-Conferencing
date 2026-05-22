@@ -125,6 +125,8 @@ export default function VideoMeet() {
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [socketConnected, setSocketConnected] = useState(false)
+    const [isJoining, setIsJoining] = useState(false)
+    const isJoiningRef = useRef(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [whiteboardMode, setWhiteboardMode] = useState('pencil')
     const color = '#3b82f6'
@@ -147,6 +149,7 @@ export default function VideoMeet() {
     useEffect(() => { permissionsRef.current = permissions }, [permissions])
     useEffect(() => { showChatRef.current = showChat }, [showChat])
     useEffect(() => { isHostRef.current = isHost }, [isHost])
+    useEffect(() => { isJoiningRef.current = isJoining }, [isJoining])
 
     const addNotification = useCallback((text) => {
         const id = Date.now()
@@ -183,7 +186,7 @@ export default function VideoMeet() {
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
-                if (!showLobby) {
+                if (!showLobby || isJoiningRef.current) {
                     socketRef.current.emit("join-call", url, userData.name)
                 }
             })
@@ -227,6 +230,7 @@ export default function VideoMeet() {
 
             socketRef.current.on("admission-rejected", () => {
                 setWaitingStatus('rejected')
+                setIsJoining(false)
             })
 
             socketRef.current.on("admission-accepted", () => {
@@ -533,11 +537,10 @@ export default function VideoMeet() {
     const stopDrawing = () => { setIsDrawing(false); socketRef.current.emit("whiteboard-draw", url, { type: 'end' }); };
 
     const handleJoinMeeting = () => {
-        if (!socketConnected) {
-            addNotification("Connecting to server, please wait...")
-            return
+        setIsJoining(true)
+        if (socketConnected && socketRef.current) {
+            socketRef.current.emit("join-call", url, userData.name)
         }
-        socketRef.current.emit("join-call", url, userData.name)
     }
 
     if (showLobby) {
@@ -583,10 +586,10 @@ export default function VideoMeet() {
                                         <button onClick={() => navigate("/home")} className='w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10'>Not Now</button>
                                         <button 
                                             onClick={handleJoinMeeting} 
-                                            disabled={!socketConnected}
-                                            className={`w-full sm:w-auto px-10 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] font-bold text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${socketConnected ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                                            disabled={isJoining}
+                                            className={`w-full sm:w-auto px-10 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] font-bold text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${isJoining ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}
                                         >
-                                            {socketConnected ? 'Join Meeting' : 'Connecting...'}
+                                            {isJoining ? 'Joining...' : 'Join Now'}
                                         </button>
                                     </>
                                 )}
