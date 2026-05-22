@@ -19,7 +19,7 @@ const WhiteboardIcon = ({ className }) => (
     </svg>
 );
 
-const RemoteVideo = ({ peer, name, status, handRaised, isHost, onRemove, isRemoteHost, id }) => {
+const RemoteVideo = ({ peer, name, status, handRaised, isHost, onRemove, isRemoteHost }) => {
     const videoRef = useRef()
     const [videoError, setVideoError] = useState(false)
 
@@ -126,8 +126,8 @@ export default function VideoMeet() {
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [whiteboardMode, setWhiteboardMode] = useState('pencil')
-    const [color, setColor] = useState('#3b82f6')
-    const [lineWidth, setLineWidth] = useState(5)
+    const color = '#3b82f6'
+    const lineWidth = 5
     const [isDrawing, setIsDrawing] = useState(false)
 
     const socketRef = useRef()
@@ -233,13 +233,13 @@ export default function VideoMeet() {
             })
 
             socketRef.current.on("all-users", (users) => {
-                const peers = []
+                const newPeers = []
                 users.forEach(userID => {
                     const peer = createPeer(userID, socketRef.current.id, localStreamRef.current)
                     peersRef.current.push({ peerID: userID, peer })
-                    peers.push({ peerID: userID, peer })
+                    newPeers.push({ peerID: userID, peer })
                 })
-                setPeers(peers)
+                setPeers(newPeers)
             })
 
             socketRef.current.on("user-joined", (payload) => {
