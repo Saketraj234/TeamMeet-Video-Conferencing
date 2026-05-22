@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
-import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home } from 'lucide-react'
+import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
@@ -214,6 +214,43 @@ export default function Authentication() {
                 </motion.div>
             </div>
             </div>
+
+            {/* Footer */}
+            <footer className='py-6 px-6 md:px-12 bg-[#111] border-t border-white/5 mt-auto'>
+                <div className='max-w-7xl mx-auto flex flex-col items-center gap-4'>
+                    <div className='flex items-center gap-2'>
+                        <div className='bg-blue-600 p-1 rounded-lg'>
+                            <Video className='text-white w-3.5 h-3.5' />
+                        </div>
+                        <h1 className='text-lg font-bold text-white'>TeamMeet</h1>
+                    </div>
+                    
+                    <p className='text-gray-500 text-[10px] md:text-xs'>
+                        © 2026 TeamMeet Inc. All rights reserved.
+                    </p>
+
+                    <div className='flex gap-4'>
+                        <button 
+                            onClick={() => window.open('https://x.com/saketraj235')} 
+                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
+                        >
+                            <X className='w-4 h-4' />
+                        </button>
+                        <button 
+                            onClick={() => window.open('https://github.com/Saketraj234')} 
+                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-white/10 hover:text-white transition-all duration-300'
+                        >
+                            <Github className='w-4 h-4' />
+                        </button>
+                        <button 
+                            onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} 
+                            className='p-2 bg-white/5 text-gray-400 rounded-lg hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
+                        >
+                            <Linkedin className='w-4 h-4' />
+                        </button>
+                    </div>
+                </div>
+            </footer>
         </div>
     )
 }
