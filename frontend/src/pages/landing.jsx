@@ -16,12 +16,18 @@ export default function LandingPage() {
                     </div>
                     <h1 className='text-2xl font-bold tracking-tight text-white'>TeamMeet</h1>
                 </div>
-                <div className='flex items-center gap-3'>
+                <div className='flex items-center gap-2 md:gap-4'>
                     <button 
                         onClick={() => navigate("/auth")}
-                        className='bg-blue-600 text-white px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95'
+                        className='text-gray-400 hover:text-white px-4 py-2 text-xs md:text-sm font-bold transition-colors'
                     >
-                        Login / Register
+                        Login
+                    </button>
+                    <button 
+                        onClick={() => navigate("/auth")}
+                        className='bg-blue-600 text-white px-5 md:px-7 py-2 md:py-3 rounded-full text-xs md:text-sm font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95 uppercase tracking-wider'
+                    >
+                        Join Now
                     </button>
                 </div>
             </nav>
@@ -50,20 +56,20 @@ export default function LandingPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className='flex flex-col sm:flex-row items-center gap-4'
+                        className='flex flex-col sm:flex-row items-stretch sm:items-center gap-4'
                     >
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='w-full sm:w-auto bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2 group'
+                            className='flex-1 sm:flex-none bg-blue-600 text-white px-8 py-4 md:py-5 rounded-2xl text-base md:text-lg font-black hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/25 flex items-center justify-center gap-3 group active:scale-95 uppercase tracking-tight'
                         >
-                            Start a Meeting
+                            Start Meeting
                             <ChevronRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
                         </button>
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='w-full sm:w-auto bg-white/5 text-white border-2 border-white/10 px-8 py-4 rounded-xl text-lg font-bold hover:bg-white/10 transition-all'
+                            className='flex-1 sm:flex-none bg-white/5 text-white border-2 border-white/10 px-8 py-4 md:py-5 rounded-2xl text-base md:text-lg font-black hover:bg-white/10 transition-all active:scale-95 uppercase tracking-tight'
                         >
-                            Join Meeting
+                            Join Now
                         </button>
                     </motion.div>
 
