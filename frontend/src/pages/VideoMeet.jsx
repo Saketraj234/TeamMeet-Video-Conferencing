@@ -124,6 +124,7 @@ export default function VideoMeet() {
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
+    const [socketConnected, setSocketConnected] = useState(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [whiteboardMode, setWhiteboardMode] = useState('pencil')
     const color = '#3b82f6'
@@ -177,6 +178,21 @@ export default function VideoMeet() {
         isInitializingRef.current = true
 
         const init = async () => {
+            // Initialize socket immediately
+            socketRef.current = io("https://video-conferencing-backend-f6d0.onrender.com")
+
+            socketRef.current.on("connect", () => {
+                setSocketConnected(true)
+                if (!showLobby) {
+                    socketRef.current.emit("join-call", url, userData.name)
+                }
+            })
+
+            socketRef.current.on("disconnect", () => {
+                setSocketConnected(false)
+            })
+
+            // Now handle media
             let stream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
@@ -204,14 +220,7 @@ export default function VideoMeet() {
                 localVideoRef.current.play().catch(e => console.error("Local video play error:", e))
             }
 
-            socketRef.current = io("https://video-conferencing-backend-f6d0.onrender.com")
-
-            socketRef.current.on("connect", () => {
-                if (!showLobby) {
-                    socketRef.current.emit("join-call", url, userData.name)
-                }
-            })
-
+            // Socket listeners
             socketRef.current.on("waiting-for-admission", () => {
                 setWaitingStatus('waiting')
             })
@@ -523,6 +532,14 @@ export default function VideoMeet() {
 
     const stopDrawing = () => { setIsDrawing(false); socketRef.current.emit("whiteboard-draw", url, { type: 'end' }); };
 
+    const handleJoinMeeting = () => {
+        if (!socketConnected) {
+            addNotification("Connecting to server, please wait...")
+            return
+        }
+        socketRef.current.emit("join-call", url, userData.name)
+    }
+
     if (showLobby) {
         return (
             <div className='min-h-[100dvh] bg-[#0a0a0a] flex items-center justify-center p-4 md:p-6 font-sans relative overflow-hidden'>
@@ -564,7 +581,13 @@ export default function VideoMeet() {
                                 ) : (
                                     <>
                                         <button onClick={() => navigate("/home")} className='w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10'>Not Now</button>
-                                        <button onClick={() => socketRef.current?.emit("join-call", url, userData.name)} className='w-full sm:w-auto px-10 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] bg-blue-600 text-white font-bold text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 active:scale-95 hover:bg-blue-700'>Join Meeting</button>
+                                        <button 
+                                            onClick={handleJoinMeeting} 
+                                            disabled={!socketConnected}
+                                            className={`w-full sm:w-auto px-10 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] font-bold text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${socketConnected ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20' : 'bg-gray-700 text-gray-400 cursor-not-allowed'}`}
+                                        >
+                                            {socketConnected ? 'Join Meeting' : 'Connecting...'}
+                                        </button>
                                     </>
                                 )}
                             </div>
