@@ -259,28 +259,54 @@ export default function VideoMeet() {
 
             socketRef.current.on("admission-request", (data) => {
                 if (isHostRef.current) {
-                    setAdmissionRequests(prev => [...prev, data])
+                    setAdmissionRequests(prev => {
+                        // Avoid duplicate requests
+                        if (prev.find(r => r.id === data.id)) return prev;
+                        return [...prev, data];
+                    })
                     addNotification(`Admission request from ${data.name}`)
                 }
             })
 
-            socketRef.current.on("all-users", (users) => {
+            socketRef.current.on("all-users", (usersList) => {
                 setIsJoining(false)
                 setShowLobby(false)
                 const newPeers = []
-                users.forEach(userID => {
-                    const peer = createPeer(userID, socketRef.current.id, localStreamRef.current)
-                    peersRef.current.push({ peerID: userID, peer })
-                    newPeers.push({ peerID: userID, peer })
+                usersList.forEach(userDataFromServer => {
+                    const peer = createPeer(userDataFromServer.id, socketRef.current.id, localStreamRef.current)
+                    peersRef.current.push({ peerID: userDataFromServer.id, peer })
+                    newPeers.push({ 
+                        peerID: userDataFromServer.id, 
+                        peer, 
+                        name: userDataFromServer.name, 
+                        status: userDataFromServer.status,
+                        isRemoteHost: userDataFromServer.isHost
+                    })
                 })
                 setPeers(newPeers)
             })
 
-            socketRef.current.on("user-joined", (payload) => {
+            socketRef.current.on("user-joined", (id, allConnections, usersList) => {
+                const newUser = usersList.find(u => u.id === id);
+                if (newUser) {
+                    const peer = addPeer(null, id, localStreamRef.current) // Peer will signal back
+                    peersRef.current.push({ peerID: id, peer })
+                    setPeers(prev => [...prev, { 
+                        peerID: id, 
+                        peer, 
+                        name: newUser.name, 
+                        status: newUser.status,
+                        isRemoteHost: newUser.isHost
+                    }])
+                    addNotification(`${newUser.name} joined the meeting`)
+                }
+            })
+
+            socketRef.current.on("receiving-signal", (payload) => {
                 const peer = addPeer(payload.signal, payload.callerID, localStreamRef.current)
                 peersRef.current.push({ peerID: payload.callerID, peer })
-                setPeers(prev => [...prev, { peerID: payload.callerID, peer, name: payload.name, status: payload.status }])
-                addNotification(`${payload.name} joined the meeting`)
+                // We need to find the name/status from somewhere, maybe all-users or update-participants
+                setPeers(prev => [...prev, { peerID: payload.callerID, peer }])
             })
 
             socketRef.current.on("receiving-returned-signal", (payload) => {
@@ -297,9 +323,12 @@ export default function VideoMeet() {
             })
 
             socketRef.current.on("update-participants", (list) => {
-                    const me = list.find(u => u.id === socketRef.current.id)
-                    if (me) setIsHost(me.isHost)
-                })
+                const me = list.find(u => u.id === socketRef.current.id)
+                if (me) {
+                    setIsHost(me.isHost)
+                    isHostRef.current = me.isHost
+                }
+            })
 
             socketRef.current.on("status-updated", (id, status) => {
                 setPeers(prev => prev.map(p => p.peerID === id ? { ...p, status } : p))
@@ -709,7 +738,7 @@ export default function VideoMeet() {
                             )}
                             <div className='absolute bottom-3 left-3 md:bottom-6 md:left-6 flex items-center gap-2 md:gap-3 px-3 py-1.5 md:px-4 md:py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 max-w-[85%]'>
                                 <div className='w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]' />
-                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name} (You)</span>
+                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name} (You) {isHost && "(Host)"}</span>
                                 {!micOn && <MicOff className='w-3.5 h-3.5 md:w-4 md:h-4 text-red-500' />}
                             </div>
                             {handsRaised[socketRef.current?.id] && (

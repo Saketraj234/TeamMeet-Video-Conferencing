@@ -20,12 +20,19 @@ function HomeComponent() {
     const { addToUserHistory, userData } = useContext(AuthContext)
     const { isDark, toggleTheme } = useTheme()
 
-    const getGreeting = () => {
-        const hour = new Date().getHours()
-        if (hour < 12) return "Good Morning"
-        if (hour < 18) return "Good Afternoon"
-        return "Good Evening"
-    }
+    const [greeting, setGreeting] = useState("")
+
+    React.useEffect(() => {
+        const updateGreeting = () => {
+            const hour = new Date().getHours()
+            if (hour < 12) setGreeting("Good Morning")
+            else if (hour < 18) setGreeting("Good Afternoon")
+            else setGreeting("Good Evening")
+        }
+        updateGreeting()
+        const interval = setInterval(updateGreeting, 60000) // Update every minute
+        return () => clearInterval(interval)
+    }, [])
 
     const handleJoinMeeting = async () => {
         if (meetingCode.trim()) {
@@ -117,7 +124,7 @@ function HomeComponent() {
                     >
                         <div className='mb-6 flex items-center gap-3 bg-blue-600/10 text-blue-600 dark:text-blue-400 px-5 py-2.5 rounded-full w-fit mx-auto lg:mx-0 text-sm font-bold border border-blue-500/20'>
                             <Sparkles className='w-4 h-4 animate-spin-slow' />
-                            <span>{getGreeting()}, {userData?.name || "User"}</span>
+                            <span>{greeting}, {userData?.name || "User"}</span>
                         </div>
                         <h2 className='text-4xl md:text-6xl font-black leading-[1.1] mb-6 tracking-tight'>
                             Premium video <br className='hidden md:block' />

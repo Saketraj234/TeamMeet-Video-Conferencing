@@ -87,13 +87,13 @@ export const connectToSocket = (server) => {
                 status: userStatus[id]
             }))
             
-            // Send all existing users to the new joiner
-            const otherUsers = connections[path].filter(id => id !== socket.id);
-            socket.emit("all-users", otherUsers);
+            // Send all existing users with their full data to the new joiner
+            const otherUsersData = usersInRoom.filter(u => u.id !== socket.id);
+            socket.emit("all-users", otherUsersData);
 
-            // Notify everyone in the room about the new joiner (this is handled by WebRTC signaling usually)
-            // But we can still send a notification
-            socket.to(path).emit("update-participants", usersInRoom);
+            // Notify everyone in the room about the new joiner
+            io.to(path).emit("update-participants", usersInRoom);
+            io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom);
 
             // Send existing whiteboard state to new joiner
             if (whiteboardVisible[path]) {
