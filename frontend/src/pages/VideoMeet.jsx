@@ -7,7 +7,7 @@ import {
     Mic, MicOff, Video, VideoOff, PhoneOff, Share, MessageSquare, 
     Users, Hand, Circle, 
     X, Check, Lock, Unlock, Copy, Pencil, Trash2, 
-    Type, Shield, Settings, Info, UserPlus, Send
+    Type, Shield, Info, UserPlus, Send
 } from 'lucide-react'
 
 import server from '../environment'
