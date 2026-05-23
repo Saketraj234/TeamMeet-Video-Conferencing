@@ -32,6 +32,8 @@ export const connectToSocket = (server) => {
                 return;
             }
 
+            names[socket.id] = name || "Guest";
+
             if (lockedMeetings[path] && hosts[path] !== socket.id) {
                 socket.emit("meeting-locked");
                 return;
@@ -39,7 +41,7 @@ export const connectToSocket = (server) => {
 
             // If meeting has a host and it's not the joiner, they must wait for admission
             if (hosts[path] && hosts[path] !== socket.id) {
-                io.to(hosts[path]).emit("admission-request", socket.id, name);
+                io.to(hosts[path]).emit("admission-request", { id: socket.id, name: names[socket.id] });
                 socket.emit("waiting-for-admission");
                 return;
             }
@@ -85,8 +87,13 @@ export const connectToSocket = (server) => {
                 status: userStatus[id]
             }))
             
-            // Notify everyone in the room
-            io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom, hosts[path])
+            // Send all existing users to the new joiner
+            const otherUsers = connections[path].filter(id => id !== socket.id);
+            socket.emit("all-users", otherUsers);
+
+            // Notify everyone in the room about the new joiner (this is handled by WebRTC signaling usually)
+            // But we can still send a notification
+            socket.to(path).emit("update-participants", usersInRoom);
 
             // Send existing whiteboard state to new joiner
             if (whiteboardVisible[path]) {
@@ -118,16 +125,16 @@ export const connectToSocket = (server) => {
             io.to(toId).emit("signal", socket.id, message);
         })
 
-        socket.on("hand-raised", (path, status) => {
-            io.to(path).emit("hand-raised", socket.id, status)
+        socket.on("toggle-hand", (path, status) => {
+            io.to(path).emit("hand-toggled", socket.id, status)
         })
 
         socket.on("mute-all", (path) => {
             socket.to(path).emit("mute-all")
         })
 
-        socket.on("remove-user", (path, id) => {
-            io.to(id).emit("remove-user", id)
+        socket.on("remove-participant", (path, id) => {
+            io.to(id).emit("removed-from-meeting")
         })
 
         socket.on("toggle-feature", (path, feature, status) => {
@@ -137,37 +144,31 @@ export const connectToSocket = (server) => {
         socket.on("whiteboard-toggle", (path, status) => {
             whiteboardVisible[path] = status;
             if (!status) delete whiteboardStates[path]; // Clear state when closed
-            io.to(path).emit("whiteboard-toggle", status)
+            io.to(path).emit("whiteboard-toggled", status)
         })
 
         socket.on("whiteboard-draw", (path, data) => {
             if (!whiteboardStates[path]) whiteboardStates[path] = [];
             whiteboardStates[path].push(data);
-            socket.to(path).emit("whiteboard-draw", data)
+            socket.to(path).emit("whiteboard-data", data)
         })
 
         socket.on("whiteboard-clear", (path) => {
             whiteboardStates[path] = [];
-            io.to(path).emit("whiteboard-clear")
+            io.to(path).emit("whiteboard-cleared")
         })
 
         socket.on("toggle-meeting-lock", (path, status) => {
             lockedMeetings[path] = status;
-            io.to(path).emit("meeting-lock-status", status);
+            io.to(path).emit("meeting-locked", status);
         })
 
         socket.on("update-status", (path, status) => {
             userStatus[socket.id] = status;
-            const usersInRoom = connections[path]?.map(id => ({ 
-                id, 
-                name: names[id],
-                isHost: id === hosts[path],
-                status: userStatus[id]
-            })) || [];
-            io.to(path).emit("user-status-updated", socket.id, status, usersInRoom);
+            io.to(path).emit("status-updated", socket.id, status);
         })
 
-        socket.on("chat-message", (data, sender) => {
+        socket.on("send-message", (data, sender) => {
             // Find room by socket.rooms
             const rooms = Array.from(socket.rooms);
             const matchingRoom = rooms.find(r => r !== socket.id);
@@ -180,7 +181,7 @@ export const connectToSocket = (server) => {
                 messages[matchingRoom].push({ 'sender': sender, "data": data, "socket-id-sender": socket.id })
                 console.log("message", matchingRoom, ":", sender, data)
 
-                io.to(matchingRoom).emit("chat-message", data, sender, socket.id)
+                io.to(matchingRoom).emit("receive-message", { name: sender, message: data, id: socket.id })
             }
 
         })
