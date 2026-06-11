@@ -139,6 +139,8 @@ export default function VideoMeet() {
     const color = '#3b82f6'
     const lineWidth = 5
     const [isDrawing, setIsDrawing] = useState(false)
+    const [textInputPos, setTextInputPos] = useState(null)
+    const [textInputValue, setTextInputValue] = useState("")
 
     const socketRef = useRef()
     const localStreamRef = useRef()
@@ -148,6 +150,7 @@ export default function VideoMeet() {
     const mediaRecorderRef = useRef(null)
     const recordedChunksRef = useRef([])
     const canvasRef = useRef(null)
+    const canvasContainerRef = useRef(null)
     const isInitializingRef = useRef(false)
 
     // Sync refs with state
@@ -157,6 +160,24 @@ export default function VideoMeet() {
     useEffect(() => { showChatRef.current = showChat }, [showChat])
     useEffect(() => { isHostRef.current = isHost }, [isHost])
     useEffect(() => { isJoiningRef.current = isJoining }, [isJoining])
+
+    // Canvas resizing to prevent blurriness
+    useEffect(() => {
+        if (!showWhiteboard || !canvasRef.current || !canvasContainerRef.current) return;
+
+        const resizeCanvas = () => {
+            const canvas = canvasRef.current;
+            const container = canvasContainerRef.current;
+            if (!canvas || !container) return;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        };
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        return () => window.removeEventListener('resize', resizeCanvas);
+    }, [showWhiteboard]);
 
     const addNotification = useCallback((text) => {
         const id = Date.now()
@@ -584,29 +605,67 @@ export default function VideoMeet() {
     };
 
     const startDrawing = (e) => {
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / canvas.width;
-        const y = (e.clientY - rect.top) / canvas.height;
         if (!isHost) return;
-        setIsDrawing(true);
-        const ctx = canvas.getContext('2d');
-        ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = lineWidth; ctx.moveTo(x * canvas.width, y * canvas.height);
-        socketRef.current.emit("whiteboard-draw", url, { type: 'start', x, y, color, lineWidth });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left);
+        const y = (e.clientY - rect.top);
+
+        if (whiteboardMode === 'text') {
+            setTextInputPos({ x, y });
+            setTextInputValue("");
+        } else {
+            setIsDrawing(true);
+            const ctx = canvas.getContext('2d');
+            ctx.beginPath(); 
+            ctx.strokeStyle = color; 
+            ctx.lineWidth = lineWidth; 
+            ctx.moveTo(x, y);
+            socketRef.current?.emit("whiteboard-draw", url, { type: 'start', x: x / canvas.width, y: y / canvas.height, color, lineWidth });
+        }
     };
 
     const draw = (e) => {
-        if (!isDrawing) return;
+        if (!isDrawing || whiteboardMode === 'text') return;
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / canvas.width;
-        const y = (e.clientY - rect.top) / canvas.height;
+        const x = (e.clientX - rect.left);
+        const y = (e.clientY - rect.top);
         const ctx = canvas.getContext('2d');
-        ctx.lineTo(x * canvas.width, y * canvas.height); ctx.stroke();
-        socketRef.current.emit("whiteboard-draw", url, { type: 'draw', x, y, color, lineWidth });
+        ctx.lineTo(x, y); 
+        ctx.stroke();
+        socketRef.current?.emit("whiteboard-draw", url, { type: 'draw', x: x / canvas.width, y: y / canvas.height, color, lineWidth });
     };
 
-    const stopDrawing = () => { setIsDrawing(false); socketRef.current.emit("whiteboard-draw", url, { type: 'end' }); };
+    const stopDrawing = () => { 
+        setIsDrawing(false); 
+    };
+
+    const handleTextSubmit = () => {
+        if (!textInputValue.trim() || !textInputPos || !isHost) {
+            setTextInputPos(null);
+            setTextInputValue("");
+            return;
+        }
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.font = `${lineWidth * 5}px Arial`;
+        ctx.fillStyle = color;
+        ctx.fillText(textInputValue, textInputPos.x, textInputPos.y);
+        socketRef.current?.emit("whiteboard-draw", url, { 
+            type: 'text', 
+            x: textInputPos.x / canvas.width, 
+            y: textInputPos.y / canvas.height, 
+            text: textInputValue, 
+            color, 
+            lineWidth 
+        });
+        setTextInputPos(null);
+        setTextInputValue("");
+    };
 
     const handleJoinMeeting = () => {
         setIsJoining(true)
@@ -693,7 +752,62 @@ export default function VideoMeet() {
                                 <button onClick={toggleWhiteboard} className='p-1.5 md:p-3 hover:bg-white/5 rounded-lg'><X className='w-4 h-4 text-gray-400' /></button>
                             </div>
                         </div>
-                        <div className='flex-1 relative bg-white/5 overflow-hidden'><canvas ref={canvasRef} onMouseDown={startDrawing} onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} onTouchStart={(e) => { const touch = e.touches[0]; startDrawing({ clientX: touch.clientX, clientY: touch.clientY, stopPropagation: () => e.stopPropagation() }); }} onTouchMove={(e) => { const touch = e.touches[0]; draw({ clientX: touch.clientX, clientY: touch.clientY }); }} className='w-full h-full' /></div>
+                        <div ref={canvasContainerRef} className='flex-1 relative bg-white/5 overflow-hidden'>
+                            <canvas 
+                                ref={canvasRef} 
+                                onMouseDown={startDrawing} 
+                                onMouseMove={draw} 
+                                onMouseUp={stopDrawing} 
+                                onMouseLeave={stopDrawing} 
+                                onTouchStart={(e) => { 
+                                    const touch = e.touches[0]; 
+                                    startDrawing({ clientX: touch.clientX, clientY: touch.clientY }); 
+                                }} 
+                                onTouchMove={(e) => { 
+                                    const touch = e.touches[0]; 
+                                    draw({ clientX: touch.clientX, clientY: touch.clientY }); 
+                                }} 
+                                onTouchEnd={stopDrawing}
+                                className='w-full h-full'
+                            />
+                            {textInputPos && (
+                                <div 
+                                    className='absolute flex gap-2'
+                                    style={{ left: textInputPos.x, top: textInputPos.y - 30 }}
+                                >
+                                    <input
+                                        type='text'
+                                        autoFocus
+                                        value={textInputValue}
+                                        onChange={(e) => setTextInputValue(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleTextSubmit();
+                                            if (e.key === 'Escape') {
+                                                setTextInputPos(null);
+                                                setTextInputValue("");
+                                            }
+                                        }}
+                                        className='px-3 py-2 bg-black/60 border border-blue-500/50 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500'
+                                        placeholder='Type text...'
+                                    />
+                                    <button 
+                                        onClick={handleTextSubmit}
+                                        className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold'
+                                    >
+                                        Add
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setTextInputPos(null);
+                                            setTextInputValue("");
+                                        }}
+                                        className='px-4 py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-sm font-bold'
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

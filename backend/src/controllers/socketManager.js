@@ -97,10 +97,10 @@ export const connectToSocket = (server) => {
 
             // Send existing whiteboard state to new joiner
             if (whiteboardVisible[path]) {
-                io.to(socket.id).emit("whiteboard-toggle", true)
+                io.to(socket.id).emit("whiteboard-toggled", true)
                 if (whiteboardStates[path]) {
                     whiteboardStates[path].forEach(drawData => {
-                        io.to(socket.id).emit("whiteboard-draw", drawData)
+                        io.to(socket.id).emit("whiteboard-data", drawData)
                     })
                 }
             }
