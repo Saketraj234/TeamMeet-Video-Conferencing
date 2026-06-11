@@ -148,7 +148,6 @@ function VideoMeet() {
     const socketRef = useRef()
     const localStreamRef = useRef()
     const localVideoRef = useRef()
-    const localVideoInitialized = useRef(false)
     const peersRef = useRef([])
     const [peers, setPeers] = useState([])
     const mediaRecorderRef = useRef(null)
