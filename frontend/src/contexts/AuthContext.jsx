@@ -29,6 +29,60 @@ export const AuthProvider = ({ children }) => {
         }
     }, [userData]);
 
+    // Helper functions for meeting history
+    const getHistoryKey = () => {
+        if (!userData?._id) return null;
+        return `meetingHistory_${userData._id}`;
+    };
+
+    const cleanOldHistory = useCallback((history) => {
+        const now = Date.now();
+        const twentyFourHours = 24 * 60 * 60 * 1000;
+        return history.filter(item => (now - item.timestamp) < twentyFourHours);
+    }, []);
+
+    const getHistoryOfUser = useCallback(async () => {
+        const key = getHistoryKey();
+        if (!key) return [];
+        
+        let history = JSON.parse(localStorage.getItem(key) || "[]");
+        history = cleanOldHistory(history);
+        localStorage.setItem(key, JSON.stringify(history));
+        return history;
+    }, [cleanOldHistory]);
+
+    const addToUserHistory = useCallback(async (meetingCode, scheduledAt = null) => {
+        const key = getHistoryKey();
+        if (!key) return;
+        
+        let history = JSON.parse(localStorage.getItem(key) || "[]");
+        history = cleanOldHistory(history);
+        
+        // Add new meeting
+        history.unshift({
+            id: Date.now().toString(),
+            meeting_code: meetingCode,
+            scheduled_at: scheduledAt,
+            timestamp: Date.now()
+        });
+        
+        localStorage.setItem(key, JSON.stringify(history));
+    }, [cleanOldHistory]);
+
+    const deleteFromHistory = useCallback(async (meetingId) => {
+        const key = getHistoryKey();
+        if (!key) return;
+        
+        let history = JSON.parse(localStorage.getItem(key) || "[]");
+        history = history.filter(item => item.id !== meetingId);
+        localStorage.setItem(key, JSON.stringify(history));
+    }, []);
+
+    const deleteAllHistory = useCallback(async () => {
+        const key = getHistoryKey();
+        if (!key) return;
+        localStorage.removeItem(key);
+    }, []);
 
     const router = useNavigate();
 
@@ -78,46 +132,6 @@ export const AuthProvider = ({ children }) => {
         }
     }, [router])
 
-    const getHistoryOfUser = useCallback(async () => {
-        try {
-            let request = await client.get("/get_all_activity", {
-                params: {
-                    token: localStorage.getItem("token")
-                }
-            });
-            return request.data
-        } catch
-         (err) {
-            throw err;
-        }
-    }, [])
-
-    const addToUserHistory = useCallback(async (meetingCode, scheduledAt = null) => {
-        try {
-            let request = await client.post("/add_to_activity", {
-                token: localStorage.getItem("token"),
-                meeting_code: meetingCode,
-                scheduled_at: scheduledAt
-            });
-            return request
-        } catch (e) {
-            throw e;
-        }
-    }, [])
-
-    const getUserData = useCallback(async () => {
-        try {
-            let request = await client.get("/get_user_data", {
-                params: {
-                    token: localStorage.getItem("token")
-                }
-            });
-            return request.data
-        } catch (err) {
-            throw err;
-        }
-    }, [])
-
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem("token");
@@ -133,6 +147,19 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, [getUserData]);
 
+    const getUserData = useCallback(async () => {
+        try {
+            let request = await client.get("/get_user_data", {
+                params: {
+                    token: localStorage.getItem("token")
+                }
+            });
+            return request.data
+        } catch (err) {
+            throw err;
+        }
+    }, [])
+
     const updateProfile = useCallback(async (profileData) => {
         try {
             let request = await client.post("/update_profile", {
@@ -147,7 +174,7 @@ export const AuthProvider = ({ children }) => {
 
 
     const data = {
-        userData, setUserData, addToUserHistory, getHistoryOfUser, handleRegister, handleLogin, getUserData, updateProfile
+        userData, setUserData, addToUserHistory, getHistoryOfUser, handleRegister, handleLogin, getUserData, updateProfile, deleteFromHistory, deleteAllHistory
     }
 
     return (
