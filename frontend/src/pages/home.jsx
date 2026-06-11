@@ -101,7 +101,12 @@ function HomeComponent() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ messages: updatedMessages.map(({ role, content }) => ({ role, content })) })
+                body: JSON.stringify({ 
+                messages: updatedMessages.map(({ role, content }) => ({ 
+                    role: role, 
+                    content: content 
+                })) 
+            })
             })
             
             console.log("Backend response status:", response.status);

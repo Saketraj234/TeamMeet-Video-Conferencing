@@ -14,6 +14,23 @@ export default function Authentication() {
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [showUsernameValidation, setShowUsernameValidation] = useState(false)
+    const [showPasswordValidation, setShowPasswordValidation] = useState(false)
+
+    // Password validation helpers
+    const passwordRequirements = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*]/.test(password)
+    }
+
+    // Username validation helpers
+    const usernameRequirements = {
+        length: username.length >= 3 && username.length <= 20,
+        validChars: /^[a-zA-Z0-9_]*$/.test(username)
+    }
 
     // Popup states
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
@@ -27,6 +44,28 @@ export default function Authentication() {
         e.preventDefault()
         setError('')
         setLoading(true)
+
+        // Validate registration form
+        if (!isLogin) {
+            // Check all username requirements
+            if (!usernameRequirements.length || !usernameRequirements.validChars) {
+                setError('Please choose a valid username')
+                setLoading(false)
+                return
+            }
+
+            // Check all password requirements
+            if (!passwordRequirements.length || 
+                !passwordRequirements.uppercase || 
+                !passwordRequirements.lowercase || 
+                !passwordRequirements.number || 
+                !passwordRequirements.special) {
+                setError('Please create a valid password')
+                setLoading(false)
+                return
+            }
+        }
+
         try {
             if (isLogin) {
                 await handleLogin(username, password)
@@ -148,11 +187,49 @@ export default function Authentication() {
                                     type='text'
                                     required
                                     value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    onChange={(e) => {
+                                        setUsername(e.target.value)
+                                        setShowUsernameValidation(true)
+                                    }}
+                                    onFocus={() => setShowUsernameValidation(true)}
                                     className='appearance-none block w-full pl-12 pr-4 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                     placeholder='username123'
                                 />
                             </div>
+                            
+                            <AnimatePresence>
+                                {showUsernameValidation && !isLogin && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className='mt-3 bg-blue-900/10 border border-blue-800/30 rounded-2xl p-4'
+                                    >
+                                        <h4 className='text-sm font-bold text-blue-400 mb-3'>Username Requirements</h4>
+                                        <div className='space-y-2'>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${usernameRequirements.length ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {usernameRequirements.length ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${usernameRequirements.length ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    3–20 characters long
+                                                </span>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${usernameRequirements.validChars ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {usernameRequirements.validChars ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${usernameRequirements.validChars ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    Only letters, numbers, and underscores
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className='mt-3 pt-3 border-t border-blue-800/30'>
+                                            <p className='text-xs text-gray-500 font-medium'>Valid examples:</p>
+                                            <p className='text-xs text-blue-400 mt-1'>art_lover, creative_mind, user123</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         <div>
@@ -165,7 +242,11 @@ export default function Authentication() {
                                     type={showPassword ? 'text' : 'password'}
                                     required
                                     value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value)
+                                        setShowPasswordValidation(true)
+                                    }}
+                                    onFocus={() => setShowPasswordValidation(true)}
                                     className='appearance-none block w-full pl-12 pr-12 py-3.5 border border-white/10 rounded-2xl shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all bg-white/5 text-white text-sm'
                                     placeholder='••••••••'
                                 />
@@ -177,6 +258,64 @@ export default function Authentication() {
                                     {showPassword ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
                                 </button>
                             </div>
+                            
+                            <AnimatePresence>
+                                {showPasswordValidation && !isLogin && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className='mt-3 bg-gradient-to-r from-blue-900/10 to-indigo-900/10 border border-blue-800/30 rounded-2xl p-4'
+                                    >
+                                        <h4 className='text-sm font-bold text-blue-400 mb-3'>Password Requirements</h4>
+                                        <div className='space-y-2'>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${passwordRequirements.length ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {passwordRequirements.length ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${passwordRequirements.length ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    At least 8 characters
+                                                </span>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${passwordRequirements.uppercase ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {passwordRequirements.uppercase ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${passwordRequirements.uppercase ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    One uppercase letter
+                                                </span>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${passwordRequirements.lowercase ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {passwordRequirements.lowercase ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${passwordRequirements.lowercase ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    One lowercase letter
+                                                </span>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${passwordRequirements.number ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {passwordRequirements.number ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${passwordRequirements.number ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    One number
+                                                </span>
+                                            </div>
+                                            <div className='flex items-center gap-2'>
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center ${passwordRequirements.special ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-500'}`}>
+                                                    {passwordRequirements.special ? '✓' : '○'}
+                                                </div>
+                                                <span className={`text-xs ${passwordRequirements.special ? 'text-green-400' : 'text-gray-400'}`}>
+                                                    One special character (!@#$%^&*)
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className='mt-3 pt-3 border-t border-blue-800/30'>
+                                            <p className='text-xs text-gray-500 font-medium'>Example strong password:</p>
+                                            <p className='text-xs text-blue-400 mt-1'>CreativeArt#2024</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                         {error && (

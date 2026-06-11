@@ -25,7 +25,7 @@ export default function LandingPage() {
                     </button>
                     <button 
                         onClick={() => navigate("/auth")}
-                        className='bg-blue-600 text-white px-5 md:px-7 py-2 md:py-3 rounded-full text-xs md:text-sm font-black hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95 uppercase tracking-wider'
+                        className='bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 md:px-7 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95'
                     >
                         Join Now
                     </button>
@@ -60,16 +60,19 @@ export default function LandingPage() {
                     >
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='flex-1 sm:flex-none bg-blue-600 text-white px-8 py-4 md:py-5 rounded-2xl text-base md:text-lg font-black hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/25 flex items-center justify-center gap-3 group active:scale-95 uppercase tracking-tight'
+                            className='flex-1 sm:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 md:py-5 rounded-3xl text-base md:text-lg font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-3 group active:scale-95'
                         >
                             Start Meeting
                             <ChevronRight className='w-5 h-5 group-hover:translate-x-1 transition-transform' />
                         </button>
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='flex-1 sm:flex-none bg-white/5 text-white border-2 border-white/10 px-8 py-4 md:py-5 rounded-2xl text-base md:text-lg font-black hover:bg-white/10 transition-all active:scale-95 uppercase tracking-tight'
+                            className='flex-1 sm:flex-none text-white px-8 py-4 md:py-5 rounded-3xl text-base md:text-lg font-bold hover:bg-white/10 transition-all active:scale-95 backdrop-blur-sm relative'
                         >
-                            Join Now
+                            <div className='absolute inset-0 rounded-3xl p-[2px] bg-gradient-to-r from-blue-500 to-indigo-500'>
+                                <div className='absolute inset-0 rounded-[calc(1.5rem-2px)] bg-[#111]' />
+                            </div>
+                            <span className='relative z-10'>Join Now</span>
                         </button>
                     </motion.div>
 
