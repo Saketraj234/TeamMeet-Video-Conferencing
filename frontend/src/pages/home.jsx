@@ -1,10 +1,11 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { 
     Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
-    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Github, Linkedin 
+    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Github, Linkedin, 
+    Bot, Send 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
@@ -19,6 +20,13 @@ function HomeComponent() {
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
     const [showTermsModal, setShowTermsModal] = useState(false)
     const [showSupportModal, setShowSupportModal] = useState(false)
+    const [showAiMentorModal, setShowAiMentorModal] = useState(false)
+    const [aiMessages, setAiMessages] = useState([
+        { id: 1, role: "assistant", content: "Namaste! I'm TeamMeet AI Mentor. How can I help you today with your meetings or any questions about TeamMeet?" }
+    ])
+    const [aiInput, setAiInput] = useState("")
+    const [isAiTyping, setIsAiTyping] = useState(false)
+    const chatContainerRef = useRef(null)
     const [scheduleDate, setScheduleDate] = useState("")
     const [scheduleTime, setScheduleTime] = useState("")
     const { addToUserHistory, userData } = useContext(AuthContext)
@@ -70,6 +78,49 @@ function HomeComponent() {
         navigate("/auth")
     }
 
+    const handleSendAiMessage = async (e) => {
+        e.preventDefault()
+        if (!aiInput.trim()) return
+        
+        // Add user message
+        const userMessage = { id: Date.now(), role: "user", content: aiInput }
+        setAiMessages(prev => [...prev, userMessage])
+        setAiInput("")
+        setIsAiTyping(true)
+
+        try {
+            // --- CALL BACKEND API ---
+            const response = await fetch(`${process.env.NODE_ENV === "production" ? "https://teem-meet-backend.onrender.com" : "http://localhost:8000"}/api/v1/ai/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ messages: aiMessages })
+            })
+            const data = await response.json()
+            
+            if (data.success) {
+                const aiMessage = { id: Date.now() + 1, role: "assistant", content: data.content }
+                setAiMessages(prev => [...prev, aiMessage])
+            } else {
+                throw new Error(data.message || "Backend error")
+            }
+        } catch (error) {
+            console.error("AI Error:", error)
+            const errorMessage = { id: Date.now() + 1, role: "assistant", content: "Sorry, I'm having trouble responding right now. Please check if backend server is running and try again!" }
+            setAiMessages(prev => [...prev, errorMessage])
+        } finally {
+            setIsAiTyping(false)
+        }
+    }
+
+    // Auto-scroll to bottom of chat
+    useEffect(() => {
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+        }
+    }, [aiMessages, isAiTyping])
+
     return (
         <div className='min-h-screen bg-white dark:bg-[#111] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300'>
             {/* Header */}
@@ -82,6 +133,13 @@ function HomeComponent() {
                 </div>
                 
                 <div className='flex items-center gap-1 md:gap-4'>
+                    <button 
+                        onClick={() => setShowAiMentorModal(true)}
+                        className='p-2 text-gray-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 rounded-full transition-colors'
+                        title="TeamMeet AI Mentor"
+                    >
+                        <Bot className='w-4 h-4 md:w-5 md:h-5' />
+                    </button>
                     <button 
                         onClick={toggleTheme}
                         className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors'
@@ -644,6 +702,101 @@ function HomeComponent() {
                                 >
                                     Got it, thanks!
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* AI Mentor Modal */}
+            <AnimatePresence>
+                {showAiMentorModal && (
+                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-white dark:bg-[#1a1a1a] w-full max-w-md md:max-w-lg h-[80vh] rounded-3xl shadow-2xl border border-gray-100 dark:border-white/5 flex flex-col overflow-hidden'
+                        >
+                            {/* Modal Header */}
+                            <div className='flex justify-between items-center p-4 md:p-6 border-b border-gray-100 dark:border-white/10'>
+                                <h3 className='text-xl md:text-2xl font-black flex items-center gap-3'>
+                                    <div className='bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-xl'>
+                                        <Bot className='text-white w-6 h-6' />
+                                    </div>
+                                    AI Mentor
+                                </h3>
+                                <button onClick={() => setShowAiMentorModal(false)} className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all'>
+                                    <X className='w-6 h-6 text-gray-400' />
+                                </button>
+                            </div>
+
+                            {/* Chat Messages */}
+                            <div 
+                                ref={chatContainerRef}
+                                className='flex-1 overflow-y-auto p-4 md:p-6 space-y-4 custom-scrollbar'
+                            >
+                                {aiMessages.map((msg) => (
+                                    <div 
+                                        key={msg.id}
+                                        className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                                    >
+                                        {msg.role === "assistant" && (
+                                            <div className='w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shrink-0'>
+                                                <Bot className='text-white w-4 h-4' />
+                                            </div>
+                                        )}
+                                        <div 
+                                            className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm md:text-base ${
+                                                msg.role === "user" 
+                                                    ? "bg-blue-600 text-white rounded-tr-sm" 
+                                                    : "bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-tl-sm"
+                                            }`}
+                                        >
+                                            {msg.content}
+                                        </div>
+                                        {msg.role === "user" && (
+                                            <div className='w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center shrink-0'>
+                                                <User className='text-gray-600 dark:text-gray-300 w-4 h-4' />
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                {isAiTyping && (
+                                    <div className='flex gap-3'>
+                                        <div className='w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center shrink-0'>
+                                            <Bot className='text-white w-4 h-4' />
+                                        </div>
+                                        <div className='bg-gray-100 dark:bg-white/5 rounded-2xl rounded-tl-sm px-4 py-3'>
+                                            <div className='flex gap-1'>
+                                                <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "0ms" }}></div>
+                                                <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "150ms" }}></div>
+                                                <div className='w-2 h-2 bg-gray-400 rounded-full animate-bounce' style={{ animationDelay: "300ms" }}></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Input Area */}
+                            <div className='p-4 md:p-6 border-t border-gray-100 dark:border-white/10'>
+                                <form onSubmit={handleSendAiMessage} className='flex gap-3'>
+                                    <input 
+                                        type="text"
+                                        value={aiInput}
+                                        onChange={(e) => setAiInput(e.target.value)}
+                                        placeholder="Ask TeamMeet AI Mentor..."
+                                        className='flex-1 bg-gray-100 dark:bg-white/5 border-none outline-none rounded-xl px-4 py-3 text-sm md:text-base dark:text-white placeholder-gray-500'
+                                        disabled={isAiTyping}
+                                    />
+                                    <button 
+                                        type="submit"
+                                        disabled={!aiInput.trim() || isAiTyping}
+                                        className='bg-blue-600 text-white p-3 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
+                                    >
+                                        <Send className='w-5 h-5' />
+                                    </button>
+                                </form>
                             </div>
                         </motion.div>
                     </div>
