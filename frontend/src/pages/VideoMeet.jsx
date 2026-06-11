@@ -1,5 +1,5 @@
 // Video Conference Page Updated
-import React, { useEffect, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback, useContext } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import io from 'socket.io-client'
 import Peer from 'simple-peer'
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 import server from '../environment'
+import { AuthContext } from '../contexts/AuthContext'
 
 // Icon for Whiteboard
 const WhiteboardIcon = ({ className }) => (
@@ -106,7 +107,7 @@ export default function VideoMeet() {
     const navigate = useNavigate()
     const location = useLocation()
     const url = window.location.href.split("/").pop()
-    const userData = JSON.parse(localStorage.getItem("userData")) || { name: "User" }
+    const { userData } = useContext(AuthContext)
 
     const [micOn, setMicOn] = useState(true)
     const micOnRef = useRef(true)
@@ -528,30 +529,60 @@ export default function VideoMeet() {
 
     const startRecording = async () => {
         try {
-            addNotification("Select screen/window and check 'Share System Audio' to record.");
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+            addNotification("Select a screen/window to record (you can also check 'Share System Audio').");
+            const stream = await navigator.mediaDevices.getDisplayMedia({ 
+                video: { cursor: "always" }, 
+                audio: true 
+            });
+            mediaRecorderRef.current = new MediaRecorder(stream, { 
+                mimeType: 'video/webm;codecs=vp9,opus' 
+            });
             recordedChunksRef.current = [];
-            mediaRecorderRef.current.ondataavailable = (e) => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
+            
+            mediaRecorderRef.current.ondataavailable = (e) => { 
+                if (e.data.size > 0) {
+                    recordedChunksRef.current.push(e.data);
+                }
+            };
+            
             mediaRecorderRef.current.onstop = () => {
                 const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                const url = window.URL.createObjectURL(blob);
+                const downloadUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = `TeamMeet-${new Date().getTime()}.webm`;
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = `TeamMeet-Recording-${new Date().toISOString().split('T')[0]}-${Date.now()}.webm`;
                 document.body.appendChild(a);
                 a.click();
-                stream.getTracks().forEach(t => t.stop());
-                addNotification("Recording saved.");
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(a);
+                addNotification("Recording saved successfully!");
             };
+            
+            // Stop recording when user stops sharing the screen
+            stream.getVideoTracks()[0].onended = () => {
+                stopRecording();
+            };
+            
             mediaRecorderRef.current.start(1000);
             setIsRecording(true);
+            addNotification("Recording started!");
         } catch (err) {
             console.error("Recording error:", err);
+            addNotification("Recording cancelled or failed.");
         }
     };
 
-    const stopRecording = () => { if (mediaRecorderRef.current) { mediaRecorderRef.current.stop(); setIsRecording(false); } };
+    const stopRecording = () => { 
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') { 
+            mediaRecorderRef.current.stop(); 
+            // Stop all tracks in the recording stream
+            if (mediaRecorderRef.current.stream) {
+                mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            }
+            setIsRecording(false); 
+        } 
+    };
 
     const handleAdmissionResponse = (id, accepted) => {
         setAdmissionRequests(prev => prev.filter(req => req.id !== id));

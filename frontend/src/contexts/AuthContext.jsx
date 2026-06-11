@@ -17,7 +17,17 @@ export const AuthProvider = ({ children }) => {
     const authContext = useContext(AuthContext);
 
 
-    const [userData, setUserData] = useState(authContext);
+    const [userData, setUserData] = useState(() => {
+        const saved = localStorage.getItem("userData");
+        return saved ? JSON.parse(saved) : authContext;
+    });
+
+    // Update localStorage whenever userData changes
+    useEffect(() => {
+        if (userData && Object.keys(userData).length > 0) {
+            localStorage.setItem("userData", JSON.stringify(userData));
+        }
+    }, [userData]);
 
 
     const router = useNavigate();
