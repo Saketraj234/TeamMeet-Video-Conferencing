@@ -17,20 +17,23 @@ export default function Authentication() {
     const [showUsernameValidation, setShowUsernameValidation] = useState(false)
     const [showPasswordValidation, setShowPasswordValidation] = useState(false)
 
-    // Password validation helpers
-    const passwordRequirements = {
-        length: password.length >= 8,
-        uppercase: /[A-Z]/.test(password),
-        lowercase: /[a-z]/.test(password),
-        number: /[0-9]/.test(password),
-        special: /[!@#$%^&*]/.test(password)
-    }
+    // Password validation helpers (calculated dynamically)
+    const getPasswordRequirements = (pwd) => ({
+        length: pwd.length >= 8,
+        uppercase: /[A-Z]/.test(pwd),
+        lowercase: /[a-z]/.test(pwd),
+        number: /[0-9]/.test(pwd),
+        special: /[!@#$%^&*]/.test(pwd)
+    })
 
-    // Username validation helpers
-    const usernameRequirements = {
-        length: username.length >= 3 && username.length <= 20,
-        validChars: /^[a-zA-Z0-9_]*$/.test(username)
-    }
+    // Username validation helpers (calculated dynamically)
+    const getUsernameRequirements = (user) => ({
+        length: user.length >= 3 && user.length <= 20,
+        validChars: /^[a-zA-Z0-9_]*$/.test(user)
+    })
+
+    const passwordRequirements = getPasswordRequirements(password)
+    const usernameRequirements = getUsernameRequirements(username)
 
     // Popup states
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
@@ -47,40 +50,44 @@ export default function Authentication() {
 
         // Validate registration form
         if (!isLogin) {
+            // Get fresh requirements
+            const currentUsernameReq = getUsernameRequirements(username)
+            const currentPasswordReq = getPasswordRequirements(password)
+            
             // Check username requirements
-            if (!usernameRequirements.length) {
+            if (!currentUsernameReq.length) {
                 setError('Username must be 3-20 characters long')
                 setLoading(false)
                 return
             }
-            if (!usernameRequirements.validChars) {
+            if (!currentUsernameReq.validChars) {
                 setError('Username can only contain letters, numbers, and underscores')
                 setLoading(false)
                 return
             }
 
             // Check password requirements
-            if (!passwordRequirements.length) {
+            if (!currentPasswordReq.length) {
                 setError('Password must be at least 8 characters long')
                 setLoading(false)
                 return
             }
-            if (!passwordRequirements.uppercase) {
+            if (!currentPasswordReq.uppercase) {
                 setError('Password must contain at least one uppercase letter')
                 setLoading(false)
                 return
             }
-            if (!passwordRequirements.lowercase) {
+            if (!currentPasswordReq.lowercase) {
                 setError('Password must contain at least one lowercase letter')
                 setLoading(false)
                 return
             }
-            if (!passwordRequirements.number) {
+            if (!currentPasswordReq.number) {
                 setError('Password must contain at least one number')
                 setLoading(false)
                 return
             }
-            if (!passwordRequirements.special) {
+            if (!currentPasswordReq.special) {
                 setError('Password must contain at least one special character (!@#$%^&*)')
                 setLoading(false)
                 return
