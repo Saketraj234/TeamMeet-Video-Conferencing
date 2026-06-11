@@ -4,7 +4,7 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { 
     Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
-    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail 
+    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Github, Linkedin 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
@@ -142,28 +142,28 @@ function HomeComponent() {
                     <div className='flex flex-col sm:flex-row items-stretch lg:items-center gap-4'>
                         <button 
                             onClick={handleCreateMeeting}
-                            className='flex-1 sm:flex-none flex items-center justify-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-xl shadow-blue-600/25 active:scale-95'
+                            className='flex-1 sm:flex-none flex items-center justify-center gap-2.5 bg-blue-600 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95'
                         >
-                            <Plus className='w-5 h-5' />
+                            <Plus className='w-4 h-4' />
                             New Meeting
                         </button>
 
                         <div className='flex-1 flex flex-col sm:flex-row gap-3'>
-                            <div className='flex-1 flex items-center gap-3 bg-gray-50 dark:bg-white/5 border-2 border-transparent focus-within:border-blue-600/50 dark:focus-within:border-blue-500/50 rounded-2xl px-4 py-1 transition-all shadow-sm'>
-                                <Keyboard className='w-5 h-5 text-gray-400 shrink-0' />
+                            <div className='flex-1 flex items-center gap-2.5 bg-gray-50 dark:bg-white/5 border-2 border-transparent focus-within:border-blue-600/50 dark:focus-within:border-blue-500/50 rounded-xl px-4 py-2 transition-all shadow-sm'>
+                                <Keyboard className='w-4 h-4 text-gray-400 shrink-0' />
                                 <input 
                                     type="text" 
                                     placeholder="Enter meeting code"
                                     value={meetingCode}
                                     onChange={(e) => setMeetingCode(e.target.value)}
-                                    className='bg-transparent border-none outline-none py-3 w-full text-sm font-bold dark:text-white placeholder-gray-400'
+                                    className='bg-transparent border-none outline-none py-2 w-full text-sm font-bold dark:text-white placeholder-gray-400'
                                 />
                             </div>
 
                             <button 
                                 disabled={!meetingCode.trim()}
                                 onClick={handleJoinMeeting}
-                                className='px-8 py-4 bg-white dark:bg-white/5 text-blue-600 dark:text-blue-400 font-black rounded-2xl border-2 border-blue-600/20 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-blue-600/10 transition-all disabled:opacity-30 disabled:grayscale active:scale-95'
+                                className='px-6 py-3.5 bg-white dark:bg-white/5 text-blue-600 dark:text-blue-400 font-bold rounded-xl border-2 border-blue-600/20 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-blue-600/10 transition-all disabled:opacity-30 disabled:grayscale active:scale-95'
                             >
                                 Join
                             </button>
@@ -221,25 +221,51 @@ function HomeComponent() {
             </main>
 
             {/* Footer */}
-            <footer className='border-t border-gray-100 dark:border-white/5 py-12 bg-gray-50 dark:bg-black/20 mt-12'>
-                <div className='max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-8'>
-                    <div className='flex items-center gap-2'>
-                        <div className='bg-blue-600 p-1.5 rounded-lg'>
-                            <Video className='text-white w-4 h-4' />
+            <footer className='py-8 px-6 md:px-12 bg-[#0d0d0d] border-t border-white/5 mt-auto relative overflow-hidden'>
+                {/* Decorative background element */}
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent' />
+                
+                <div className='max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 relative z-10'>
+                    <div className='flex flex-col items-center md:items-start gap-4'>
+                        <div className='flex items-center gap-2.5 group cursor-pointer' onClick={() => navigate("/")}>
+                            <div className='bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform'>
+                                <Video className='text-white w-5 h-5' />
+                            </div>
+                            <h1 className='text-xl font-black tracking-tight text-white'>TeamMeet</h1>
                         </div>
-                        <span className='font-bold text-lg'>TeamMeet</span>
+                        <p className='text-gray-500 text-xs max-w-[200px] text-center md:text-left leading-relaxed'>
+                            Secure, high-quality video conferencing for everyone, everywhere.
+                        </p>
                     </div>
                     
-                    <div className='flex items-center gap-8 text-sm text-gray-500 dark:text-gray-400'>
-                        <span onClick={() => setShowPrivacyModal(true)} className='hover:text-blue-600 cursor-pointer transition-colors'>Privacy Policy</span>
-                        <span onClick={() => setShowTermsModal(true)} className='hover:text-blue-600 cursor-pointer transition-colors'>Terms of Service</span>
-                        <span onClick={() => setShowSupportModal(true)} className='hover:text-blue-600 cursor-pointer transition-colors'>Support</span>
-                        <span onClick={() => setShowContactModal(true)} className='hover:text-blue-600 cursor-pointer transition-colors'>Contact Us</span>
+                    <div className='flex flex-col items-center gap-6'>
+                        <div className='flex gap-4'>
+                            {[
+                                { icon: <X className='w-5 h-5' />, url: 'https://x.com/saketraj235', label: 'Twitter' },
+                                { icon: <Github className='w-5 h-5' />, url: 'https://github.com/Saketraj234', label: 'GitHub' },
+                                { icon: <Linkedin className='w-5 h-5' />, url: 'https://www.linkedin.com/in/saket-raj62/', label: 'LinkedIn' }
+                            ].map((social, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => window.open(social.url)} 
+                                    className='p-3 bg-white/5 text-gray-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all duration-300 border border-white/5 shadow-xl'
+                                    title={social.label}
+                                >
+                                    {social.icon}
+                                </button>
+                            ))}
+                        </div>
+                        <div className='flex items-center gap-6 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest'>
+                            <span onClick={() => setShowPrivacyModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Privacy</span>
+                            <span onClick={() => setShowTermsModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Terms</span>
+                            <span onClick={() => setShowSupportModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Support</span>
+                        </div>
                     </div>
 
-                    <p className='text-sm text-gray-500 dark:text-gray-400'>
-                        © 2026 TeamMeet Inc. All rights reserved.
-                    </p>
+                    <div className='flex flex-col items-center md:items-end gap-2'>
+                        <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
+                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
+                    </div>
                 </div>
             </footer>
 
