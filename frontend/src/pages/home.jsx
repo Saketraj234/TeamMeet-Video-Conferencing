@@ -22,7 +22,7 @@ function HomeComponent() {
     const [showSupportModal, setShowSupportModal] = useState(false)
     const [showAiMentorModal, setShowAiMentorModal] = useState(false)
     const [aiMessages, setAiMessages] = useState([
-        { id: 1, role: "assistant", content: "👋 Hello! I'm TeamMeet AI Mentor, your personal assistant for all things TeamMeet! I can help you with:\n\n• 📹 Starting and joining meetings\n• 🔧 Troubleshooting audio/video issues\n• 📅 Scheduling future meetings\n• 💡 Learning about TeamMeet features\n\nHow can I assist you today?" }
+        { id: 1, role: "assistant", content: "👋 Hello! I'm TeamMeet AI Mentor. How can I help you today?" }
     ])
     const [aiInput, setAiInput] = useState("")
     const [isAiTyping, setIsAiTyping] = useState(false)
@@ -82,22 +82,31 @@ function HomeComponent() {
         e.preventDefault()
         if (!aiInput.trim()) return
         
+        console.log("=== Sending AI Message ===");
+        
         // Add user message
         const userMessage = { id: Date.now(), role: "user", content: aiInput }
-        setAiMessages(prev => [...prev, userMessage])
+        const updatedMessages = [...aiMessages, userMessage]
+        setAiMessages(updatedMessages)
         setAiInput("")
         setIsAiTyping(true)
 
+        const apiUrl = process.env.NODE_ENV === "production" ? "https://teem-meet-backend.onrender.com" : "http://localhost:8000";
+        console.log("API URL:", apiUrl);
+        
         try {
             // --- CALL BACKEND API ---
-            const response = await fetch(`${process.env.NODE_ENV === "production" ? "https://teem-meet-backend.onrender.com" : "http://localhost:8000"}/api/v1/ai/chat`, {
+            const response = await fetch(`${apiUrl}/api/v1/ai/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ messages: aiMessages })
+                body: JSON.stringify({ messages: updatedMessages.map(({ role, content }) => ({ role, content })) })
             })
+            
+            console.log("Backend response status:", response.status);
             const data = await response.json()
+            console.log("Backend response data:", data);
             
             if (data.success) {
                 const aiMessage = { id: Date.now() + 1, role: "assistant", content: data.content }
@@ -107,7 +116,7 @@ function HomeComponent() {
             }
         } catch (error) {
             console.error("AI Error:", error)
-            const errorMessage = { id: Date.now() + 1, role: "assistant", content: "Sorry, I'm having trouble responding right now. Please check if backend server is running and try again!" }
+            const errorMessage = { id: Date.now() + 1, role: "assistant", content: "Sorry, I'm having trouble responding right now. Error: " + error.message }
             setAiMessages(prev => [...prev, errorMessage])
         } finally {
             setIsAiTyping(false)
