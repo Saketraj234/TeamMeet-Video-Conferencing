@@ -4,7 +4,7 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { 
     Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
-    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Phone, Clock 
+    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
