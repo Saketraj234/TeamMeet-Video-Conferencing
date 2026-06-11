@@ -135,6 +135,7 @@ function VideoMeet() {
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [showHostControls, setShowHostControls] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
+    const [showParticipantsModal, setShowParticipantsModal] = useState(false)
     const [messages, setMessages] = useState([])
     const [messageInput, setMessageInput] = useState("")
     const [whiteboardMode, setWhiteboardMode] = useState('pencil')
@@ -264,6 +265,17 @@ function VideoMeet() {
                 localVideoRef.current.srcObject = stream
                 localVideoRef.current.play().catch(e => console.error("Local video play error:", e))
             }
+
+            // Set up video stream listener for local video (in case ref isn't ready yet)
+            const updateLocalVideo = () => {
+                if (localVideoRef.current && localStreamRef.current) {
+                    localVideoRef.current.srcObject = localStreamRef.current
+                    if (videoOn) {
+                        localVideoRef.current.play().catch(e => console.error("Local video play error:", e))
+                    }
+                }
+            }
+            updateLocalVideo()
 
             // Socket listeners
             socketRef.current.on("waiting-for-admission", () => {
@@ -528,11 +540,20 @@ function VideoMeet() {
     }, [url, navigate, userData?.name, createPeer, addPeer])
 
     useEffect(() => {
-        if (localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current;
-            localVideoRef.current.play().catch(e => console.error("Local video play error:", e));
-        }
-    }, [videoOn, localVideoRef, localStreamRef]);
+        const updateLocalVideo = () => {
+            if (localVideoRef.current && localStreamRef.current) {
+                localVideoRef.current.srcObject = localStreamRef.current;
+                localVideoRef.current.playsInline = true;
+                localVideoRef.current.muted = true;
+                localVideoRef.current.autoPlay = true;
+                localVideoRef.current.play().catch(e => console.error("Local video play error:", e));
+            }
+        };
+        updateLocalVideo();
+        // Also try again after a small delay just to be safe
+        const timeoutId = setTimeout(updateLocalVideo, 100);
+        return () => clearTimeout(timeoutId);
+    }, [videoOn]);
 
     const toggleMic = () => {
         if (!isHost && !permissions.mic) {
@@ -976,10 +997,10 @@ function VideoMeet() {
             {/* Header */}
             <div className='p-2 md:p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-[150] shrink-0'>
                 <div className='flex items-center gap-2 md:gap-4 min-w-0'>
-                    <div className='flex items-center gap-2 bg-black/40 px-2 md:px-3 py-1.5 rounded-full border border-white/5'>
+                    <button onClick={() => setShowParticipantsModal(true)} className='flex items-center gap-2 bg-black/40 px-2 md:px-3 py-1.5 rounded-full border border-white/5 hover:bg-blue-600/20 hover:border-blue-500/30 transition-all'>
                         <Users className='w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500' />
                         <span className='text-xs font-bold text-gray-300'>{peers.length + 1}</span>
-                    </div>
+                    </button>
                 </div>
                 <div className='flex items-center gap-1.5 md:gap-2'>
                     {isHost && (
@@ -1280,6 +1301,67 @@ function VideoMeet() {
                                         Participants will wait in the lobby until you admit them. You can lock the meeting to prevent new join requests.
                                     </p>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Participants Modal */}
+            <AnimatePresence>
+                {showParticipantsModal && (
+                    <div className='fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-[#111] border border-white/10 w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl'
+                        >
+                            <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
+                                <div className='flex items-center gap-3'>
+                                    <Users className='w-5 h-5 text-blue-500' />
+                                    <h3 className='text-lg font-bold'>Participants ({peers.length + 1})</h3>
+                                </div>
+                                <button onClick={() => setShowParticipantsModal(false)} className='p-2 hover:bg-white/5 rounded-full transition-colors'>
+                                    <X className='w-5 h-5 text-gray-400' />
+                                </button>
+                            </div>
+                            <div className='p-6 space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar'>
+                                {/* Local User */}
+                                <div className='p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between'>
+                                    <div className='flex items-center gap-3'>
+                                        <div className='w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-sm font-black uppercase'>
+                                            {userData?.name?.charAt(0)}
+                                        </div>
+                                        <div className='flex flex-col gap-0.5'>
+                                            <span className='text-sm font-bold text-white'>{userData?.name || "User"}</span>
+                                            <span className='text-[10px] text-gray-500 uppercase'>{isHost ? "Host" : "You"}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Peer Users */}
+                                {peers.map((p) => (
+                                    <div key={p.peerID} className='p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between'>
+                                        <div className='flex items-center gap-3'>
+                                            <div className='w-10 h-10 bg-blue-600/20 rounded-full flex items-center justify-center text-sm font-black uppercase text-blue-500'>
+                                                {p.name?.charAt(0)}
+                                            </div>
+                                            <div className='flex flex-col gap-0.5'>
+                                                <span className='text-sm font-bold text-white'>{p.name || "User"}</span>
+                                                <span className='text-[10px] text-gray-500 uppercase'>{p.isRemoteHost ? "Host" : "Participant"}</span>
+                                            </div>
+                                        </div>
+                                        {isHost && !p.isRemoteHost && (
+                                            <button 
+                                                onClick={() => removeParticipant(p.peerID)}
+                                                className='p-2 bg-red-600/10 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition-all'
+                                                title='Remove participant'
+                                            >
+                                                <X className='w-4 h-4' />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </motion.div>
                     </div>
