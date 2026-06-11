@@ -351,6 +351,14 @@ export default function VideoMeet() {
                     setIsHost(me.isHost)
                     isHostRef.current = me.isHost
                 }
+                // Update isRemoteHost for all peers
+                setPeers(prev => prev.map(p => {
+                    const userFromList = list.find(u => u.id === p.peerID)
+                    if (userFromList) {
+                        return { ...p, isRemoteHost: userFromList.isHost }
+                    }
+                    return p
+                }))
             })
 
             socketRef.current.on("status-updated", (id, status) => {
@@ -951,7 +959,7 @@ export default function VideoMeet() {
                             )}
                         </motion.div>
                         {peers.map((p) => (
-                            <RemoteVideo key={p.peerID} peer={p.peer} name={p.name} status={p.status} handRaised={handsRaised[p.peerID]} isHost={isHost} onRemove={() => removeParticipant(p.peerID)} />
+                            <RemoteVideo key={p.peerID} peer={p.peer} name={p.name} status={p.status} handRaised={handsRaised[p.peerID]} isHost={isHost} isRemoteHost={p.isRemoteHost} onRemove={() => removeParticipant(p.peerID)} />
                         ))}
                     </div>
                 </div>
