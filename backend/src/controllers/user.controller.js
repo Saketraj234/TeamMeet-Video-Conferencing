@@ -49,6 +49,36 @@ const login = async (req, res) => {
 const register = async (req, res) => {
     const { name, username, password, email } = req.body;
 
+    // Validate input
+    if (!name || !username || !password || !email) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "All fields are required" });
+    }
+
+    // Validate username
+    if (username.length < 3 || username.length > 20) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Username must be 3-20 characters long" });
+    }
+    if (!/^[a-zA-Z0-9_]*$/.test(username)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Username can only contain letters, numbers, and underscores" });
+    }
+
+    // Validate password
+    if (password.length < 8) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must be at least 8 characters long" });
+    }
+    if (!/[A-Z]/.test(password)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must contain at least one uppercase letter" });
+    }
+    if (!/[a-z]/.test(password)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must contain at least one lowercase letter" });
+    }
+    if (!/[0-9]/.test(password)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must contain at least one number" });
+    }
+    if (!/[!@#$%^&*]/.test(password)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must contain at least one special character (!@#$%^&*)" });
+    }
+
     try {
         const existingUser = await User.findOne({ username });
         if (existingUser) {
