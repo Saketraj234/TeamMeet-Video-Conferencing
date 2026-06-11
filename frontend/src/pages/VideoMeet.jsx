@@ -148,6 +148,7 @@ function VideoMeet() {
     const socketRef = useRef()
     const localStreamRef = useRef()
     const localVideoRef = useRef()
+    const localVideoInitialized = useRef(false)
     const peersRef = useRef([])
     const [peers, setPeers] = useState([])
     const mediaRecorderRef = useRef(null)
@@ -261,9 +262,19 @@ function VideoMeet() {
             }
             
             localStreamRef.current = stream
+            console.log("LOCAL STREAM:", stream, "Video tracks:", stream.getVideoTracks())
+            // Ensure video track is enabled
+            const videoTrack = stream.getVideoTracks()[0]
+            if (videoTrack) {
+                videoTrack.enabled = true
+                console.log("Local video track enabled:", videoTrack)
+            }
             if (localVideoRef.current) {
+                console.log("Local video ref already available!")
                 localVideoRef.current.srcObject = stream
                 localVideoRef.current.play().catch(e => console.error("Local video play error:", e))
+            } else {
+                console.log("Local video ref NOT available yet!")
             }
 
             // Set up video stream listener for local video (in case ref isn't ready yet)
@@ -539,21 +550,38 @@ function VideoMeet() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [url, navigate, userData?.name, createPeer, addPeer])
 
+    // Update local video whenever ref, stream, or videoOn changes
     useEffect(() => {
         const updateLocalVideo = () => {
             if (localVideoRef.current && localStreamRef.current) {
+                console.log("Attaching local stream to video element!");
                 localVideoRef.current.srcObject = localStreamRef.current;
                 localVideoRef.current.playsInline = true;
                 localVideoRef.current.muted = true;
                 localVideoRef.current.autoPlay = true;
-                localVideoRef.current.play().catch(e => console.error("Local video play error:", e));
+                
+                const playPromise = localVideoRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => console.log("Local video playing!"))
+                        .catch(e => console.error("Local video play error:", e));
+                }
             }
         };
+        
         updateLocalVideo();
-        // Also try again after a small delay just to be safe
-        const timeoutId = setTimeout(updateLocalVideo, 100);
-        return () => clearTimeout(timeoutId);
-    }, [videoOn]);
+        
+        // Try multiple times in case ref isn't ready yet
+        const timeout1 = setTimeout(updateLocalVideo, 100);
+        const timeout2 = setTimeout(updateLocalVideo, 300);
+        const timeout3 = setTimeout(updateLocalVideo, 500);
+        
+        return () => {
+            clearTimeout(timeout1);
+            clearTimeout(timeout2);
+            clearTimeout(timeout3);
+        };
+    }, [videoOn, screenShareOn]);
 
     const toggleMic = () => {
         if (!isHost && !permissions.mic) {
