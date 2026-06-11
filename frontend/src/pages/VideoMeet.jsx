@@ -317,14 +317,26 @@ function VideoMeet() {
                     const peer = addPeer(null, id, localStreamRef.current) // Peer will signal back
                     peersRef.current.push({ peerID: id, peer })
                     setPeers(prev => {
-                        if (prev.find(p => p.peerID === id)) return prev;
-                        return [...prev, { 
-                            peerID: id, 
-                            peer, 
-                            name: newUser.name, 
-                            status: newUser.status,
-                            isRemoteHost: newUser.isHost
-                        }]
+                        const existingIndex = prev.findIndex(p => p.peerID === id);
+                        if (existingIndex !== -1) {
+                            const updatedPeers = [...prev];
+                            updatedPeers[existingIndex] = {
+                                ...updatedPeers[existingIndex],
+                                peer: peer,
+                                name: newUser.name,
+                                status: newUser.status,
+                                isRemoteHost: newUser.isHost
+                            };
+                            return updatedPeers;
+                        } else {
+                            return [...prev, { 
+                                peerID: id, 
+                                peer, 
+                                name: newUser.name, 
+                                status: newUser.status,
+                                isRemoteHost: newUser.isHost
+                            }];
+                        }
                     })
                     addNotification(`${newUser.name} joined the meeting`)
                 }
@@ -335,9 +347,20 @@ function VideoMeet() {
                 if (peersRef.current.find(p => p.peerID === payload.callerID)) return;
                 const peer = addPeer(payload.signal, payload.callerID, localStreamRef.current)
                 peersRef.current.push({ peerID: payload.callerID, peer })
+                // Update the peers array to replace the placeholder with the actual peer
                 setPeers(prev => {
-                    if (prev.find(p => p.peerID === payload.callerID)) return prev;
-                    return [...prev, { peerID: payload.callerID, peer }]
+                    const existingIndex = prev.findIndex(p => p.peerID === payload.callerID);
+                    if (existingIndex !== -1) {
+                        const updatedPeers = [...prev];
+                        updatedPeers[existingIndex] = {
+                            ...updatedPeers[existingIndex],
+                            peer: peer
+                        };
+                        return updatedPeers;
+                    } else {
+                        // If not in array yet, add it
+                        return [...prev, { peerID: payload.callerID, peer }];
+                    }
                 })
             })
 
@@ -381,6 +404,7 @@ function VideoMeet() {
                         if (user.id === socketRef.current.id) return // Skip self
                         const existingPeer = prev.find(p => p.peerID === user.id)
                         if (existingPeer) {
+                            // Keep existing peer object, just update name/status/isRemoteHost
                             updatedPeers.push({
                                 ...existingPeer,
                                 name: user.name,
@@ -388,7 +412,7 @@ function VideoMeet() {
                                 isRemoteHost: user.isHost
                             })
                         } else {
-                            // Peer doesn't exist yet, add placeholder (will get name/status later from user-joined)
+                            // New user: add to array, but we'll wait for user-joined event to get the peer object
                             updatedPeers.push({
                                 peerID: user.id,
                                 peer: null,

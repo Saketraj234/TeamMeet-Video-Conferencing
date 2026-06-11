@@ -4,7 +4,7 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { 
     Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
-    Sparkles, Shield, Users, X, Square as WhiteboardIcon 
+    Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Phone, Clock 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
@@ -15,6 +15,7 @@ function HomeComponent() {
     const [showScheduleModal, setShowScheduleModal] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [showLearnMore, setShowLearnMore] = useState(false)
+    const [showContactModal, setShowContactModal] = useState(false)
     const [scheduleDate, setScheduleDate] = useState("")
     const [scheduleTime, setScheduleTime] = useState("")
     const { addToUserHistory, userData } = useContext(AuthContext)
@@ -230,7 +231,7 @@ function HomeComponent() {
                         <span className='hover:text-blue-600 cursor-pointer transition-colors'>Privacy Policy</span>
                         <span className='hover:text-blue-600 cursor-pointer transition-colors'>Terms of Service</span>
                         <span className='hover:text-blue-600 cursor-pointer transition-colors'>Support</span>
-                        <span className='hover:text-blue-600 cursor-pointer transition-colors'>Contact Us</span>
+                        <span onClick={() => setShowContactModal(true)} className='hover:text-blue-600 cursor-pointer transition-colors'>Contact Us</span>
                     </div>
 
                     <p className='text-sm text-gray-500 dark:text-gray-400'>
@@ -388,6 +389,73 @@ function HomeComponent() {
                                         Got it, thanks!
                                     </button>
                                 </section>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Contact Us Modal */}
+            <AnimatePresence>
+                {showContactModal && (
+                    <div className='fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='bg-white dark:bg-[#1a1a1a] w-full max-w-md rounded-3xl p-8 shadow-2xl border border-gray-100 dark:border-white/5'
+                        >
+                            <div className='flex justify-between items-center mb-6'>
+                                <h3 className='text-2xl font-black flex items-center gap-2'>
+                                    <Mail className='text-blue-600 w-6 h-6' />
+                                    Contact Us
+                                </h3>
+                                <button onClick={() => setShowContactModal(false)} className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all'>
+                                    <X className='w-5 h-5 text-gray-400' />
+                                </button>
+                            </div>
+
+                            <div className='space-y-6'>
+                                {/* Email */}
+                                <div className='flex items-start gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                    <div className='w-12 h-12 bg-blue-600/10 rounded-xl flex items-center justify-center shrink-0'>
+                                        <Mail className='w-6 h-6 text-blue-600' />
+                                    </div>
+                                    <div className='flex-1'>
+                                        <h4 className='font-bold text-sm mb-1'>Email Us</h4>
+                                        <p className='text-gray-600 dark:text-gray-400 text-sm'>support@teammeet.com</p>
+                                    </div>
+                                </div>
+
+                                {/* Phone */}
+                                <div className='flex items-start gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                    <div className='w-12 h-12 bg-green-600/10 rounded-xl flex items-center justify-center shrink-0'>
+                                        <Phone className='w-6 h-6 text-green-600' />
+                                    </div>
+                                    <div className='flex-1'>
+                                        <h4 className='font-bold text-sm mb-1'>Call Us</h4>
+                                        <p className='text-gray-600 dark:text-gray-400 text-sm'>+91 98765 43210</p>
+                                    </div>
+                                </div>
+
+                                {/* Availability */}
+                                <div className='flex items-start gap-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
+                                    <div className='w-12 h-12 bg-purple-600/10 rounded-xl flex items-center justify-center shrink-0'>
+                                        <Clock className='w-6 h-6 text-purple-600' />
+                                    </div>
+                                    <div className='flex-1'>
+                                        <h4 className='font-bold text-sm mb-1'>Available Hours</h4>
+                                        <p className='text-gray-600 dark:text-gray-400 text-sm'>Monday - Friday: 9:00 AM - 6:00 PM (IST)</p>
+                                        <p className='text-gray-500 dark:text-gray-500 text-xs mt-1'>Weekend Support: 10:00 AM - 2:00 PM (IST)</p>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => setShowContactModal(false)}
+                                    className='w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg'
+                                >
+                                    Close
+                                </button>
                             </div>
                         </motion.div>
                     </div>
