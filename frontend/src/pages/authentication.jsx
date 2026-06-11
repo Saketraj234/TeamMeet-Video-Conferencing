@@ -47,20 +47,41 @@ export default function Authentication() {
 
         // Validate registration form
         if (!isLogin) {
-            // Check all username requirements
-            if (!usernameRequirements.length || !usernameRequirements.validChars) {
-                setError('Please choose a valid username')
+            // Check username requirements
+            if (!usernameRequirements.length) {
+                setError('Username must be 3-20 characters long')
+                setLoading(false)
+                return
+            }
+            if (!usernameRequirements.validChars) {
+                setError('Username can only contain letters, numbers, and underscores')
                 setLoading(false)
                 return
             }
 
-            // Check all password requirements
-            if (!passwordRequirements.length || 
-                !passwordRequirements.uppercase || 
-                !passwordRequirements.lowercase || 
-                !passwordRequirements.number || 
-                !passwordRequirements.special) {
-                setError('Please create a valid password')
+            // Check password requirements
+            if (!passwordRequirements.length) {
+                setError('Password must be at least 8 characters long')
+                setLoading(false)
+                return
+            }
+            if (!passwordRequirements.uppercase) {
+                setError('Password must contain at least one uppercase letter')
+                setLoading(false)
+                return
+            }
+            if (!passwordRequirements.lowercase) {
+                setError('Password must contain at least one lowercase letter')
+                setLoading(false)
+                return
+            }
+            if (!passwordRequirements.number) {
+                setError('Password must contain at least one number')
+                setLoading(false)
+                return
+            }
+            if (!passwordRequirements.special) {
+                setError('Password must contain at least one special character (!@#$%^&*)')
                 setLoading(false)
                 return
             }
