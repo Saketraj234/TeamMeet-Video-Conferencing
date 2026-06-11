@@ -22,7 +22,7 @@ function HomeComponent() {
     const [showSupportModal, setShowSupportModal] = useState(false)
     const [showAiMentorModal, setShowAiMentorModal] = useState(false)
     const [aiMessages, setAiMessages] = useState([
-        { id: 1, role: "assistant", content: "Namaste! I'm TeamMeet AI Mentor. How can I help you today with your meetings or any questions about TeamMeet?" }
+        { id: 1, role: "assistant", content: "👋 Hello! I'm TeamMeet AI Mentor, your personal assistant for all things TeamMeet! I can help you with:\n\n• 📹 Starting and joining meetings\n• 🔧 Troubleshooting audio/video issues\n• 📅 Scheduling future meetings\n• 💡 Learning about TeamMeet features\n\nHow can I assist you today?" }
     ])
     const [aiInput, setAiInput] = useState("")
     const [isAiTyping, setIsAiTyping] = useState(false)
@@ -747,7 +747,7 @@ function HomeComponent() {
                                             </div>
                                         )}
                                         <div 
-                                            className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm md:text-base ${
+                                            className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm md:text-base whitespace-pre-line ${
                                                 msg.role === "user" 
                                                     ? "bg-blue-600 text-white rounded-tr-sm" 
                                                     : "bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-tl-sm"
