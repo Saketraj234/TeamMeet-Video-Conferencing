@@ -529,56 +529,113 @@ export default function VideoMeet() {
 
     const startRecording = async () => {
         try {
-            addNotification("Select a screen/window to record (you can also check 'Share System Audio').");
-            const stream = await navigator.mediaDevices.getDisplayMedia({ 
-                video: { cursor: "always" }, 
-                audio: true 
-            });
+            addNotification("Select what to record:");
+            
+            // Ask user what to record
+            const recordChoice = window.confirm("Click OK to record your screen, or Cancel to record your camera.");
+            
+            let stream;
+            if (recordChoice) {
+                // Record screen
+                stream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { cursor: "always" }, 
+                    audio: true 
+                });
+            } else {
+                // Record local camera + mic
+                stream = localStreamRef.current;
+                if (!stream) {
+                    throw new Error("No local stream available.");
+                }
+            }
+
+            // Try multiple mime types for better browser compatibility
+            const mimeTypes = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp8,opus',
+                'video/webm',
+                'video/mp4'
+            ];
+
+            let selectedMimeType = '';
+            for (const type of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(type)) {
+                    selectedMimeType = type;
+                    break;
+                }
+            }
+
+            if (!selectedMimeType) {
+                throw new Error("No supported MIME type found for recording.");
+            }
+
             mediaRecorderRef.current = new MediaRecorder(stream, { 
-                mimeType: 'video/webm;codecs=vp9,opus' 
+                mimeType: selectedMimeType 
             });
             recordedChunksRef.current = [];
             
             mediaRecorderRef.current.ondataavailable = (e) => { 
-                if (e.data.size > 0) {
+                if (e.data && e.data.size > 0) {
                     recordedChunksRef.current.push(e.data);
                 }
             };
             
             mediaRecorderRef.current.onstop = () => {
-                const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-                const downloadUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = downloadUrl;
-                a.download = `TeamMeet-Recording-${new Date().toISOString().split('T')[0]}-${Date.now()}.webm`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(downloadUrl);
-                document.body.removeChild(a);
-                addNotification("Recording saved successfully!");
+                try {
+                    const blob = new Blob(recordedChunksRef.current, { type: selectedMimeType });
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = downloadUrl;
+                    a.download = `TeamMeet-Recording-${new Date().toISOString().split('T')[0]}-${Date.now()}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                    addNotification("Recording saved successfully!");
+                } catch (err) {
+                    console.error("Error saving recording:", err);
+                    addNotification("Failed to save recording.");
+                }
             };
             
-            // Stop recording when user stops sharing the screen
-            stream.getVideoTracks()[0].onended = () => {
-                stopRecording();
+            mediaRecorderRef.current.onerror = (event) => {
+                console.error("MediaRecorder error:", event);
+                addNotification(`Recording error: ${event.message || 'Unknown error'}`);
             };
+            
+            // If recording screen, stop when user stops sharing
+            if (recordChoice && stream.getVideoTracks()[0]) {
+                stream.getVideoTracks()[0].onended = () => {
+                    stopRecording();
+                };
+            }
             
             mediaRecorderRef.current.start(1000);
             setIsRecording(true);
             addNotification("Recording started!");
         } catch (err) {
             console.error("Recording error:", err);
-            addNotification("Recording cancelled or failed.");
+            let errorMsg = "Recording cancelled or failed.";
+            if (err.name === 'NotAllowedError') {
+                errorMsg = "Permission denied.";
+            } else if (err.name === 'NotFoundError') {
+                errorMsg = "No source selected.";
+            }
+            addNotification(errorMsg);
         }
     };
 
     const stopRecording = () => { 
         if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') { 
-            mediaRecorderRef.current.stop(); 
-            // Stop all tracks in the recording stream
-            if (mediaRecorderRef.current.stream) {
-                mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+            try {
+                mediaRecorderRef.current.stop(); 
+                // Stop all tracks in the recording stream
+                if (mediaRecorderRef.current.stream) {
+                    mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+                }
+            } catch (err) {
+                console.error("Error stopping recording:", err);
             }
             setIsRecording(false); 
         } 
@@ -884,7 +941,7 @@ export default function VideoMeet() {
                             )}
                             <div className='absolute bottom-3 left-3 md:bottom-6 md:left-6 flex items-center gap-2 md:gap-3 px-3 py-1.5 md:px-4 md:py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 max-w-[85%]'>
                                 <div className='w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]' />
-                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name} (You) {isHost && "(Host)"}</span>
+                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name} {isHost ? "(Host)" : "(You)"}</span>
                                 {!micOn && <MicOff className='w-3.5 h-3.5 md:w-4 md:h-4 text-red-500' />}
                             </div>
                             {handsRaised[socketRef.current?.id] && (
