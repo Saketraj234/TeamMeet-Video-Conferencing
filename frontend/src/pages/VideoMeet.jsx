@@ -221,9 +221,10 @@ function VideoMeet() {
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
                 console.log("Socket connected:", socketRef.current.id)
-                // If user already clicked "Join Now" before connection, join now
-                if (isJoiningRef.current) {
+                // If user already clicked "Join Now" before connection OR it's a created meeting (host), join now
+                if (isJoiningRef.current || location.state?.fromCreate) {
                     socketRef.current.emit("join-call", url, userData.name)
+                    isJoiningRef.current = false
                 }
             })
 
