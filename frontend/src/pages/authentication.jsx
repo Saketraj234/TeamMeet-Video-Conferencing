@@ -20,16 +20,16 @@ export default function Authentication() {
     // Password validation helpers (calculated dynamically)
     const getPasswordRequirements = (pwd) => ({
         length: pwd.length >= 8,
-        uppercase: /[A-Z]/.test(pwd),
-        lowercase: /[a-z]/.test(pwd),
-        number: /[0-9]/.test(pwd),
-        special: /[!@#$%^&*]/.test(pwd)
+        uppercase: pwd.length > 0 && /[A-Z]/.test(pwd),
+        lowercase: pwd.length > 0 && /[a-z]/.test(pwd),
+        number: pwd.length > 0 && /[0-9]/.test(pwd),
+        special: pwd.length > 0 && /[!@#$%^&*]/.test(pwd)
     })
 
     // Username validation helpers (calculated dynamically)
     const getUsernameRequirements = (user) => ({
         length: user.length >= 3 && user.length <= 20,
-        validChars: /^[a-zA-Z0-9_]*$/.test(user)
+        validChars: user.length > 0 && /^[a-zA-Z0-9_]*$/.test(user)
     })
 
     const passwordRequirements = getPasswordRequirements(password)
