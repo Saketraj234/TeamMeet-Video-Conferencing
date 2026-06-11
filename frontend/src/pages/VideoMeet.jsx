@@ -13,6 +13,7 @@ import {
 
 import server from '../environment'
 import { AuthContext } from '../contexts/AuthContext'
+import withAuth from '../utils/withAuth'
 
 // Icon for Whiteboard
 const WhiteboardIcon = ({ className }) => (
@@ -81,7 +82,7 @@ const RemoteVideo = ({ peer, name, status, handRaised, isHost, onRemove, isRemot
             
             <div className='absolute bottom-3 left-3 md:bottom-6 md:left-6 flex items-center gap-2 md:gap-3 px-3 py-1.5 md:px-4 md:py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 max-w-[85%]'>
                 <div className={`w-2 h-2 rounded-full ${status?.video ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-gray-500'}`} />
-                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{name} {isRemoteHost && "(Host)"}</span>
+                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{name || "User"} {isRemoteHost && "(Host)"}</span>
                 {!status?.mic && <MicOff className='w-3.5 h-3.5 md:w-4 md:h-4 text-red-500' />}
             </div>
 
@@ -103,7 +104,7 @@ const RemoteVideo = ({ peer, name, status, handRaised, isHost, onRemove, isRemot
     )
 }
 
-export default function VideoMeet() {
+function VideoMeet() {
     const navigate = useNavigate()
     const location = useLocation()
     const url = window.location.href.split("/").pop()
@@ -343,6 +344,20 @@ export default function VideoMeet() {
                 const peers = peersRef.current.filter(p => p.peerID !== id)
                 peersRef.current = peers
                 setPeers(prev => prev.filter(p => p.peerID !== id))
+            })
+
+            socketRef.current.on("host-updated", (newHostId, usersList) => {
+                // Update local isHost state
+                setIsHost(socketRef.current.id === newHostId)
+                isHostRef.current = socketRef.current.id === newHostId
+                // Update all peers' isRemoteHost
+                setPeers(prev => prev.map(p => {
+                    const userFromList = usersList.find(u => u.id === p.peerID)
+                    if (userFromList) {
+                        return { ...p, isRemoteHost: userFromList.isHost }
+                    }
+                    return { ...p, isRemoteHost: p.peerID === newHostId }
+                }))
             })
 
             socketRef.current.on("update-participants", (list) => {
@@ -925,7 +940,7 @@ export default function VideoMeet() {
                             <Shield className='w-3.5 h-3.5 md:w-4 md:h-4' />
                         </button>
                     )}
-                    <button onClick={() => setShowInviteModal(true)} className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><UserPlus className='w-3 h-3 md:w-3.5 md:h-3.5' /><span className='hidden xs:inline'>Invite Others</span></button>
+                    {isHost && <button onClick={() => setShowInviteModal(true)} className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><UserPlus className='w-3 h-3 md:w-3.5 md:h-3.5' /><span className='hidden xs:inline'>Invite Others</span></button>}
                 </div>
             </div>
 
@@ -949,7 +964,7 @@ export default function VideoMeet() {
                             )}
                             <div className='absolute bottom-3 left-3 md:bottom-6 md:left-6 flex items-center gap-2 md:gap-3 px-3 py-1.5 md:px-4 md:py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 max-w-[85%]'>
                                 <div className='w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]' />
-                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name} {isHost ? "(Host)" : "(You)"}</span>
+                                <span className='text-[10px] md:text-xs font-bold text-white uppercase tracking-wider truncate'>{userData?.name || "User"} {isHost ? "(Host)" : "(You)"}</span>
                                 {!micOn && <MicOff className='w-3.5 h-3.5 md:w-4 md:h-4 text-red-500' />}
                             </div>
                             {handsRaised[socketRef.current?.id] && (
@@ -1223,3 +1238,5 @@ export default function VideoMeet() {
         </div>
     )
 }
+
+export default withAuth(VideoMeet)

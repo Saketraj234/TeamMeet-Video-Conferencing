@@ -3,8 +3,9 @@ import { AuthContext } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Hash, ArrowLeft, Video } from 'lucide-react'
 import { motion } from 'framer-motion'
+import withAuth from '../utils/withAuth'
 
-export default function History() {
+function History() {
     const { getHistoryOfUser } = useContext(AuthContext);
     const [meetings, setMeetings] = useState([])
     const navigate = useNavigate();
@@ -110,3 +111,5 @@ export default function History() {
         </div>
     )
 }
+
+export default withAuth(History)
