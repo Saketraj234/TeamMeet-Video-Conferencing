@@ -313,25 +313,32 @@ function VideoMeet() {
 
             socketRef.current.on("user-joined", (id, allConnections, usersList) => {
                 const newUser = usersList.find(u => u.id === id);
-                if (newUser) {
+                if (newUser && !peersRef.current.find(p => p.peerID === id)) {
                     const peer = addPeer(null, id, localStreamRef.current) // Peer will signal back
                     peersRef.current.push({ peerID: id, peer })
-                    setPeers(prev => [...prev, { 
-                        peerID: id, 
-                        peer, 
-                        name: newUser.name, 
-                        status: newUser.status,
-                        isRemoteHost: newUser.isHost
-                    }])
+                    setPeers(prev => {
+                        if (prev.find(p => p.peerID === id)) return prev;
+                        return [...prev, { 
+                            peerID: id, 
+                            peer, 
+                            name: newUser.name, 
+                            status: newUser.status,
+                            isRemoteHost: newUser.isHost
+                        }]
+                    })
                     addNotification(`${newUser.name} joined the meeting`)
                 }
             })
 
             socketRef.current.on("receiving-signal", (payload) => {
+                // Check if peer already exists
+                if (peersRef.current.find(p => p.peerID === payload.callerID)) return;
                 const peer = addPeer(payload.signal, payload.callerID, localStreamRef.current)
                 peersRef.current.push({ peerID: payload.callerID, peer })
-                // We need to find the name/status from somewhere, maybe all-users or update-participants
-                setPeers(prev => [...prev, { peerID: payload.callerID, peer }])
+                setPeers(prev => {
+                    if (prev.find(p => p.peerID === payload.callerID)) return prev;
+                    return [...prev, { peerID: payload.callerID, peer }]
+                })
             })
 
             socketRef.current.on("receiving-returned-signal", (payload) => {
@@ -339,7 +346,7 @@ function VideoMeet() {
                 if (item) item.peer.signal(payload.signal)
             })
 
-            socketRef.current.on("user-disconnected", (id) => {
+            socketRef.current.on("user-left", (id) => {
                 const peerObj = peersRef.current.find(p => p.peerID === id)
                 if (peerObj) peerObj.peer.destroy()
                 const peers = peersRef.current.filter(p => p.peerID !== id)
@@ -367,14 +374,32 @@ function VideoMeet() {
                     setIsHost(me.isHost)
                     isHostRef.current = me.isHost
                 }
-                // Update isRemoteHost for all peers
-                setPeers(prev => prev.map(p => {
-                    const userFromList = list.find(u => u.id === p.peerID)
-                    if (userFromList) {
-                        return { ...p, isRemoteHost: userFromList.isHost }
-                    }
-                    return p
-                }))
+                // Sync peers array with server's user list
+                setPeers(prev => {
+                    const updatedPeers = []
+                    list.forEach(user => {
+                        if (user.id === socketRef.current.id) return // Skip self
+                        const existingPeer = prev.find(p => p.peerID === user.id)
+                        if (existingPeer) {
+                            updatedPeers.push({
+                                ...existingPeer,
+                                name: user.name,
+                                status: user.status,
+                                isRemoteHost: user.isHost
+                            })
+                        } else {
+                            // Peer doesn't exist yet, add placeholder (will get name/status later from user-joined)
+                            updatedPeers.push({
+                                peerID: user.id,
+                                peer: null,
+                                name: user.name || "User",
+                                status: user.status || { mic: true, video: true },
+                                isRemoteHost: user.isHost
+                            })
+                        }
+                    })
+                    return updatedPeers
+                })
             })
 
             socketRef.current.on("status-updated", (id, status) => {
@@ -479,11 +504,11 @@ function VideoMeet() {
     }, [url, navigate, userData?.name, createPeer, addPeer])
 
     useEffect(() => {
-        if (videoOn && localVideoRef.current && localStreamRef.current) {
+        if (localVideoRef.current && localStreamRef.current) {
             localVideoRef.current.srcObject = localStreamRef.current;
             localVideoRef.current.play().catch(e => console.error("Local video play error:", e));
         }
-    }, [videoOn]);
+    }, [videoOn, localVideoRef, localStreamRef]);
 
     const toggleMic = () => {
         if (!isHost && !permissions.mic) {
