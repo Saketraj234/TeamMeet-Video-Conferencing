@@ -1,6 +1,7 @@
 export const aiChat = async (req, res) => {
     console.log("=== AI Chat Request Received ===");
     console.log("Request body:", req.body);
+    console.log("GROQ_API_KEY loaded:", process.env.GROQ_API_KEY ? `Yes (starts with: ${process.env.GROQ_API_KEY.substring(0, 10)}...)` : "No!");
     
     try {
         const { messages } = req.body;
