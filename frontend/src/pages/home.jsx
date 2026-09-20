@@ -532,7 +532,7 @@ function HomeComponent() {
                                 <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                                     <div className='bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-200 dark:border-blue-800/30'>
                                         <h4 className='font-bold text-gray-900 dark:text-white mb-2'>Email</h4>
-                                        <p className='text-blue-600 text-lg font-semibold'>contact@teammeet.com</p>
+                                        <p className='text-blue-600 text-lg font-semibold'>teammeet756@gmail.com</p>
                                     </div>
 
                                     <div className='bg-purple-50 dark:bg-purple-900/10 p-6 rounded-2xl border border-purple-200 dark:border-purple-800/30'>
@@ -713,7 +713,7 @@ function HomeComponent() {
                                     <p className='text-base leading-relaxed'>
                                         For additional support, please contact our team.
                                     </p>
-                                    <p className='text-blue-600 font-bold text-lg mt-2'>support@teammeet.com</p>
+                                    <p className='text-blue-600 font-bold text-lg mt-2'>teammeet756@gmail.com</p>
                                 </div>
                             </div>
 
