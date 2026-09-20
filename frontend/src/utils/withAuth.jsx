@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import server from "../environment"
@@ -8,7 +8,7 @@ const withAuth = (WrappedComponent) => {
         const router = useNavigate();
         const [validated, setValidated] = useState(false);
 
-        const validateToken = async () => {
+        const validateToken = useCallback(async () => {
             const token = localStorage.getItem("token");
             if (!token) {
                 localStorage.setItem("redirectPath", window.location.pathname);
@@ -26,11 +26,11 @@ const withAuth = (WrappedComponent) => {
                 localStorage.setItem("redirectPath", window.location.pathname);
                 router("/auth");
             }
-        };
+        }, [router]);
 
         useEffect(() => {
             validateToken();
-        }, [router])
+        }, [validateToken])
 
         if (!validated) {
             return (

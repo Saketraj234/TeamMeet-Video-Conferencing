@@ -1,6 +1,6 @@
 import axios from "axios";
 import httpStatus from "http-status";
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import server from "../environment";
 
@@ -31,18 +31,29 @@ export const AuthProvider = ({ children }) => {
     }, [userData]);
 
     const router = useNavigate();
+    const interceptorIdRef = useRef(null);
 
-    client.interceptors.response.use(
-        (response) => response,
-        (error) => {
-            if (error.response?.status === 401) {
-                localStorage.removeItem("token");
-                localStorage.removeItem("userData");
-                router("/auth");
-            }
-            return Promise.reject(error);
+    useEffect(() => {
+        if (interceptorIdRef.current === null) {
+            interceptorIdRef.current = client.interceptors.response.use(
+                (response) => response,
+                (error) => {
+                    if (error.response?.status === 401) {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("userData");
+                        router("/auth");
+                    }
+                    return Promise.reject(error);
+                }
+            );
         }
-    );
+        return () => {
+            if (interceptorIdRef.current !== null) {
+                client.interceptors.response.eject(interceptorIdRef.current);
+                interceptorIdRef.current = null;
+            }
+        };
+    }, [router]);
 
     const handleRegister = useCallback(async (name, username, password, email) => {
         try {
