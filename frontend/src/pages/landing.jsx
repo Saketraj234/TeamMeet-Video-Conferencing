@@ -87,7 +87,7 @@ export default function LandingPage() {
                             ))}
                         </div>
                         <p className='text-sm text-gray-500 font-medium'>
-                            <span className='text-white font-bold'>1,000+</span> users already joined
+                            <span className='text-white font-bold'>100+</span> users already joined
                         </p>
                     </div>
                 </div>
@@ -150,39 +150,43 @@ export default function LandingPage() {
             </section>
 
             {/* Footer */}
-            <footer className='border-t border-white/5 py-12 px-6 md:px-12 bg-[#111]'>
-                <div className='max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8'>
-                    <div className='flex items-center gap-2'>
-                        <div className='bg-blue-600 p-1.5 rounded-lg'>
-                            <Video className='text-white w-4 h-4' />
+            <footer className='py-8 px-6 md:px-12 bg-[#0d0d0d] border-t border-white/5 relative overflow-hidden'>
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent' />
+                <div className='max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8 relative z-10'>
+                    <div className='flex flex-col items-center md:items-start gap-4'>
+                        <div className='flex items-center gap-2.5 group cursor-pointer' onClick={() => navigate("/")}>
+                            <div className='bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform'>
+                                <Video className='text-white w-5 h-5' />
+                            </div>
+                            <h1 className='text-xl font-black tracking-tight text-white'>TeamMeet</h1>
                         </div>
-                        <h1 className='text-xl font-bold text-white'>TeamMeet</h1>
+                        <p className='text-gray-500 text-xs max-w-[200px] text-center md:text-left leading-relaxed'>
+                            Secure, high-quality video conferencing for everyone, everywhere.
+                        </p>
                     </div>
-                    <p className='text-gray-500 text-sm'>
-                        © 2026 TeamMeet Inc. All rights reserved.
-                    </p>
-                    <div className='flex gap-5'>
-                        <button 
-                            onClick={() => window.open('https://x.com/saketraj235')} 
-                            className='p-2.5 bg-white/5 text-gray-400 rounded-xl hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
-                            title="Twitter"
-                        >
-                            <X className='w-5 h-5' />
-                        </button>
-                        <button 
-                            onClick={() => window.open('https://github.com/Saketraj234')} 
-                            className='p-2.5 bg-white/5 text-gray-400 rounded-xl hover:bg-white/10 hover:text-white transition-all duration-300'
-                            title="GitHub"
-                        >
-                            <Github className='w-5 h-5' />
-                        </button>
-                        <button 
-                            onClick={() => window.open('https://www.linkedin.com/in/saket-raj62/')} 
-                            className='p-2.5 bg-white/5 text-gray-400 rounded-xl hover:bg-blue-900/20 hover:text-blue-400 transition-all duration-300'
-                            title="LinkedIn"
-                        >
-                            <Linkedin className='w-5 h-5' />
-                        </button>
+                    
+                    <div className='flex flex-col items-center gap-6'>
+                        <div className='flex gap-4'>
+                            {[
+                                { icon: <X className='w-5 h-5' />, url: 'https://x.com/saketraj235', label: 'Twitter' },
+                                { icon: <Github className='w-5 h-5' />, url: 'https://github.com/Saketraj234', label: 'GitHub' },
+                                { icon: <Linkedin className='w-5 h-5' />, url: 'https://www.linkedin.com/in/saket-raj62/', label: 'LinkedIn' }
+                            ].map((social, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => window.open(social.url)} 
+                                    className='p-3 bg-white/5 text-gray-400 rounded-2xl hover:bg-blue-600 hover:text-white hover:-translate-y-1 transition-all duration-300 border border-white/5 shadow-xl'
+                                    title={social.label}
+                                >
+                                    {social.icon}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className='flex flex-col items-center md:items-end gap-2'>
+                        <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
+                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
                     </div>
                 </div>
             </footer>

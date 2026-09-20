@@ -49,20 +49,26 @@ const login = async (req, res) => {
 const register = async (req, res) => {
     const { name, username, password, email } = req.body;
 
-    // Validate input
     if (!name || !username || !password || !email) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "All fields are required" });
     }
+    if (typeof name !== "string" || name.trim().length < 2) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Name must be at least 2 characters long" });
+    }
 
-    // Validate username
-    if (username.length < 3 || username.length > 20) {
+    const cleanUsername = String(username).trim();
+    if (cleanUsername.length < 3 || cleanUsername.length > 20) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Username must be 3-20 characters long" });
     }
-    if (!/^[a-zA-Z0-9_]*$/.test(username)) {
+    if (!/^[a-zA-Z0-9_]+$/.test(cleanUsername)) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Username can only contain letters, numbers, and underscores" });
     }
 
-    // Validate password
+    const cleanEmail = String(email).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please enter a valid email address" });
+    }
+
     if (password.length < 8) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Password must be at least 8 characters long" });
     }
@@ -80,24 +86,38 @@ const register = async (req, res) => {
     }
 
     try {
-        const existingUser = await User.findOne({ username });
+        const existingUser = await User.findOne({
+            $or: [{ username: cleanUsername }, { email: cleanEmail }]
+        });
         if (existingUser) {
-            return res.status(httpStatus.CONFLICT).json({ message: "User already exists" });
+            if (existingUser.username === cleanUsername) {
+                return res.status(httpStatus.CONFLICT).json({
+                    message: "This username is already registered. Please try a different username or login instead."
+                });
+            }
+            return res.status(httpStatus.CONFLICT).json({
+                message: "This email is already registered. Please use a different email or login instead."
+            });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
-            name: name,
-            username: username,
+            name: name.trim(),
+            username: cleanUsername,
             password: hashedPassword,
-            email: email
+            email: cleanEmail
         });
 
         await newUser.save();
         res.status(httpStatus.CREATED).json({ message: "User Registered Successfully" });
     } catch (e) {
-        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Something went wrong: ${e.message}` });
+        if (e && e.code === 11000) {
+            return res.status(httpStatus.CONFLICT).json({
+                message: "Account already exists with these details. Please try logging in instead."
+            });
+        }
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Registration failed: ${e.message}` });
     }
 }
 

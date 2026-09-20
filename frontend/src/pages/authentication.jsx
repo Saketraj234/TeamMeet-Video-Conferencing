@@ -17,7 +17,6 @@ export default function Authentication() {
     const [showUsernameValidation, setShowUsernameValidation] = useState(false)
     const [showPasswordValidation, setShowPasswordValidation] = useState(false)
 
-    // Password validation helpers (calculated dynamically)
     const getPasswordRequirements = (pwd) => ({
         length: pwd.length >= 8,
         uppercase: pwd.length > 0 && /[A-Z]/.test(pwd),
@@ -26,10 +25,14 @@ export default function Authentication() {
         special: pwd.length > 0 && /[!@#$%^&*]/.test(pwd)
     })
 
-    // Username validation helpers (calculated dynamically)
     const getUsernameRequirements = (user) => ({
         length: user.length >= 3 && user.length <= 20,
         validChars: user.length > 0 && /^[a-zA-Z0-9_]*$/.test(user)
+    })
+
+    const getEmailRequirements = (em) => ({
+        filled: em && em.length > 0,
+        valid: em && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)
     })
 
     const passwordRequirements = getPasswordRequirements(password)
@@ -48,13 +51,16 @@ export default function Authentication() {
         setError('')
         setLoading(true)
 
-        // Validate registration form
         if (!isLogin) {
-            // Get fresh requirements
             const currentUsernameReq = getUsernameRequirements(username)
             const currentPasswordReq = getPasswordRequirements(password)
-            
-            // Check username requirements
+            const currentEmailReq = getEmailRequirements(email)
+
+            if (!name || name.trim().length < 2) {
+                setError('Please enter your full name (at least 2 characters)')
+                setLoading(false)
+                return
+            }
             if (!currentUsernameReq.length) {
                 setError('Username must be 3-20 characters long')
                 setLoading(false)
@@ -65,8 +71,16 @@ export default function Authentication() {
                 setLoading(false)
                 return
             }
-
-            // Check password requirements
+            if (!currentEmailReq.filled) {
+                setError('Please enter your email address')
+                setLoading(false)
+                return
+            }
+            if (!currentEmailReq.valid) {
+                setError('Please enter a valid email address (e.g. user@example.com)')
+                setLoading(false)
+                return
+            }
             if (!currentPasswordReq.length) {
                 setError('Password must be at least 8 characters long')
                 setLoading(false)
@@ -98,12 +112,42 @@ export default function Authentication() {
             if (isLogin) {
                 await handleLogin(username, password)
             } else {
-                await handleRegister(name, username, password, email)
-                // Automatically login after registration
-                await handleLogin(username, password)
+                try {
+                    await handleRegister(name, username, password, email)
+                } catch (regErr) {
+                    const msg = regErr.response?.data?.message
+                    if (regErr.response?.status === 409) {
+                        setError('This username is already registered. Please try a different username or login instead.')
+                    } else if (msg && typeof msg === 'string') {
+                        setError(msg.replace(/^Something went wrong:\s*/, ''))
+                    } else if (!navigator.onLine) {
+                        setError('Network error. Please check your internet connection and try again.')
+                    } else {
+                        setError('Registration failed. Please try again with different details.')
+                    }
+                    setLoading(false)
+                    return
+                }
+                try {
+                    await handleLogin(username, password)
+                } catch (loginErr) {
+                    navigate('/auth')
+                }
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Something went wrong')
+            const status = err.response?.status
+            const msg = err.response?.data?.message
+            if (status === 404) {
+                setError('Account not found. Please check your username or create a new account.')
+            } else if (status === 401) {
+                setError('Invalid password. Please try again or use "Forgot password".')
+            } else if (msg && typeof msg === 'string') {
+                setError(msg.replace(/^Something went wrong:\s*/, ''))
+            } else if (!navigator.onLine) {
+                setError('Network error. Please check your internet connection and try again.')
+            } else {
+                setError('Something went wrong. Please try again in a moment.')
+            }
         } finally {
             setLoading(false)
         }
