@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
+import InstallPWAButton from '../components/InstallPWAButton'
 
 function HomeComponent() {
     const navigate = useNavigate()
@@ -95,11 +96,12 @@ function HomeComponent() {
         console.log("API URL:", apiUrl);
         
         try {
-            // --- CALL BACKEND API ---
+            const token = localStorage.getItem("token");
             const response = await fetch(`${apiUrl}/api/v1/ai/chat`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ 
                 messages: updatedMessages.map(({ role, content }) => ({ 
@@ -113,6 +115,12 @@ function HomeComponent() {
             const data = await response.json()
             console.log("Backend response data:", data);
             
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("userData");
+                navigate("/auth");
+                throw new Error("Session expired. Please login again.");
+            }
             if (data.success) {
                 const aiMessage = { id: Date.now() + 1, role: "assistant", content: data.content }
                 setAiMessages(prev => [...prev, aiMessage])
@@ -467,7 +475,7 @@ function HomeComponent() {
                                     </div>
                                     <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
                                         <Users className='w-8 h-8 text-blue-500 mb-4' />
-                                        <h5 className='font-bold mb-2'>100+ Participants</h5>
+                                        <h5 className='font-bold mb-2'>500+ Participants</h5>
                                         <p className='text-sm text-gray-500'>Host large-scale meetings without compromising on video or audio quality.</p>
                                     </div>
                                     <div className='p-6 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5'>
@@ -816,6 +824,7 @@ function HomeComponent() {
                     </div>
                 )}
             </AnimatePresence>
+            <InstallPWAButton floating />
         </div>
     )
 }

@@ -212,17 +212,23 @@ function VideoMeet() {
         isInitializingRef.current = true
 
         const init = async () => {
-            // Initialize socket with better options for faster connection
+            const token = localStorage.getItem("token")
+            if (!token) {
+                addNotification("Please login to join a meeting.")
+                navigate("/auth")
+                return
+            }
+
             socketRef.current = io(server, {
                 transports: ["websocket"],
                 reconnectionAttempts: 5,
-                timeout: 10000
+                timeout: 10000,
+                auth: { token }
             })
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
                 console.log("Socket connected:", socketRef.current.id)
-                // If user already clicked "Join Now" before connection OR it's a created meeting (host), join now
                 if (isJoiningRef.current || location.state?.fromCreate) {
                     socketRef.current.emit("join-call", url, userData.name)
                     isJoiningRef.current = false
@@ -231,7 +237,15 @@ function VideoMeet() {
 
             socketRef.current.on("connect_error", (err) => {
                 console.error("Socket connection error:", err)
-                addNotification("Connection error. Retrying...")
+                const msg = err?.message || String(err)
+                if (msg.includes("Authentication") || msg.includes("token") || msg.includes("Session")) {
+                    localStorage.removeItem("token")
+                    localStorage.removeItem("userData")
+                    addNotification(msg + " Redirecting to login...")
+                    setTimeout(() => navigate("/auth"), 1500)
+                } else {
+                    addNotification("Connection error. Retrying...")
+                }
             })
 
             socketRef.current.on("disconnect", () => {

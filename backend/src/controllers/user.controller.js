@@ -102,24 +102,20 @@ const register = async (req, res) => {
 }
 
 const getUserHistory = async (req, res) => {
-    const { token } = req.query;
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const meetings = await Meeting.find({ user_id: decoded.username });
+        const meetings = await Meeting.find({ user_id: req.user.username });
         res.status(httpStatus.OK).json(meetings);
     } catch (e) {
-        res.status(httpStatus.UNAUTHORIZED).json({ message: `Invalid or expired token: ${e.message}` });
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Failed to fetch history: ${e.message}` });
     }
 }
 
 const addToHistory = async (req, res) => {
-    const { token, meeting_code, scheduled_at } = req.body;
+    const { meeting_code, scheduled_at } = req.body;
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const newMeeting = new Meeting({
-            user_id: decoded.username,
+            user_id: req.user.username,
             meetingCode: meeting_code,
             scheduledAt: scheduled_at
         });
@@ -127,16 +123,15 @@ const addToHistory = async (req, res) => {
         await newMeeting.save();
         res.status(httpStatus.CREATED).json({ message: "Added code to history" });
     } catch (e) {
-        res.status(httpStatus.UNAUTHORIZED).json({ message: `Invalid or expired token: ${e.message}` });
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Failed to add history: ${e.message}` });
     }
 }
 
 const updateProfile = async (req, res) => {
-    const { token, name, phone, profileImg, password, currentPassword } = req.body;
+    const { name, phone, profileImg, password, currentPassword } = req.body;
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id);
+        const user = await User.findById(req.user.id);
 
         if (!user) {
             return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
@@ -199,14 +194,11 @@ const updateProfile = async (req, res) => {
 }
 
 const getUserData = async (req, res) => {
-    const { token } = req.query;
-
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(decoded.id).select("-password");
+        const user = await User.findById(req.user.id).select("-password");
         res.status(httpStatus.OK).json(user);
     } catch (e) {
-        res.status(httpStatus.UNAUTHORIZED).json({ message: e.message });
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: e.message });
     }
 }
 

@@ -10,6 +10,12 @@ const client = axios.create({
     baseURL: `${server}/api/v1/users`
 })
 
+const getAuthConfig = () => ({
+    headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`
+    }
+})
+
 export const AuthProvider = ({ children }) => {
     const authContext = useContext(AuthContext);
 
@@ -18,7 +24,6 @@ export const AuthProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : authContext;
     });
 
-    // Update localStorage whenever userData changes
     useEffect(() => {
         if (userData && Object.keys(userData).length > 0) {
             localStorage.setItem("userData", JSON.stringify(userData));
@@ -26,6 +31,18 @@ export const AuthProvider = ({ children }) => {
     }, [userData]);
 
     const router = useNavigate();
+
+    client.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("userData");
+                router("/auth");
+            }
+            return Promise.reject(error);
+        }
+    );
 
     const handleRegister = useCallback(async (name, username, password, email) => {
         try {
@@ -37,7 +54,6 @@ export const AuthProvider = ({ children }) => {
             })
 
             if (request.status === httpStatus.CREATED) {
-                // Return success and let component handle auto-login if needed
                 return request.data.message;
             }
         } catch (err) {
@@ -56,7 +72,6 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem("token", request.data.token);
                 setUserData(request.data.user);
                 
-                // CRITICAL: Check for redirect path from withAuth
                 const redirectPath = localStorage.getItem("redirectPath");
                 console.log("Found redirect path:", redirectPath);
                 
@@ -74,11 +89,7 @@ export const AuthProvider = ({ children }) => {
 
     const getUserData = useCallback(async () => {
         try {
-            let request = await client.get("/get_user_data", {
-                params: {
-                    token: localStorage.getItem("token")
-                }
-            });
+            let request = await client.get("/get_user_data", getAuthConfig());
             return request.data
         } catch (err) {
             throw err;
@@ -87,10 +98,7 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = useCallback(async (profileData) => {
         try {
-            let request = await client.post("/update_profile", {
-                token: localStorage.getItem("token"),
-                ...profileData
-            });
+            let request = await client.post("/update_profile", profileData, getAuthConfig());
             return request.data;
         } catch (err) {
             throw err;

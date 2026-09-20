@@ -1,33 +1,79 @@
 import { Server } from "socket.io"
+import jwt from "jsonwebtoken"
+import dotenv from "dotenv"
 
+dotenv.config()
 
 let connections = {}
 let messages = {}
 let timeOnline = {}
-let names = {} // To store names by socket.id
-let hosts = {} // To store host socket.id by path
-let whiteboardStates = {} // To store whiteboard drawings by path
-let whiteboardVisible = {} // To store whiteboard visibility status by path
-let lockedMeetings = {} // To store locked status by path
-let userStatus = {} // To store mic/video status by socket.id
+let names = {}
+let hosts = {}
+let whiteboardStates = {}
+let whiteboardVisible = {}
+let lockedMeetings = {}
+let userStatus = {}
+
+const extractSocketToken = (handshake) => {
+    const authHeader = handshake.headers?.authorization || handshake.headers?.Authorization
+    if (authHeader && String(authHeader).startsWith("Bearer ")) {
+        return authHeader.split(" ")[1]
+    }
+    if (handshake.auth?.token) return handshake.auth.token
+    if (handshake.query?.token) return handshake.query.token
+    return null
+}
 
 export const connectToSocket = (server) => {
+    const allowedOrigins = [
+        "https://teem-meet-backend.onrender.com",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001"
+    ]
+
     const io = new Server(server, {
         cors: {
-            origin: "*",
+            origin: (origin, callback) => {
+                if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+                    callback(null, true)
+                } else {
+                    callback(new Error("Not allowed by CORS"))
+                }
+            },
             methods: ["GET", "POST"],
-            allowedHeaders: ["*"],
+            allowedHeaders: ["Authorization", "Content-Type"],
             credentials: true
         }
-    });
+    })
 
+    io.use((socket, next) => {
+        const token = extractSocketToken(socket.handshake)
+        if (!token) {
+            return next(new Error("Authentication required. Please login."))
+        }
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            if (!decoded || !decoded.id || !decoded.username) {
+                return next(new Error("Invalid authentication token."))
+            }
+            socket.user = { id: decoded.id, username: decoded.username }
+            next()
+        } catch (err) {
+            if (err.name === "TokenExpiredError") {
+                return next(new Error("Session expired. Please login again."))
+            }
+            return next(new Error("Invalid authentication token."))
+        }
+    })
 
     io.on("connection", (socket) => {
 
         console.log("SOMETHING CONNECTED")
 
         socket.on("join-call", (path, name) => {
-            if (connections[path] && connections[path].length >= 100) {
+            if (connections[path] && connections[path].length >= 500) {
                 socket.emit("meeting-full");
                 return;
             }

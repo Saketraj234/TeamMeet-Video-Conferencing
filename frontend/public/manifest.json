@@ -1,6 +1,7 @@
 {
   "short_name": "TeamMeet",
   "name": "TeamMeet | Secure Video Conferencing",
+  "description": "Professional HD video conferencing with AI Mentor. Secure, fast, and installable on any device.",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,18 +9,18 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "logo3.png",
       "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "logo512.png",
-      "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#0f172a",
+  "background_color": "#020617",
+  "categories": ["communication", "business", "productivity"],
+  "prefer_related_applications": false
 }

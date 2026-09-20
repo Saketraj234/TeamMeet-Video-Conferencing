@@ -2,6 +2,7 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Video, Users, Shield, Zap, ChevronRight, X, Github, Linkedin } from 'lucide-react'
 import { motion } from 'framer-motion'
+import InstallPWAButton from '../components/InstallPWAButton'
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function LandingPage() {
                     <h1 className='text-2xl font-bold tracking-tight text-white'>TeamMeet</h1>
                 </div>
                 <div className='flex items-center gap-2 md:gap-4'>
+                    <InstallPWAButton />
                     <button 
                         onClick={() => navigate("/auth")}
                         className='text-gray-400 hover:text-white px-4 py-2 text-xs md:text-sm font-bold transition-colors'
@@ -133,7 +135,7 @@ export default function LandingPage() {
                         {[
                             { icon: <Zap className='text-orange-500' />, title: "Instant Meetings", desc: "Start a meeting with one click and share your link instantly." },
                             { icon: <Shield className='text-green-500' />, title: "Secure & Private", desc: "Your data is encrypted and your privacy is our top priority." },
-                            { icon: <Users className='text-blue-500' />, title: "Unlimited Participants", desc: "Invite as many people as you want without any restrictions." }
+                            { icon: <Users className='text-blue-500' />, title: "500+ Participants", desc: "Host large-scale meetings with hundreds of attendees without compromising quality." }
                         ].map((feature, idx) => (
                             <div key={idx} className='bg-[#1a1a1a] p-8 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-blue-900/5 transition-all border border-white/5'>
                                 <div className='w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-6'>
@@ -184,6 +186,7 @@ export default function LandingPage() {
                     </div>
                 </div>
             </footer>
+            <InstallPWAButton floating />
         </div>
     )
 }
