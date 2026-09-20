@@ -8,13 +8,22 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide username and password" });
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide username/email and password" });
     }
 
     try {
-        const user = await User.findOne({ username });
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(username).trim());
+        const query = isEmail
+            ? { email: String(username).trim().toLowerCase() }
+            : { username: String(username).trim() };
+
+        const user = await User.findOne(query);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User Not Found" });
+            return res.status(httpStatus.NOT_FOUND).json({
+                message: isEmail
+                    ? "No account found with this email. Please check or create a new account."
+                    : "User Not Found. Please check your username or create a new account."
+            });
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -39,10 +48,11 @@ const login = async (req, res) => {
                 } 
             });
         } else {
-            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid Username or password" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid password. Please try again." });
         }
     } catch (e) {
-        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Something went wrong: ${e.message}` });
+        console.error("Login error:", e);
+        return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Login failed. Please try again later.` });
     }
 }
 
@@ -112,12 +122,24 @@ const register = async (req, res) => {
         await newUser.save();
         res.status(httpStatus.CREATED).json({ message: "User Registered Successfully" });
     } catch (e) {
+        console.error("Registration error:", e);
         if (e && e.code === 11000) {
+            const keyPattern = e.keyPattern || {};
+            if (keyPattern.username) {
+                return res.status(httpStatus.CONFLICT).json({
+                    message: "This username is already registered. Please try a different username or login instead."
+                });
+            }
+            if (keyPattern.email) {
+                return res.status(httpStatus.CONFLICT).json({
+                    message: "This email is already registered. Please use a different email or login instead."
+                });
+            }
             return res.status(httpStatus.CONFLICT).json({
                 message: "Account already exists with these details. Please try logging in instead."
             });
         }
-        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Registration failed: ${e.message}` });
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ message: `Registration failed. Please try again later.` });
     }
 }
 

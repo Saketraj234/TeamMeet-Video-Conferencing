@@ -62,7 +62,7 @@ export default function Authentication() {
                 return
             }
             if (!currentUsernameReq.length) {
-                setError('Username must be 3-20 characters long')
+                setError('Username must be 3–20 characters long')
                 setLoading(false)
                 return
             }
@@ -115,13 +115,19 @@ export default function Authentication() {
                 try {
                     await handleRegister(name, username, password, email)
                 } catch (regErr) {
+                    console.error('Registration error:', regErr)
+                    const status = regErr.response?.status
                     const msg = regErr.response?.data?.message
-                    if (regErr.response?.status === 409) {
-                        setError('This username is already registered. Please try a different username or login instead.')
-                    } else if (msg && typeof msg === 'string') {
-                        setError(msg.replace(/^Something went wrong:\s*/, ''))
+                    if (status === 409) {
+                        setError(msg || 'This username is already registered. Please try a different username or login instead.')
+                    } else if (status === 400 && typeof msg === 'string') {
+                        setError(msg)
+                    } else if (typeof msg === 'string') {
+                        setError(msg)
                     } else if (!navigator.onLine) {
                         setError('Network error. Please check your internet connection and try again.')
+                    } else if (!regErr.response) {
+                        setError('Cannot reach the server. Please ensure the backend is running and refresh the page.')
                     } else {
                         setError('Registration failed. Please try again with different details.')
                     }
@@ -135,16 +141,23 @@ export default function Authentication() {
                 }
             }
         } catch (err) {
+            console.error('Auth error:', err)
             const status = err.response?.status
             const msg = err.response?.data?.message
             if (status === 404) {
-                setError('Account not found. Please check your username or create a new account.')
+                setError(typeof msg === 'string' ? msg : 'Account not found. Please check your username/email or create a new account.')
             } else if (status === 401) {
-                setError('Invalid password. Please try again or use "Forgot password".')
-            } else if (msg && typeof msg === 'string') {
-                setError(msg.replace(/^Something went wrong:\s*/, ''))
+                setError(typeof msg === 'string' ? msg : 'Invalid password. Please try again.')
+            } else if (status === 400 && typeof msg === 'string') {
+                setError(msg)
+            } else if (typeof msg === 'string') {
+                setError(msg)
             } else if (!navigator.onLine) {
                 setError('Network error. Please check your internet connection and try again.')
+            } else if (!err.response) {
+                setError('Cannot reach TeamMeet server. Please ensure backend is running on port 8000, enable CORS, or refresh the page.')
+            } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+                setError('Cannot reach TeamMeet server. Please check your connection or try again later.')
             } else {
                 setError('Something went wrong. Please try again in a moment.')
             }
@@ -250,7 +263,7 @@ export default function Authentication() {
                         )}
 
                         <div>
-                            <label className='block text-sm font-semibold text-gray-300 mb-1.5'>Username</label>
+                            <label className='block text-sm font-semibold text-gray-300 mb-1.5'>{isLogin ? 'Username or Email' : 'Username'}</label>
                             <div className='mt-1 relative'>
                                 <div className='absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none'>
                                     <User className='h-5 w-5 text-gray-400' />

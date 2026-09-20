@@ -18,12 +18,23 @@ const server = createServer(app);
 const io = connectToSocket(server);
 
 const allowedOrigins = [
-    "https://teem-meet-backend.onrender.com",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001"
 ]
+
+const vercelDomains = [
+    /\.vercel\.app$/,
+    /\.teammeet.*\.app$/,
+    /^https?:\/\/teammeet.*/
+]
+
+const originIsAllowed = (origin) => {
+    if (!origin) return true
+    if (allowedOrigins.indexOf(origin) !== -1) return true
+    return vercelDomains.some(regex => regex.test(origin))
+}
 
 app.set("port", (process.env.PORT || 8000))
 
@@ -34,13 +45,13 @@ app.use((req, res, next) => {
     res.setHeader("X-Frame-Options", "DENY")
     res.setHeader("X-XSS-Protection", "1; mode=block")
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin")
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()")
     next()
 })
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (originIsAllowed(origin)) {
             callback(null, true)
         } else {
             callback(new Error("Not allowed by CORS"))
