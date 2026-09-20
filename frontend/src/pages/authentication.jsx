@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
-import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2, MessageCircle } from 'lucide-react'
+import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2, MessageCircle, Headphones } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
@@ -563,46 +563,20 @@ export default function Authentication() {
                     </div>
 
                     <div className='mt-6'>
-                        <div className='relative'>
-                            <div className='absolute inset-0 flex items-center'>
-                                <div className='w-full border-t border-white/10'></div>
+                        <button
+                            type='button'
+                            onClick={() => setShowSupportModal(true)}
+                            className='w-full flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/40 rounded-2xl transition-all duration-300 group active:scale-[0.98]'
+                        >
+                            <div className='w-12 h-12 shrink-0 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
+                                <Headphones className='w-6 h-6' />
                             </div>
-                            <div className='relative flex justify-center text-xs'>
-                                <span className='px-3 bg-[#1a1a1a] text-gray-500 font-bold uppercase tracking-widest'>Support Center</span>
+                            <div className='flex-1 text-left'>
+                                <p className='text-white font-black text-lg'>Need help?</p>
+                                <p className='text-blue-400 font-bold text-sm mt-0.5'>Support Center</p>
                             </div>
-                        </div>
-
-                        <div className='mt-5 space-y-3'>
-                            <button
-                                type='button'
-                                onClick={() => window.open('https://wa.me/919729169872?text=' + encodeURIComponent(isLogin ? 'Hi TeamMeet, I need help with Login/Sign in.' : 'Hi TeamMeet, I need help with creating/Registering an account.'), '_blank')}
-                                className='w-full flex items-center gap-3 p-3.5 bg-white/5 hover:bg-green-600/10 border border-white/10 hover:border-green-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98]'
-                            >
-                                <div className='w-10 h-10 shrink-0 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
-                                    <MessageCircle className='w-5 h-5' />
-                                </div>
-                                <div className='flex-1 text-left'>
-                                    <p className='text-white font-bold text-sm'>Need help logging in? WhatsApp us</p>
-                                    <p className='text-gray-400 text-xs mt-0.5'>Fast reply within minutes on +91 97291 69872</p>
-                                </div>
-                                <ArrowRight className='w-4 h-4 text-gray-500 group-hover:text-green-400 group-hover:translate-x-1 transition-all' />
-                            </button>
-
-                            <button
-                                type='button'
-                                onClick={() => window.location.href = 'mailto:teammeet756@gmail.com?subject=' + encodeURIComponent(isLogin ? 'Login Help Required - TeamMeet' : 'Registration Help Required - TeamMeet') + '&body=' + encodeURIComponent('Hi TeamMeet Team,%0D%0A%0D%0AI am facing issues with ' + (isLogin ? 'signing in to my account' : 'creating a new account') + '. Please help me resolve this.%0D%0A%0D%0AThanks!')}
-                                className='w-full flex items-center gap-3 p-3.5 bg-white/5 hover:bg-blue-600/10 border border-white/10 hover:border-blue-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98]'
-                            >
-                                <div className='w-10 h-10 shrink-0 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
-                                    <Mail className='w-5 h-5' />
-                                </div>
-                                <div className='flex-1 text-left'>
-                                    <p className='text-white font-bold text-sm'>Email our Support Team</p>
-                                    <p className='text-gray-400 text-xs mt-0.5'>teammeet756@gmail.com</p>
-                                </div>
-                                <ArrowRight className='w-4 h-4 text-gray-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all' />
-                            </button>
-                        </div>
+                            <ArrowRight className='w-5 h-5 text-blue-400/60 group-hover:text-blue-400 group-hover:translate-x-1 transition-all' />
+                        </button>
                     </div>
                 </motion.div>
             </div>
@@ -774,8 +748,8 @@ export default function Authentication() {
                         >
                             <div className='flex justify-between items-center mb-8'>
                                 <h3 className='text-3xl font-black flex items-center gap-3 text-white'>
-                                    <Mail className='text-blue-600 w-8 h-8' />
-                                    Need Assistance?
+                                    <Headphones className='text-blue-600 w-8 h-8' />
+                                    Support Center
                                 </h3>
                                 <button onClick={() => setShowSupportModal(false)} className='p-2 hover:bg-white/5 rounded-full transition-all'>
                                     <X className='w-6 h-6 text-gray-400' />
@@ -787,25 +761,57 @@ export default function Authentication() {
                                     Our support team is dedicated to helping you get the most out of TeamMeet.
                                 </p>
                                 <p className='text-base leading-relaxed'>
-                                    Whether you're experiencing technical issues, having trouble joining a meeting, or need help with your account, we're here to assist.
+                                    Whether you're having trouble signing in, creating a new account, or experiencing technical issues, we're here to help.
                                 </p>
 
-                                <div className='bg-blue-900/10 p-6 rounded-2xl border border-blue-800/30'>
-                                    <h4 className='font-bold text-white mb-4'>Popular Topics</h4>
-                                    <ul className='space-y-2 ml-5 list-disc'>
-                                        <li>Joining a Meeting</li>
-                                        <li>Audio & Microphone Issues</li>
-                                        <li>Camera Troubleshooting</li>
-                                        <li>Connection Problems</li>
-                                        <li>Meeting Access & Permissions</li>
-                                    </ul>
+                                <div className='space-y-3 pt-2'>
+                                    <button
+                                        type='button'
+                                        onClick={() => {
+                                            window.open('https://wa.me/919729169872?text=' + encodeURIComponent(isLogin ? 'Hi TeamMeet, I need help with Login/Sign in to my account.' : 'Hi TeamMeet, I need help with creating/Registering a new account.'), '_blank')
+                                            setShowSupportModal(false)
+                                        }}
+                                        className='w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-green-600/10 border border-white/10 hover:border-green-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98] text-left'
+                                    >
+                                        <div className='w-12 h-12 shrink-0 rounded-2xl bg-green-500/20 text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
+                                            <MessageCircle className='w-6 h-6' />
+                                        </div>
+                                        <div className='flex-1'>
+                                            <p className='text-white font-bold'>WhatsApp Support (Fast Reply)</p>
+                                            <p className='text-gray-400 text-sm mt-0.5'>+91 97291 69872 · Reply within minutes</p>
+                                        </div>
+                                        <ArrowRight className='w-5 h-5 text-gray-500 group-hover:text-green-400 group-hover:translate-x-1 transition-all' />
+                                    </button>
+
+                                    <button
+                                        type='button'
+                                        onClick={() => {
+                                            window.location.href = 'mailto:teammeet756@gmail.com?subject=' + encodeURIComponent(isLogin ? 'Login Help Required - TeamMeet' : 'Registration Help Required - TeamMeet') + '&body=' + encodeURIComponent('Hi TeamMeet Team,%0D%0A%0D%0AI am facing issues with ' + (isLogin ? 'signing in to my account' : 'creating a new account') + '. Please help me resolve this.%0D%0A%0D%0AThanks!')
+                                            setShowSupportModal(false)
+                                        }}
+                                        className='w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-blue-600/10 border border-white/10 hover:border-blue-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98] text-left'
+                                    >
+                                        <div className='w-12 h-12 shrink-0 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
+                                            <Mail className='w-6 h-6' />
+                                        </div>
+                                        <div className='flex-1'>
+                                            <p className='text-white font-bold'>Email Support Team</p>
+                                            <p className='text-gray-400 text-sm mt-0.5'>teammeet756@gmail.com</p>
+                                        </div>
+                                        <ArrowRight className='w-5 h-5 text-gray-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all' />
+                                    </button>
                                 </div>
 
-                                <div className='pt-4'>
-                                    <p className='text-base leading-relaxed'>
-                                        For additional support, please contact our team.
-                                    </p>
-                                    <p className='text-blue-600 font-bold text-lg mt-2'>teammeet756@gmail.com</p>
+                                <div className='bg-blue-900/10 p-6 rounded-2xl border border-blue-800/30'>
+                                    <h4 className='font-bold text-white mb-4'>We can help you with:</h4>
+                                    <ul className='space-y-2 ml-5 list-disc'>
+                                        <li>Sign in / Login issues</li>
+                                        <li>Account registration problems</li>
+                                        <li>Username or email recovery</li>
+                                        <li>Password reset assistance</li>
+                                        <li>Meeting access & permissions</li>
+                                        <li>Audio, video, or connection issues</li>
+                                    </ul>
                                 </div>
                             </div>
 
