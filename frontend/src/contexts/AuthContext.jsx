@@ -55,13 +55,14 @@ export const AuthProvider = ({ children }) => {
         };
     }, [router]);
 
-    const handleRegister = useCallback(async (name, username, password, email) => {
+    const handleRegister = useCallback(async (name, username, password, email, turnstileToken) => {
         try {
             let request = await client.post("/register", {
                 name: name,
                 username: username,
                 password: password,
-                email: email
+                email: email,
+                turnstileToken: turnstileToken
             })
 
             if (request.status === httpStatus.CREATED) {
@@ -72,11 +73,12 @@ export const AuthProvider = ({ children }) => {
         }
     }, [])
 
-    const handleLogin = useCallback(async (username, password) => {
+    const handleLogin = useCallback(async (username, password, turnstileToken) => {
         try {
             let request = await client.post("/login", {
                 username: username,
-                password: password
+                password: password,
+                turnstileToken: turnstileToken
             });
 
             if (request.status === httpStatus.OK) {

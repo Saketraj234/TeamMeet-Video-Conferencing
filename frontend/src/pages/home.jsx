@@ -38,12 +38,13 @@ function HomeComponent() {
     React.useEffect(() => {
         const updateGreeting = () => {
             const hour = new Date().getHours()
-            if (hour < 12) setGreeting("Good Morning")
-            else if (hour < 18) setGreeting("Good Afternoon")
-            else setGreeting("Good Evening")
+            if (hour >= 5 && hour < 12) setGreeting("Good Morning")
+            else if (hour >= 12 && hour < 17) setGreeting("Good Afternoon")
+            else if (hour >= 17 && hour < 21) setGreeting("Good Evening")
+            else setGreeting("Good Night")
         }
         updateGreeting()
-        const interval = setInterval(updateGreeting, 60000) // Update every minute
+        const interval = setInterval(updateGreeting, 60000)
         return () => clearInterval(interval)
     }, [])
 
@@ -344,7 +345,6 @@ function HomeComponent() {
 
                     <div className='flex flex-col items-center md:items-end gap-2'>
                         <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
-                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
                     </div>
                 </div>
             </footer>

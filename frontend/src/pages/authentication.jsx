@@ -1,8 +1,11 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect, useRef } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
-import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users } from 'lucide-react'
+import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+
+const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || "";
+const TURNSTILE_REQUIRED = !!TURNSTILE_SITE_KEY;
 
 export default function Authentication() {
     const navigate = useNavigate()
@@ -16,6 +19,12 @@ export default function Authentication() {
     const [loading, setLoading] = useState(false)
     const [showUsernameValidation, setShowUsernameValidation] = useState(false)
     const [showPasswordValidation, setShowPasswordValidation] = useState(false)
+
+    const [turnstileToken, setTurnstileToken] = useState('')
+    const [turnstileVerified, setTurnstileVerified] = useState(false)
+    const [turnstileExpired, setTurnstileExpired] = useState(false)
+    const turnstileWidgetRef = useRef(null);
+    const turnstileWidgetId = useRef(null);
 
     const getPasswordRequirements = (pwd) => ({
         length: pwd.length >= 8,
@@ -46,9 +55,88 @@ export default function Authentication() {
 
     const { handleLogin, handleRegister } = useContext(AuthContext)
 
+    const resetTurnstile = () => {
+        setTurnstileToken('')
+        setTurnstileVerified(false)
+        setTurnstileExpired(false)
+        try {
+            if (turnstileWidgetId.current && window.turnstile) {
+                window.turnstile.reset(turnstileWidgetId.current)
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    useEffect(() => {
+        resetTurnstile()
+    }, [isLogin])
+
+    useEffect(() => {
+        if (!TURNSTILE_REQUIRED) return;
+        if (!turnstileWidgetRef.current) return;
+        let cancelled = false;
+
+        const tryRender = () => {
+            if (cancelled || !turnstileWidgetRef.current) return;
+            if (!window.turnstile) return false;
+            try {
+                const id = window.turnstile.render(turnstileWidgetRef.current, {
+                    sitekey: TURNSTILE_SITE_KEY,
+                    theme: 'dark',
+                    size: 'normal',
+                    callback: (token) => {
+                        setTurnstileToken(token)
+                        setTurnstileVerified(true)
+                        setTurnstileExpired(false)
+                    },
+                    'error-callback': () => {
+                        setTurnstileToken('')
+                        setTurnstileVerified(false)
+                        setTurnstileExpired(true)
+                    },
+                    'expired-callback': () => {
+                        setTurnstileToken('')
+                        setTurnstileVerified(false)
+                        setTurnstileExpired(true)
+                    },
+                    'timeout-callback': () => {
+                        setTurnstileToken('')
+                        setTurnstileVerified(false)
+                        setTurnstileExpired(true)
+                    }
+                });
+                turnstileWidgetId.current = id;
+                return true;
+            } catch (e) {
+                console.error('Turnstile render error:', e);
+                return true;
+            }
+        };
+
+        if (!tryRender()) {
+            const interval = setInterval(() => {
+                if (tryRender()) clearInterval(interval);
+            }, 200);
+            const timeout = setTimeout(() => clearInterval(interval), 8000);
+            return () => {
+                cancelled = true;
+                clearInterval(interval);
+                clearTimeout(timeout);
+            };
+        }
+        return () => { cancelled = true; }
+    }, [isLogin]);
+
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError('')
+
+        if (TURNSTILE_REQUIRED && !turnstileVerified) {
+            setError(turnstileExpired
+                ? 'Verification expired. Please check the box again.'
+                : 'Please verify you are human by checking the box.')
+            return
+        }
+
         setLoading(true)
 
         if (!isLogin) {
@@ -110,10 +198,10 @@ export default function Authentication() {
 
         try {
             if (isLogin) {
-                await handleLogin(username, password)
+                await handleLogin(username, password, turnstileToken)
             } else {
                 try {
-                    await handleRegister(name, username, password, email)
+                    await handleRegister(name, username, password, email, turnstileToken)
                 } catch (regErr) {
                     console.error('Registration error:', regErr)
                     const status = regErr.response?.status
@@ -132,10 +220,11 @@ export default function Authentication() {
                         setError('Registration failed. Please try again with different details.')
                     }
                     setLoading(false)
+                    resetTurnstile()
                     return
                 }
                 try {
-                    await handleLogin(username, password)
+                    await handleLogin(username, password, turnstileToken)
                 } catch (loginErr) {
                     navigate('/auth')
                 }
@@ -163,6 +252,7 @@ export default function Authentication() {
             }
         } finally {
             setLoading(false)
+            resetTurnstile()
         }
     }
 
@@ -413,6 +503,32 @@ export default function Authentication() {
                             </motion.div>
                         )}
 
+                        <AnimatePresence mode="wait">
+                            {TURNSTILE_REQUIRED ? (
+                                <motion.div
+                                    key="turnstile"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex flex-col items-center gap-2"
+                                >
+                                    <div
+                                        ref={turnstileWidgetRef}
+                                        className="w-full flex justify-center"
+                                    />
+                                    {turnstileVerified && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="flex items-center gap-2 text-xs text-green-400 font-semibold"
+                                        >
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Verified you are human
+                                        </motion.div>
+                                    )}
+                                </motion.div>
+                            ) : null}
+                        </AnimatePresence>
+
                         <div>
                             <button
                                 type='submit'
@@ -490,7 +606,6 @@ export default function Authentication() {
 
                     <div className='flex flex-col items-center md:items-end gap-2'>
                         <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
-                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
                     </div>
                 </div>
             </footer>

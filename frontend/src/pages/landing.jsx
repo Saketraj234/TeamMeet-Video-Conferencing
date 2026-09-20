@@ -186,7 +186,6 @@ export default function LandingPage() {
 
                     <div className='flex flex-col items-center md:items-end gap-2'>
                         <p className='text-gray-400 text-sm font-bold'>© 2026 TeamMeet Inc.</p>
-                        <p className='text-gray-600 text-[10px] uppercase tracking-tighter'>Made with ❤️ for the community</p>
                     </div>
                 </div>
             </footer>

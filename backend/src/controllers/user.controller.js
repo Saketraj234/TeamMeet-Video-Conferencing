@@ -4,11 +4,37 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { Meeting } from "../models/meeting.model.js";
 
+const verifyTurnstile = async (token) => {
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+    if (!secretKey) return { required: false, success: true };
+    if (!token) return { required: true, success: false };
+    try {
+        const form = new URLSearchParams();
+        form.append("secret", secretKey);
+        form.append("response", token);
+        const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+            method: "POST",
+            body: form,
+            headers: { "Content-Type": "application/x-www-form-urlencoded" }
+        });
+        const data = await r.json();
+        return { required: true, success: !!data.success };
+    } catch (e) {
+        console.error("Turnstile verify error:", e);
+        return { required: true, success: false };
+    }
+};
+
 const login = async (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, turnstileToken } = req.body;
 
     if (!username || !password) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide username/email and password" });
+    }
+
+    const turnstile = await verifyTurnstile(turnstileToken);
+    if (turnstile.required && !turnstile.success) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please verify you are not a robot (check the box)." });
     }
 
     try {
@@ -57,11 +83,17 @@ const login = async (req, res) => {
 }
 
 const register = async (req, res) => {
-    const { name, username, password, email } = req.body;
+    const { name, username, password, email, turnstileToken } = req.body;
 
     if (!name || !username || !password || !email) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "All fields are required" });
     }
+
+    const turnstile = await verifyTurnstile(turnstileToken);
+    if (turnstile.required && !turnstile.success) {
+        return res.status(httpStatus.BAD_REQUEST).json({ message: "Please verify you are not a robot (check the box)." });
+    }
+
     if (typeof name !== "string" || name.trim().length < 2) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Name must be at least 2 characters long" });
     }
