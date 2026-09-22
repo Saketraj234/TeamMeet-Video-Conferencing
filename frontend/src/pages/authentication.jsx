@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect, useRef } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
-import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2, MessageCircle, Headphones } from 'lucide-react'
+import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 
@@ -50,7 +50,6 @@ export default function Authentication() {
     // Popup states
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
     const [showTermsModal, setShowTermsModal] = useState(false)
-    const [showSupportModal, setShowSupportModal] = useState(false)
     const [showContactModal, setShowContactModal] = useState(false)
 
     const { handleLogin, handleRegister } = useContext(AuthContext)
@@ -562,22 +561,6 @@ export default function Authentication() {
                         </div>
                     </div>
 
-                    <div className='mt-6'>
-                        <button
-                            type='button'
-                            onClick={() => setShowSupportModal(true)}
-                            className='w-full flex items-center gap-3 p-4 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/20 hover:border-blue-500/40 rounded-2xl transition-all duration-300 group active:scale-[0.98]'
-                        >
-                            <div className='w-12 h-12 shrink-0 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
-                                <Headphones className='w-6 h-6' />
-                            </div>
-                            <div className='flex-1 text-left'>
-                                <p className='text-white font-black text-lg'>Need help?</p>
-                                <p className='text-blue-400 font-bold text-sm mt-0.5'>Support Center</p>
-                            </div>
-                            <ArrowRight className='w-5 h-5 text-blue-400/60 group-hover:text-blue-400 group-hover:translate-x-1 transition-all' />
-                        </button>
-                    </div>
                 </motion.div>
             </div>
             </div>
@@ -620,7 +603,7 @@ export default function Authentication() {
                         <div className='flex items-center gap-6 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest'>
                             <span onClick={() => setShowPrivacyModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Privacy</span>
                             <span onClick={() => setShowTermsModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Terms</span>
-                            <span onClick={() => setShowSupportModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Support</span>
+                            <span onClick={() => setShowContactModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Support</span>
                             <span onClick={() => setShowContactModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Contact</span>
                         </div>
                     </div>
@@ -726,98 +709,6 @@ export default function Authentication() {
                             <div className='pt-8 border-t border-white/5'>
                                 <button 
                                     onClick={() => setShowTermsModal(false)}
-                                    className='w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg'
-                                >
-                                    Got it, thanks!
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Support Modal */}
-            <AnimatePresence>
-                {showSupportModal && (
-                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className='bg-[#1a1a1a] w-full max-w-2xl rounded-3xl p-8 shadow-2xl border border-white/5 max-h-[80vh] overflow-y-auto custom-scrollbar'
-                        >
-                            <div className='flex justify-between items-center mb-8'>
-                                <h3 className='text-3xl font-black flex items-center gap-3 text-white'>
-                                    <Headphones className='text-blue-600 w-8 h-8' />
-                                    Support Center
-                                </h3>
-                                <button onClick={() => setShowSupportModal(false)} className='p-2 hover:bg-white/5 rounded-full transition-all'>
-                                    <X className='w-6 h-6 text-gray-400' />
-                                </button>
-                            </div>
-                            
-                            <div className='space-y-6 text-gray-400'>
-                                <p className='text-base leading-relaxed'>
-                                    Our support team is dedicated to helping you get the most out of TeamMeet.
-                                </p>
-                                <p className='text-base leading-relaxed'>
-                                    Whether you're having trouble signing in, creating a new account, or experiencing technical issues, we're here to help.
-                                </p>
-
-                                <div className='space-y-3 pt-2'>
-                                    <button
-                                        type='button'
-                                        onClick={() => {
-                                            window.open('https://wa.me/919729169872?text=' + encodeURIComponent(isLogin ? 'Hi TeamMeet, I need help with Login/Sign in to my account.' : 'Hi TeamMeet, I need help with creating/Registering a new account.'), '_blank')
-                                            setShowSupportModal(false)
-                                        }}
-                                        className='w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-green-600/10 border border-white/10 hover:border-green-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98] text-left'
-                                    >
-                                        <div className='w-12 h-12 shrink-0 rounded-2xl bg-green-500/20 text-green-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
-                                            <MessageCircle className='w-6 h-6' />
-                                        </div>
-                                        <div className='flex-1'>
-                                            <p className='text-white font-bold'>WhatsApp Support (Fast Reply)</p>
-                                            <p className='text-gray-400 text-sm mt-0.5'>+91 97291 69872 · Reply within minutes</p>
-                                        </div>
-                                        <ArrowRight className='w-5 h-5 text-gray-500 group-hover:text-green-400 group-hover:translate-x-1 transition-all' />
-                                    </button>
-
-                                    <button
-                                        type='button'
-                                        onClick={() => {
-                                            window.location.href = 'mailto:teammeet756@gmail.com?subject=' + encodeURIComponent(isLogin ? 'Login Help Required - TeamMeet' : 'Registration Help Required - TeamMeet') + '&body=' + encodeURIComponent('Hi TeamMeet Team,%0D%0A%0D%0AI am facing issues with ' + (isLogin ? 'signing in to my account' : 'creating a new account') + '. Please help me resolve this.%0D%0A%0D%0AThanks!')
-                                            setShowSupportModal(false)
-                                        }}
-                                        className='w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-blue-600/10 border border-white/10 hover:border-blue-500/30 rounded-2xl transition-all duration-300 group active:scale-[0.98] text-left'
-                                    >
-                                        <div className='w-12 h-12 shrink-0 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform'>
-                                            <Mail className='w-6 h-6' />
-                                        </div>
-                                        <div className='flex-1'>
-                                            <p className='text-white font-bold'>Email Support Team</p>
-                                            <p className='text-gray-400 text-sm mt-0.5'>teammeet756@gmail.com</p>
-                                        </div>
-                                        <ArrowRight className='w-5 h-5 text-gray-500 group-hover:text-blue-400 group-hover:translate-x-1 transition-all' />
-                                    </button>
-                                </div>
-
-                                <div className='bg-blue-900/10 p-6 rounded-2xl border border-blue-800/30'>
-                                    <h4 className='font-bold text-white mb-4'>We can help you with:</h4>
-                                    <ul className='space-y-2 ml-5 list-disc'>
-                                        <li>Sign in / Login issues</li>
-                                        <li>Account registration problems</li>
-                                        <li>Username or email recovery</li>
-                                        <li>Password reset assistance</li>
-                                        <li>Meeting access & permissions</li>
-                                        <li>Audio, video, or connection issues</li>
-                                    </ul>
-                                </div>
-                            </div>
-
-                            <div className='pt-8 border-t border-white/5'>
-                                <button 
-                                    onClick={() => setShowSupportModal(false)}
                                     className='w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg'
                                 >
                                     Got it, thanks!

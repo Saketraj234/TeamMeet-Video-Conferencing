@@ -68,12 +68,11 @@ export default function LandingPage() {
                         </button>
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='w-full sm:w-auto text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:bg-white/10 transition-all active:scale-95 backdrop-blur-sm relative whitespace-nowrap'
+                            className='w-full sm:w-auto text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:bg-blue-500/20 transition-all active:scale-95 backdrop-blur-sm bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/50 whitespace-nowrap shadow-lg shadow-blue-500/5'
                         >
-                            <div className='absolute inset-0 rounded-2xl sm:rounded-3xl p-[2px] bg-gradient-to-r from-blue-500 to-indigo-500'>
-                                <div className='absolute inset-0 rounded-[calc(1rem-2px)] sm:rounded-[calc(1.5rem-2px)] bg-[#111]' />
-                            </div>
-                            <span className='relative z-10'>Join Now</span>
+                            <span className='relative z-10 flex items-center justify-center gap-2'>
+                                Join Now
+                            </span>
                         </button>
                     </motion.div>
 
