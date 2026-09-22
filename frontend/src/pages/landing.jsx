@@ -17,11 +17,10 @@ export default function LandingPage() {
                     </div>
                     <h1 className='text-xl xs:text-2xl font-bold tracking-tight text-white truncate'>TeamMeet</h1>
                 </div>
-                <div className='flex items-center gap-0.5 xs:gap-1 md:gap-4 min-w-0'>
-                    <InstallPWAButton />
+                <div className='flex items-center gap-2 xs:gap-3 md:gap-4 min-w-0'>
                     <button 
                         onClick={() => navigate("/auth")}
-                        className='hidden xs:block text-gray-400 hover:text-white px-2 xs:px-3 md:px-4 py-2 text-[10px] xs:text-xs md:text-sm font-bold transition-colors shrink-0'
+                        className='text-gray-400 hover:text-white px-2 xs:px-3 md:px-4 py-2 text-[11px] xs:text-xs md:text-sm font-bold transition-colors shrink-0 whitespace-nowrap'
                     >
                         Login
                     </button>
@@ -58,21 +57,21 @@ export default function LandingPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 xs:gap-4'
+                        className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 justify-center md:justify-start'
                     >
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='w-full sm:flex-auto md:flex-none bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 xs:px-8 py-3 xs:py-4 md:py-5 rounded-2xl xs:rounded-3xl text-sm xs:text-base md:text-lg font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 xs:gap-3 group active:scale-95'
+                            className='w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 sm:gap-3 group active:scale-95 whitespace-nowrap'
                         >
                             Start Meeting
-                            <ChevronRight className='w-4 h-4 xs:w-5 xs:h-5 group-hover:translate-x-1 transition-transform' />
+                            <ChevronRight className='w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform' />
                         </button>
                         <button 
                             onClick={() => navigate("/auth")}
-                            className='w-full sm:flex-auto md:flex-none text-white px-6 xs:px-8 py-3 xs:py-4 md:py-5 rounded-2xl xs:rounded-3xl text-sm xs:text-base md:text-lg font-bold hover:bg-white/10 transition-all active:scale-95 backdrop-blur-sm relative'
+                            className='w-full sm:w-auto text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:bg-white/10 transition-all active:scale-95 backdrop-blur-sm relative whitespace-nowrap'
                         >
-                            <div className='absolute inset-0 rounded-2xl xs:rounded-3xl p-[2px] bg-gradient-to-r from-blue-500 to-indigo-500'>
-                                <div className='absolute inset-0 rounded-[calc(1rem-2px)] xs:rounded-[calc(1.5rem-2px)] bg-[#111]' />
+                            <div className='absolute inset-0 rounded-2xl sm:rounded-3xl p-[2px] bg-gradient-to-r from-blue-500 to-indigo-500'>
+                                <div className='absolute inset-0 rounded-[calc(1rem-2px)] sm:rounded-[calc(1.5rem-2px)] bg-[#111]' />
                             </div>
                             <span className='relative z-10'>Join Now</span>
                         </button>
