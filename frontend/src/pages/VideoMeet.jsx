@@ -899,49 +899,49 @@ function VideoMeet() {
 
     if (showLobby) {
         return (
-            <div className='min-h-[100dvh] bg-[#0a0a0a] flex items-center justify-center p-4 md:p-6 font-sans relative overflow-hidden'>
+            <div className='min-h-[100dvh] w-full bg-[#0a0a0a] flex items-center justify-center p-3 xs:p-4 md:p-6 font-sans relative overflow-hidden safe-x safe-y'>
                 <div className='absolute top-0 left-0 w-full h-full pointer-events-none opacity-20'>
-                    <div className='absolute -top-24 -left-24 w-64 md:w-96 h-64 md:h-96 bg-blue-600 rounded-full blur-[100px] md:blur-[120px]' />
-                    <div className='absolute -bottom-24 -right-24 w-64 md:w-96 h-64 md:h-96 bg-indigo-600 rounded-full blur-[100px] md:blur-[120px]' />
+                    <div className='absolute -top-16 xs:-top-24 -left-16 xs:-left-24 w-48 xs:w-64 md:w-96 h-48 xs:h-64 md:h-96 bg-blue-600 rounded-full blur-[80px] md:blur-[120px]' />
+                    <div className='absolute -bottom-16 xs:-bottom-24 -right-16 xs:-right-24 w-48 xs:w-64 md:w-96 h-48 xs:h-64 md:h-96 bg-indigo-600 rounded-full blur-[80px] md:blur-[120px]' />
                 </div>
                 <motion.div 
                     initial={{ scale: 0.9, opacity: 0 }} 
                     animate={{ scale: 1, opacity: 1 }} 
-                    className='w-full max-w-lg bg-[#111]/80 border border-white/10 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-12 shadow-2xl relative z-10 backdrop-blur-3xl'
+                    className='w-full max-w-lg bg-[#111]/80 border border-white/10 rounded-[2rem] xs:rounded-[2.5rem] md:rounded-[3rem] p-5 xs:p-6 sm:p-8 md:p-12 shadow-2xl relative z-10 backdrop-blur-3xl'
                 >
-                    <div className='flex flex-col items-center text-center space-y-8 md:space-y-10'>
-                        <div className='p-5 md:p-6 bg-blue-600/10 rounded-[2rem] md:rounded-[2.5rem] border border-blue-500/20 shadow-inner'>
-                            <Video className='w-12 h-12 md:w-16 md:h-16 text-blue-500' />
+                    <div className='flex flex-col items-center text-center space-y-5 xs:space-y-6 md:space-y-10'>
+                        <div className='p-4 xs:p-5 md:p-6 bg-blue-600/10 rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] border border-blue-500/20 shadow-inner'>
+                            <Video className='w-10 h-10 xs:w-12 xs:h-12 md:w-16 md:h-16 text-blue-500' />
                         </div>
-                        <div className='space-y-3 md:space-y-4'>
-                            <h1 className='text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent'>Ready to join?</h1>
-                            <p className='text-gray-500 font-medium text-sm md:text-base'>Hello <span className='text-blue-400 font-bold'>{userData?.name}</span>, the meeting is ready.</p>
+                        <div className='space-y-2 xs:space-y-3 md:space-y-4'>
+                            <h1 className='text-3xl xs:text-4xl md:text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent'>Ready to join?</h1>
+                            <p className='text-gray-500 font-medium text-xs xs:text-sm md:text-base'>Hello <span className='text-blue-400 font-bold'>{userData?.name}</span>, the meeting is ready.</p>
                         </div>
-                        <div className='w-full space-y-6 md:space-y-8'>
-                            <div className='p-5 md:p-6 bg-black/40 border border-white/5 rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-3 group hover:border-blue-500/30 transition-all cursor-pointer' onClick={() => { navigator.clipboard.writeText(url); addNotification("Link copied!") }}>
-                                <div className='w-2 h-2 bg-blue-500 rounded-full animate-pulse' />
-                                <code className='text-lg md:text-xl font-black tracking-[0.15em] text-blue-400 truncate'>{url}</code>
-                                <Copy className='w-4 h-4 text-gray-500 group-hover:text-blue-400 transition-colors' />
+                        <div className='w-full space-y-4 xs:space-y-5 md:space-y-8'>
+                            <div className='p-3 xs:p-4 md:p-6 bg-black/40 border border-white/5 rounded-[1.2rem] xs:rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center gap-2 xs:gap-3 group hover:border-blue-500/30 transition-all cursor-pointer' onClick={() => { navigator.clipboard.writeText(url); addNotification("Link copied!") }}>
+                                <div className='w-1.5 h-1.5 xs:w-2 xs:h-2 bg-blue-500 rounded-full animate-pulse shrink-0' />
+                                <code className='text-sm xs:text-lg md:text-xl font-black tracking-[0.1em] xs:tracking-[0.15em] text-blue-400 truncate min-w-0'>{url}</code>
+                                <Copy className='w-3 h-3 xs:w-4 xs:h-4 text-gray-500 group-hover:text-blue-400 transition-colors shrink-0' />
                             </div>
-                            <div className='flex flex-col sm:flex-row gap-4 md:gap-5 items-center justify-center pt-4 md:pt-6'>
+                            <div className='flex flex-col sm:flex-row gap-3 xs:gap-4 md:gap-5 items-center justify-center pt-3 xs:pt-4 md:pt-6'>
                                 {waitingStatus === 'waiting' ? (
-                                    <div className='flex flex-col items-center gap-4 bg-blue-600/10 p-6 md:p-8 rounded-[2rem] w-full border border-blue-500/20'>
-                                        <div className='w-10 h-10 md:w-12 md:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                                        <p className='text-blue-400 font-bold text-sm md:text-base'>Waiting for host's approval...</p>
+                                    <div className='flex flex-col items-center gap-3 xs:gap-4 bg-blue-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-blue-500/20'>
+                                        <div className='w-8 h-8 xs:w-10 xs:h-10 md:w-12 md:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
+                                        <p className='text-blue-400 font-bold text-xs xs:text-sm md:text-base'>Waiting for host's approval...</p>
                                     </div>
                                 ) : waitingStatus === 'rejected' ? (
-                                    <div className='flex flex-col items-center gap-4 bg-red-600/10 p-6 md:p-8 rounded-[2rem] w-full border border-red-500/20'>
-                                        <div className='p-3 bg-red-600/20 rounded-full'><X className='w-8 h-8 md:w-10 md:h-10 text-red-500' /></div>
-                                        <p className='text-red-500 font-bold'>Host has denied your request.</p>
-                                        <button onClick={() => navigate("/home")} className='text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Return to Home</button>
+                                    <div className='flex flex-col items-center gap-3 xs:gap-4 bg-red-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-red-500/20'>
+                                        <div className='p-2.5 xs:p-3 bg-red-600/20 rounded-full'><X className='w-6 h-6 xs:w-8 xs:h-8 md:w-10 md:h-10 text-red-500' /></div>
+                                        <p className='text-red-500 font-bold text-sm xs:text-base'>Host has denied your request.</p>
+                                        <button onClick={() => navigate("/home")} className='text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Return to Home</button>
                                     </div>
                                 ) : (
                                     <>
-                                        <button onClick={() => navigate("/home")} className='w-full sm:w-auto px-8 md:px-12 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10'>Not Now</button>
+                                        <button onClick={() => navigate("/home")} className='w-full sm:w-auto px-6 xs:px-8 md:px-12 py-3 xs:py-4 md:py-5 rounded-xl xs:rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-[10px] xs:text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10 whitespace-nowrap'>Not Now</button>
                                         <button 
                                             onClick={handleJoinMeeting} 
                                             disabled={isJoining}
-                                            className={`w-full sm:w-auto px-10 md:px-16 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] font-bold text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${isJoining ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}
+                                            className={`w-full sm:w-auto px-8 xs:px-10 md:px-16 py-3 xs:py-4 md:py-5 rounded-xl xs:rounded-2xl md:rounded-[1.5rem] font-bold text-[10px] xs:text-xs md:text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 whitespace-nowrap ${isJoining ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}
                                         >
                                             {isJoining ? 'Joining...' : 'Join Now'}
                                         </button>
@@ -956,7 +956,7 @@ function VideoMeet() {
     }
 
     return (
-        <div className='h-[100dvh] bg-[#0a0a0a] text-white flex flex-col font-sans selection:bg-blue-500/30 overflow-hidden relative'>
+        <div className='h-screen-safe w-full bg-[#0a0a0a] text-white flex flex-col font-sans selection:bg-blue-500/30 overflow-hidden relative safe-x'>
             {/* Whiteboard Overlay */}
             <AnimatePresence>
                 {showWhiteboard && (

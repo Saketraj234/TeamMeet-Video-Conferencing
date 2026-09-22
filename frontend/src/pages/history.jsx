@@ -65,38 +65,39 @@ function History() {
     }
 
     return (
-        <div className='min-h-screen bg-gray-50 dark:bg-[#111] font-sans text-gray-900 dark:text-gray-100 pb-12 transition-colors duration-300'>
+        <div className='min-h-screen-safe w-full bg-gray-50 dark:bg-[#111] font-sans text-gray-900 dark:text-gray-100 pb-8 xs:pb-12 transition-colors duration-300 overflow-x-hidden safe-x'>
             {/* Header */}
-            <nav className='bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-white/5 px-6 py-4 md:px-12'>
-                <div className='max-w-5xl mx-auto flex items-center justify-between'>
-                    <div className='flex items-center gap-4'>
+            <nav className='bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-white/5 px-4 xs:px-6 py-3 xs:py-4 md:px-12 w-full safe-top sticky top-0 z-40'>
+                <div className='max-w-5xl mx-auto flex items-center justify-between gap-2 min-w-0'>
+                    <div className='flex items-center gap-2 xs:gap-4 min-w-0'>
                         <button 
                             onClick={() => navigate("/home")}
-                            className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors text-gray-600 dark:text-gray-400'
+                            className='p-1.5 xs:p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors text-gray-600 dark:text-gray-400 shrink-0'
                         >
-                            <ArrowLeft className='w-5 h-5' />
+                            <ArrowLeft className='w-4 h-4 xs:w-5 xs:h-5' />
                         </button>
-                        <h1 className='text-xl font-bold'>Meeting History</h1>
+                        <h1 className='text-base xs:text-xl font-bold truncate'>Meeting History</h1>
                     </div>
-                    <div className='flex items-center gap-2'>
+                    <div className='flex items-center gap-1 xs:gap-2 shrink-0'>
                         {meetings.length > 0 && (
                             <button 
                                 onClick={() => setShowDeleteAll(true)}
-                                className='flex items-center gap-2 text-red-600 bg-red-50 dark:bg-red-900/10 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors'
+                                className='flex items-center gap-1 xs:gap-2 text-red-600 bg-red-50 dark:bg-red-900/10 px-2 xs:px-4 py-1.5 xs:py-2 rounded-lg xs:rounded-xl text-[10px] xs:text-xs font-bold uppercase tracking-wider hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors shrink-0'
                             >
-                                <Trash2 className='w-4 h-4' />
-                                Delete All
+                                <Trash2 className='w-3 h-3 xs:w-4 xs:h-4' />
+                                <span className='hidden xs:inline'>Delete All</span>
+                                <span className='xs:hidden'>Del</span>
                             </button>
                         )}
-                        <div className='flex items-center gap-2 text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-3 py-1 rounded-full'>
-                            <Video className='w-4 h-4' />
-                            <span className='text-xs font-bold uppercase tracking-wider'>{meetings.length} Meetings</span>
+                        <div className='flex items-center gap-1 xs:gap-2 text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-2 xs:px-3 py-1 rounded-full shrink-0'>
+                            <Video className='w-3 h-3 xs:w-4 xs:h-4' />
+                            <span className='text-[10px] xs:text-xs font-bold uppercase tracking-wider whitespace-nowrap'>{meetings.length} Mtgs</span>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <main className='max-w-5xl mx-auto px-6 mt-8'>
+            <main className='max-w-5xl mx-auto px-4 xs:px-6 mt-6 xs:mt-8 w-full'>
                 {meetings.length === 0 ? (
                     <div className='text-center py-20 bg-white dark:bg-[#1a1a1a] rounded-3xl border-2 border-dashed border-gray-200 dark:border-white/10'>
                         <div className='bg-gray-50 dark:bg-white/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>

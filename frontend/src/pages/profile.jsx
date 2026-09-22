@@ -152,38 +152,38 @@ function ProfilePage() {
     }
 
     return (
-        <div className='min-h-screen bg-gray-50 dark:bg-[#111] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300'>
+        <div className='min-h-screen-safe w-full bg-gray-50 dark:bg-[#111] font-sans text-gray-900 dark:text-gray-100 transition-colors duration-300 overflow-x-hidden safe-x'>
             {/* Simple Navbar for Profile */}
-            <nav className='bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-white/5 px-6 py-4 sticky top-0 z-50'>
-                <div className='max-w-3xl mx-auto flex items-center justify-between'>
-                    <div className='flex items-center gap-4'>
+            <nav className='bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-white/5 px-4 xs:px-6 py-3 xs:py-4 sticky top-0 z-50 w-full safe-top'>
+                <div className='max-w-3xl mx-auto flex items-center justify-between gap-2 min-w-0'>
+                    <div className='flex items-center gap-2 xs:gap-4 min-w-0'>
                         <button 
                             onClick={() => navigate("/home")}
-                            className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors text-gray-600 dark:text-gray-400'
+                            className='p-1.5 xs:p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors text-gray-600 dark:text-gray-400 shrink-0'
                         >
-                            <ArrowLeft className='w-5 h-5' />
+                            <ArrowLeft className='w-4 h-4 xs:w-5 xs:h-5' />
                         </button>
-                        <h1 className='text-xl font-bold tracking-tight'>TeamMeet</h1>
+                        <h1 className='text-base xs:text-xl font-bold tracking-tight truncate'>TeamMeet</h1>
                     </div>
-                    <div className='flex items-center gap-4'>
+                    <div className='flex items-center gap-2 xs:gap-4 shrink-0'>
                         <button 
                             onClick={toggleTheme}
-                            className='p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors'
+                            className='p-1.5 xs:p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors'
                             title={isDark ? "Light Mode" : "Dark Mode"}
                         >
-                            {isDark ? <Sun className='w-5 h-5 text-yellow-500' /> : <Moon className='w-5 h-5 text-blue-600' />}
+                            {isDark ? <Sun className='w-4 h-4 xs:w-5 xs:h-5 text-yellow-500' /> : <Moon className='w-4 h-4 xs:w-5 xs:h-5 text-blue-600' />}
                         </button>
                     </div>
                 </div>
             </nav>
 
-            <main className='max-w-3xl mx-auto px-6 py-12'>
+            <main className='max-w-3xl mx-auto px-4 xs:px-6 py-8 xs:py-12 w-full'>
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className='bg-white dark:bg-[#1a1a1a] rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/5 overflow-hidden'
+                    className='bg-white dark:bg-[#1a1a1a] rounded-[2rem] xs:rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-white/5 overflow-hidden'
                 >
-                    <div className='p-8 sm:p-12'>
+                    <div className='p-5 xs:p-8 sm:p-12'>
                         <div className='flex flex-col items-center mb-10'>
                             {/* Profile Settings Badge */}
                             <div className='mb-10 relative group'>
@@ -257,79 +257,79 @@ function ProfilePage() {
                                 </button>
                             </div>
 
-                            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                                <div className='space-y-2'>
-                                    <label className='text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Full Name</label>
+                            <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6'>
+                                <div className='space-y-1.5 xs:space-y-2'>
+                                    <label className='text-xs xs:text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Full Name</label>
                                     <div className='relative'>
-                                        <User className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400' />
+                                        <User className='absolute left-3 xs:left-4 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-5 xs:h-5 text-gray-400 shrink-0' />
                                         <input 
                                             type="text" 
                                             name="name"
                                             value={formData.name}
                                             onChange={handleInputChange}
                                             readOnly={!isEditing}
-                                            className={`w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
+                                            className={`w-full pl-10 xs:pl-12 pr-3 xs:pr-4 py-3 xs:py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium text-sm xs:text-base ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
                                             placeholder="Your Name"
                                         />
                                     </div>
                                 </div>
 
-                                <div className='space-y-2'>
-                                    <label className='text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Email Address (Cannot be changed)</label>
+                                <div className='space-y-1.5 xs:space-y-2'>
+                                    <label className='text-xs xs:text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Email Address</label>
                                     <div className='relative'>
-                                        <Mail className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400' />
+                                        <Mail className='absolute left-3 xs:left-4 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-5 xs:h-5 text-gray-400 shrink-0' />
                                         <input 
                                             type="email" 
                                             name="email"
                                             value={formData.email}
                                             readOnly
-                                            className='w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl outline-none transition-all font-medium opacity-60 cursor-not-allowed'
+                                            className='w-full pl-10 xs:pl-12 pr-3 xs:pr-4 py-3 xs:py-4 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl outline-none transition-all font-medium opacity-60 cursor-not-allowed text-sm xs:text-base'
                                             placeholder="Email"
                                         />
                                     </div>
                                 </div>
 
-                                <div className='space-y-2'>
-                                    <label className='text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Username (Cannot be changed)</label>
+                                <div className='space-y-1.5 xs:space-y-2'>
+                                    <label className='text-xs xs:text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Username</label>
                                     <div className='relative'>
-                                        <ShieldCheck className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400' />
+                                        <ShieldCheck className='absolute left-3 xs:left-4 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-5 xs:h-5 text-gray-400 shrink-0' />
                                         <input 
                                             type="text" 
                                             name="username"
                                             value={formData.username}
                                             readOnly
-                                            className='w-full pl-12 pr-4 py-4 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl outline-none transition-all font-medium opacity-60 cursor-not-allowed'
+                                            className='w-full pl-10 xs:pl-12 pr-3 xs:pr-4 py-3 xs:py-4 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl outline-none transition-all font-medium opacity-60 cursor-not-allowed text-sm xs:text-base'
                                             placeholder="Username"
                                         />
                                     </div>
                                 </div>
 
-                                <div className='space-y-2'>
-                                    <label className='text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Phone Number (Optional)</label>
+                                <div className='space-y-1.5 xs:space-y-2'>
+                                    <label className='text-xs xs:text-sm font-bold text-gray-600 dark:text-gray-400 ml-1'>Phone Number (Optional)</label>
                                     <div className='relative'>
-                                        <Phone className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400' />
+                                        <Phone className='absolute left-3 xs:left-4 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-5 xs:h-5 text-gray-400 shrink-0' />
                                         <input 
                                             type="text" 
                                             name="phone"
                                             value={formData.phone}
                                             onChange={handleInputChange}
                                             readOnly={!isEditing}
-                                            className={`w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
+                                            className={`w-full pl-10 xs:pl-12 pr-3 xs:pr-4 py-3 xs:py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium text-sm xs:text-base ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
                                             placeholder="+91 00000 00000"
                                         />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className='pt-6 border-t border-gray-100 dark:border-white/5 space-y-6'>
-                                <h3 className='text-lg font-bold flex items-center gap-2'>
-                                    <Lock className='w-5 h-5 text-blue-600' />
+                            <div className='pt-5 xs:pt-6 border-t border-gray-100 dark:border-white/5 space-y-4 xs:space-y-6'>
+                                <h3 className='text-base xs:text-lg font-bold flex items-center gap-2'>
+                                    <Lock className='w-4 h-4 xs:w-5 xs:h-5 text-blue-600 shrink-0' />
                                     Security Settings
                                 </h3>
                                 
-                                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-                                    <div className='space-y-2'>
-                                        <label className='text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>Current Password</label>
+                                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6'>
+                                    <div className='space-y-1.5 xs:space-y-2'>
+                                        <label className='text-[10px] xs:text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>Current Password</label>
                                         <div className='relative'>
                                             <input 
                                                 type={showCurrentPassword ? 'text' : 'password'}
@@ -337,22 +337,22 @@ function ProfilePage() {
                                                 value={formData.currentPassword}
                                                 onChange={handleInputChange}
                                                 readOnly={!isEditing}
-                                                className={`w-full pl-4 pr-12 py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
+                                                className={`w-full pl-3 xs:pl-4 pr-10 xs:pr-12 py-3 xs:py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium text-sm xs:text-base ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
                                                 placeholder="••••••••"
                                             />
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                                                 disabled={!isEditing}
-                                                className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed'
+                                                className='absolute right-3 xs:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed shrink-0'
                                             >
-                                                {showCurrentPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
+                                                {showCurrentPassword ? <EyeOff className='w-4 h-4 xs:w-5 xs:h-5' /> : <Eye className='w-4 h-4 xs:w-5 xs:h-5' />}
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className='space-y-2'>
-                                        <label className='text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>New Password</label>
+                                    <div className='space-y-1.5 xs:space-y-2'>
+                                        <label className='text-[10px] xs:text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>New Password</label>
                                         <div className='relative'>
                                             <input 
                                                 type={showNewPassword ? 'text' : 'password'}
@@ -360,22 +360,22 @@ function ProfilePage() {
                                                 value={formData.newPassword}
                                                 onChange={handleInputChange}
                                                 readOnly={!isEditing}
-                                                className={`w-full pl-4 pr-12 py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
+                                                className={`w-full pl-3 xs:pl-4 pr-10 xs:pr-12 py-3 xs:py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium text-sm xs:text-base ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
                                                 placeholder="••••••••"
                                             />
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowNewPassword(!showNewPassword)}
                                                 disabled={!isEditing}
-                                                className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed'
+                                                className='absolute right-3 xs:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed shrink-0'
                                             >
-                                                {showNewPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
+                                                {showNewPassword ? <EyeOff className='w-4 h-4 xs:w-5 xs:h-5' /> : <Eye className='w-4 h-4 xs:w-5 xs:h-5' />}
                                             </button>
                                         </div>
                                     </div>
 
-                                    <div className='space-y-2'>
-                                        <label className='text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>Confirm New Password</label>
+                                    <div className='space-y-1.5 xs:space-y-2 sm:col-span-2 lg:col-span-1'>
+                                        <label className='text-[10px] xs:text-xs font-bold text-gray-500 uppercase tracking-wider ml-1'>Confirm New Password</label>
                                         <div className='relative'>
                                             <input 
                                                 type={showConfirmPassword ? 'text' : 'password'}
@@ -383,16 +383,16 @@ function ProfilePage() {
                                                 value={formData.confirmPassword}
                                                 onChange={handleInputChange}
                                                 readOnly={!isEditing}
-                                                className={`w-full pl-4 pr-12 py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
+                                                className={`w-full pl-3 xs:pl-4 pr-10 xs:pr-12 py-3 xs:py-4 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl xs:rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-medium text-sm xs:text-base ${!isEditing ? 'cursor-not-allowed opacity-75' : ''}`}
                                                 placeholder="••••••••"
                                             />
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                 disabled={!isEditing}
-                                                className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed'
+                                                className='absolute right-3 xs:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:cursor-not-allowed shrink-0'
                                             >
-                                                {showConfirmPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
+                                                {showConfirmPassword ? <EyeOff className='w-4 h-4 xs:w-5 xs:h-5' /> : <Eye className='w-4 h-4 xs:w-5 xs:h-5' />}
                                             </button>
                                         </div>
                                     </div>
