@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { AuthContext } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { 
-    Video, Plus, Keyboard, History, LogOut, Sun, Moon, Calendar, User, 
+    Video, Plus, History, LogOut, Sun, Moon, Calendar, User, 
     Sparkles, Shield, Users, X, Square as WhiteboardIcon, Mail, Github, Linkedin, 
-    Bot, Send 
+    Bot, Send, Link2, ArrowRight 
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import withAuth from '../utils/withAuth'
@@ -16,6 +16,7 @@ function HomeComponent() {
     const [meetingCode, setMeetingCode] = useState("")
     const [showScheduleModal, setShowScheduleModal] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
+    const [showJoinModal, setShowJoinModal] = useState(false)
     const [showLearnMore, setShowLearnMore] = useState(false)
     const [showContactModal, setShowContactModal] = useState(false)
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
@@ -48,10 +49,12 @@ function HomeComponent() {
     }, [])
 
     const handleJoinMeeting = async () => {
-        if (meetingCode.trim()) {
-            await addToUserHistory(meetingCode)
-            navigate(`/${meetingCode}`)
-        }
+        if (!meetingCode.trim()) return
+        setShowJoinModal(false)
+        const code = meetingCode.trim()
+        setMeetingCode("")
+        await addToUserHistory(code)
+        setTimeout(() => navigate(`/${code}`), 150)
     }
 
     const handleCreateMeeting = () => {
@@ -219,40 +222,27 @@ function HomeComponent() {
                         </p>
                     </motion.div>
 
-                    <div className='flex flex-col md:flex-row items-stretch md:items-center gap-3 xs:gap-4 md:gap-3.5 lg:gap-4 xl:gap-5'>
+                    <div className='flex flex-col md:flex-row items-stretch md:items-center justify-center gap-3 xs:gap-4 md:gap-4 lg:gap-5 xl:gap-6 max-w-4xl mx-auto w-full'>
                         <button
                             onClick={handleCreateMeeting}
-                            className='group relative w-full md:flex-none md:min-w-[160px] lg:min-w-[170px] xl:min-w-[180px] 2xl:min-w-[190px] flex items-center justify-center gap-1.5 xs:gap-2 md:gap-2 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 xs:px-6 md:px-5 lg:px-6 xl:px-7 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 rounded-2xl md:rounded-2xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/25 active:scale-[0.97] text-sm xs:text-base md:text-sm lg:text-base xl:text-lg border border-white/10 tracking-tight'
+                            className='group relative flex-1 md:flex-1 flex items-center justify-center gap-2 xs:gap-3 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 xs:px-8 md:px-8 lg:px-10 py-3.5 xs:py-4 md:py-3.5 lg:py-4 xl:py-4 rounded-2xl md:rounded-2xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/25 active:scale-[0.97] text-sm xs:text-base md:text-base lg:text-lg xl:text-xl border border-white/10 tracking-tight'
                         >
                             <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none' />
-                            <div className='relative z-10 flex items-center justify-center gap-1.5 xs:gap-2 md:gap-2'>
-                                <Plus className='w-4 h-4 xs:w-5 xs:h-5 md:w-4 lg:w-5 xl:w-5' />
+                            <div className='relative z-10 flex items-center justify-center gap-2 xs:gap-3'>
+                                <Plus className='w-5 h-5 xs:w-6 xs:h-6 md:w-5 lg:w-6 xl:w-6' />
                                 New Meeting
                             </div>
                         </button>
 
-                        <div className='flex-1 flex flex-col sm:flex-row gap-2.5 xs:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4'>
-                            <div className='flex-1 flex items-center gap-2 xs:gap-2.5 md:gap-2 bg-white/5 dark:bg-white/5 border-2 border-white/10 dark:border-white/10 focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 rounded-2xl md:rounded-2xl px-4 xs:px-5 md:px-4 lg:px-5 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 transition-all duration-300 shadow-lg shadow-black/10 backdrop-blur-xl group/input hover:border-white/20'>
-                                <div className='flex items-center justify-center w-9 h-9 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 shrink-0 rounded-xl md:rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10 group-focus-within/input:from-blue-500/30 group-focus-within/input:to-indigo-500/30 transition-all'>
-                                    <Keyboard className='w-4 h-4 md:w-4 lg:w-4 xl:w-5 text-blue-300 shrink-0' />
-                                </div>
-                                <input
-                                    type="text"
-                                    placeholder="Enter meeting code"
-                                    value={meetingCode}
-                                    onChange={(e) => setMeetingCode(e.target.value)}
-                                    className='bg-transparent border-none outline-none py-1 w-full text-xs xs:text-sm md:text-sm lg:text-base font-semibold text-white placeholder-gray-400 min-w-0 tracking-wide'
-                                />
+                        <button
+                            onClick={() => setShowJoinModal(true)}
+                            className='group relative flex-1 md:flex-1 flex items-center justify-center gap-2 xs:gap-3 backdrop-blur-xl bg-white/8 dark:bg-white/8 text-white px-6 xs:px-8 md:px-8 lg:px-10 py-3.5 xs:py-4 md:py-3.5 lg:py-4 xl:py-4 rounded-2xl md:rounded-2xl font-bold border-2 border-white/15 hover:bg-white/12 hover:border-white/25 transition-all duration-300 active:scale-[0.97] text-sm xs:text-base md:text-base lg:text-lg xl:text-xl shadow-lg shadow-black/10 tracking-tight'
+                        >
+                            <div className='relative flex items-center justify-center gap-2 xs:gap-3'>
+                                <Link2 className='w-5 h-5 xs:w-6 xs:h-6 md:w-5 lg:w-6 xl:w-6 text-blue-300 group-hover:text-blue-200 transition-colors' />
+                                Join with Code
                             </div>
-
-                            <button
-                                disabled={!meetingCode.trim()}
-                                onClick={handleJoinMeeting}
-                                className='w-full sm:w-auto md:flex-none md:min-w-[110px] lg:min-w-[120px] xl:min-w-[130px] 2xl:min-w-[140px] px-5 xs:px-6 md:px-5 lg:px-6 xl:px-7 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 rounded-2xl md:rounded-2xl font-bold backdrop-blur-xl bg-white/8 dark:bg-white/8 text-white border-2 border-white/15 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all duration-300 disabled:opacity-30 disabled:grayscale disabled:hover:bg-white/8 disabled:hover:border-white/15 active:scale-[0.97] text-sm xs:text-base md:text-sm lg:text-base xl:text-lg shadow-lg shadow-black/10 tracking-tight'
-                            >
-                                Join
-                            </button>
-                        </div>
+                        </button>
                     </div>
 
                     <div className='pt-6 xs:pt-8 border-t border-gray-100 dark:border-white/5 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4'>
@@ -352,31 +342,105 @@ function HomeComponent() {
                 </div>
             </footer>
 
-            {/* Create Meeting Modal */}
+            {/* Join with Code Modal */}
             <AnimatePresence>
-                {showCreateModal && (
-                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
-                        <motion.div 
+                {showJoinModal && (
+                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm' onClick={() => setShowJoinModal(false)}>
+                        <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className='bg-white dark:bg-[#1a1a1a] w-full max-w-sm md:max-w-md rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 shadow-2xl border border-gray-100 dark:border-white/5'
+                        >
+                            <div className='flex items-start justify-between mb-5 md:mb-6'>
+                                <div>
+                                    <h3 className='text-xl md:text-2xl font-bold mb-1'>Join Meeting</h3>
+                                    <p className='text-sm text-gray-500 dark:text-gray-400'>Enter the code shared by the host</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowJoinModal(false)}
+                                    className='w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors shrink-0'
+                                >
+                                    <X className='w-4 h-4 md:w-5 md:h-5' />
+                                </button>
+                            </div>
+
+                            <div className='mb-5 md:mb-7'>
+                                <label className='block text-xs md:text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 md:mb-3'>Meeting Code</label>
+                                <div className='flex items-center gap-3 bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 focus-within:border-blue-500 dark:focus-within:border-blue-500 rounded-2xl md:rounded-2xl px-4 md:px-5 py-3 md:py-4 transition-all duration-300 shadow-sm hover:border-gray-300 dark:hover:border-white/15'>
+                                    <div className='flex items-center justify-center w-10 h-10 md:w-11 md:h-11 shrink-0 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10'>
+                                        <Link2 className='w-5 h-5 md:w-5 md:h-5 text-blue-600 dark:text-blue-300 shrink-0' />
+                                    </div>
+                                    <input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="e.g. abc-1234-xyz"
+                                        value={meetingCode}
+                                        onChange={(e) => setMeetingCode(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter' && meetingCode.trim()) handleJoinMeeting() }}
+                                        className='bg-transparent border-none outline-none py-1 w-full text-sm md:text-base font-semibold text-gray-900 dark:text-white placeholder-gray-400 min-w-0 tracking-wide'
+                                    />
+                                </div>
+                            </div>
+
+                            <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
+                                <button
+                                    onClick={() => setShowJoinModal(false)}
+                                    className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    disabled={!meetingCode.trim()}
+                                    onClick={handleJoinMeeting}
+                                    className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 disabled:opacity-30 disabled:grayscale disabled:shadow-none order-1 sm:order-2 flex items-center justify-center gap-2'
+                                >
+                                    Join Now
+                                    <ArrowRight className='w-4 h-4 md:w-5 md:h-5' />
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Create Meeting Modal */}
+            <AnimatePresence>
+                {showCreateModal && (
+                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm' onClick={() => setShowCreateModal(false)}>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            onClick={(e) => e.stopPropagation()}
                             className='bg-white dark:bg-[#1a1a1a] w-full max-w-sm md:max-w-md rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 shadow-2xl border border-gray-100 dark:border-white/5 text-center'
                         >
+                            <div className='flex items-center justify-end mb-2 md:mb-4 -mt-2 -mr-2'>
+                                <button
+                                    onClick={() => setShowCreateModal(false)}
+                                    className='w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors shrink-0'
+                                >
+                                    <X className='w-4 h-4 md:w-5 md:h-5' />
+                                </button>
+                            </div>
                             <div className='w-16 h-16 md:w-20 md:h-20 bg-blue-600/10 rounded-2xl md:rounded-3xl flex items-center justify-center mx-auto mb-4 md:mb-6'>
                                 <Plus className='w-8 h-8 md:w-10 md:h-10 text-blue-600' />
                             </div>
                             <h3 className='text-xl md:text-2xl font-bold mb-2 md:mb-4'>Create New Meeting?</h3>
                             <p className='text-sm md:text-base text-gray-500 dark:text-gray-400 mb-6 md:mb-8'>Do you want to start a new instant video meeting? You'll be the host of this session.</p>
                             <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
-                                <button 
+                                <button
                                     onClick={() => setShowCreateModal(false)}
-                                    className='flex-1 py-3 md:py-4 border border-gray-200 dark:border-white/10 rounded-xl md:rounded-2xl text-sm font-bold text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
+                                    className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
                                 >
                                     Cancel
                                 </button>
-                                <button 
+                                <button
                                     onClick={confirmCreate}
-                                    className='flex-1 py-3 md:py-4 bg-blue-600 text-white rounded-xl md:rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 order-1 sm:order-2'
+                                    className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 order-1 sm:order-2'
                                 >
                                     Yes, Create
                                 </button>
