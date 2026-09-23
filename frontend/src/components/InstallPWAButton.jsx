@@ -100,44 +100,65 @@ export default function InstallPWAButton({ floating = false }) {
     <AnimatePresence>
       {showBanner && shouldShowInstall && (
         <motion.div
-          initial={{ y: 150, opacity: 0 }}
+          initial={{ y: 180, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 150, opacity: 0 }}
+          exit={{ y: 180, opacity: 0 }}
           transition={{ type: 'spring', damping: 22, stiffness: 280 }}
-          className="fixed bottom-4 xs:bottom-5 md:bottom-7 left-1/2 -translate-x-1/2 z-[80] w-[96%] xs:w-[92%] sm:max-w-lg md:max-w-xl safe-bottom"
+          className="fixed inset-x-2 xs:inset-x-3 sm:left-1/2 sm:-translate-x-1/2 z-[9999] sm:max-w-md md:max-w-lg"
+          style={{
+            bottom: 'max(1rem, env(safe-area-inset-bottom) + 1rem)',
+          }}
         >
-          <div className="relative bg-slate-900/95 backdrop-blur-2xl border border-blue-500/20 rounded-2xl xs:rounded-3xl shadow-2xl shadow-blue-950/60 p-3 xs:p-4 pr-11 xs:pr-14">
+          <div className="relative overflow-hidden bg-slate-900/98 backdrop-blur-2xl border border-blue-500/25 rounded-2xl xs:rounded-3xl shadow-2xl shadow-blue-950/60">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/8 via-transparent to-indigo-600/8 pointer-events-none" />
             <button
-              onClick={() => setShowBanner(false)}
-              className="absolute top-2 xs:top-3 right-2 xs:right-3 p-1 xs:p-1.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.nativeEvent && e.nativeEvent.stopImmediatePropagation) e.nativeEvent.stopImmediatePropagation();
+                setShowBanner(false);
+              }}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowBanner(false);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="absolute top-0 right-0 z-[100] flex items-center justify-center min-w-[52px] min-h-[52px] xs:min-w-[60px] xs:min-h-[60px] rounded-bl-2xl xs:rounded-bl-3xl text-slate-300 hover:text-white transition-all active:scale-90 cursor-pointer hover:bg-white/10"
+              style={{
+                pointerEvents: 'auto',
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+              }}
               aria-label="Close install banner"
             >
-              <X size={16} />
+              <X size={20} strokeWidth={2.5} className="xs:hidden" />
+              <X size={24} strokeWidth={2.5} className="hidden xs:block" />
             </button>
-            <div className="flex items-center gap-3 xs:gap-4">
-              <div className="w-11 h-11 xs:w-13 xs:h-13 md:w-14 md:h-14 shrink-0 rounded-xl xs:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/40 ring-1 ring-white/10">
-                <span className="text-white text-lg xs:text-xl md:text-2xl font-black">TM</span>
+            <div className="relative z-10 flex items-center gap-2.5 xs:gap-3 p-3 xs:p-4 pr-[56px] xs:pr-[68px]">
+              <div className="w-10 h-10 xs:w-12 xs:h-12 shrink-0 rounded-xl xs:rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/40 ring-1 ring-white/10 flex-none">
+                <span className="text-white text-base xs:text-xl font-black tracking-tight">TM</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="text-white font-bold text-sm xs:text-base md:text-lg leading-tight">
+                <h4 className="text-white font-bold text-[13px] xs:text-sm md:text-base leading-tight truncate">
                   Install TeamMeet
                 </h4>
-                <p className="text-blue-200/80 text-[10px] xs:text-xs mt-0.5 leading-snug">
-                  {isIOS
-                    ? 'Tap Share → "Add to Home Screen"'
-                    : isAndroid
-                    ? 'Tap Menu → "Add to Home Screen"'
-                    : 'Click Install for quick access & offline use'}
+                <p className="text-blue-200/80 text-[10px] xs:text-xs mt-0.5 leading-snug truncate">
+                  Quick access &amp; offline use
                 </p>
               </div>
               {installable && (
-                <div className="shrink-0 hidden xs:block">
+                <div className="shrink-0 hidden xs:block flex-none">
                   {buttonContent}
                 </div>
               )}
             </div>
             {installable && (
-              <div className="xs:hidden mt-3 w-full">
+              <div className="xs:hidden px-3 pb-3">
                 <button
                   onClick={handleInstall}
                   className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-semibold text-xs shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] border border-white/10"

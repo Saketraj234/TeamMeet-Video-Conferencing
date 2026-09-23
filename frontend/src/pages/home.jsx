@@ -20,7 +20,6 @@ function HomeComponent() {
     const [showContactModal, setShowContactModal] = useState(false)
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
     const [showTermsModal, setShowTermsModal] = useState(false)
-    const [showSupportModal, setShowSupportModal] = useState(false)
     const [showAiMentorModal, setShowAiMentorModal] = useState(false)
     const [aiMessages, setAiMessages] = useState([
         { id: 1, role: "assistant", content: "👋 Hello! I'm TeamMeet AI Mentor. How can I help you today?" }
@@ -220,31 +219,36 @@ function HomeComponent() {
                         </p>
                     </motion.div>
 
-                    <div className='flex flex-col sm:flex-row items-stretch lg:items-center gap-3 xs:gap-4'>
-                        <button 
+                    <div className='flex flex-col md:flex-row items-stretch md:items-center gap-3 xs:gap-4 md:gap-5 lg:gap-6 xl:gap-7'>
+                        <button
                             onClick={handleCreateMeeting}
-                            className='w-full sm:flex-none flex items-center justify-center gap-2 xs:gap-2.5 bg-blue-600 text-white px-5 xs:px-6 py-3 xs:py-3.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20 active:scale-95 text-sm xs:text-base'
+                            className='group relative w-full md:flex-none md:min-w-[200px] lg:min-w-[220px] xl:min-w-[240px] 2xl:min-w-[260px] flex items-center justify-center gap-2 xs:gap-3 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 xs:px-6 md:px-7 lg:px-8 xl:px-10 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 rounded-2xl md:rounded-3xl font-extrabold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-2xl shadow-blue-600/30 xl:shadow-blue-600/40 active:scale-[0.97] text-sm xs:text-base md:text-lg lg:text-xl xl:text-2xl border border-white/10 xl:border-white/15 tracking-tight'
                         >
-                            <Plus className='w-3.5 h-3.5 xs:w-4 xs:h-4' />
-                            New Meeting
+                            <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none' />
+                            <div className='relative z-10 flex items-center justify-center gap-2 xs:gap-3'>
+                                <Plus className='w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6 xl:w-7 xl:h-7' />
+                                New Meeting
+                            </div>
                         </button>
 
-                        <div className='flex-1 flex flex-col sm:flex-row gap-2.5 xs:gap-3'>
-                            <div className='flex-1 flex items-center gap-2 xs:gap-2.5 bg-gray-50 dark:bg-white/5 border-2 border-transparent focus-within:border-blue-600/50 dark:focus-within:border-blue-500/50 rounded-xl px-3 xs:px-4 py-1.5 xs:py-2 transition-all shadow-sm'>
-                                <Keyboard className='w-3.5 h-3.5 xs:w-4 xs:h-4 text-gray-400 shrink-0' />
-                                <input 
-                                    type="text" 
+                        <div className='flex-1 flex flex-col sm:flex-row gap-2.5 xs:gap-3 md:gap-4 xl:gap-5'>
+                            <div className='flex-1 flex items-center gap-2 xs:gap-3 bg-white/5 dark:bg-white/5 border-2 border-white/10 dark:border-white/10 focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 rounded-2xl md:rounded-3xl px-4 xs:px-5 md:px-6 xl:px-7 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 transition-all duration-300 shadow-xl shadow-black/10 xl:shadow-2xl xl:shadow-black/15 backdrop-blur-xl group/input hover:border-white/20'>
+                                <div className='flex items-center justify-center w-9 h-9 md:w-11 md:h-11 xl:w-12 xl:h-12 shrink-0 rounded-xl md:rounded-2xl xl:rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10 group-focus-within/input:from-blue-500/30 group-focus-within/input:to-indigo-500/30 transition-all'>
+                                    <Keyboard className='w-4 h-4 md:w-5 md:h-5 xl:w-6 xl:h-6 text-blue-300 shrink-0' />
+                                </div>
+                                <input
+                                    type="text"
                                     placeholder="Enter meeting code"
                                     value={meetingCode}
                                     onChange={(e) => setMeetingCode(e.target.value)}
-                                    className='bg-transparent border-none outline-none py-1.5 xs:py-2 w-full text-xs xs:text-sm font-bold dark:text-white placeholder-gray-400 min-w-0'
+                                    className='bg-transparent border-none outline-none py-1 w-full text-xs xs:text-sm md:text-base xl:text-lg font-semibold text-white placeholder-gray-400 min-w-0 tracking-wider xl:tracking-widest'
                                 />
                             </div>
 
-                            <button 
+                            <button
                                 disabled={!meetingCode.trim()}
                                 onClick={handleJoinMeeting}
-                                className='w-full sm:w-auto px-5 xs:px-6 py-3 xs:py-3.5 bg-white dark:bg-white/5 text-blue-600 dark:text-blue-400 font-bold rounded-xl border-2 border-blue-600/20 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-blue-600/10 transition-all disabled:opacity-30 disabled:grayscale active:scale-95 text-sm xs:text-base'
+                                className='w-full sm:w-auto md:flex-none md:min-w-[140px] lg:min-w-[160px] xl:min-w-[180px] 2xl:min-w-[200px] px-5 xs:px-6 md:px-7 lg:px-8 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 rounded-2xl md:rounded-3xl font-extrabold backdrop-blur-xl bg-white/8 dark:bg-white/8 text-white border-2 border-white/15 xl:border-white/20 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all duration-300 disabled:opacity-30 disabled:grayscale disabled:hover:bg-white/8 disabled:hover:border-white/15 active:scale-[0.97] text-sm xs:text-base md:text-lg lg:text-xl xl:text-2xl shadow-xl shadow-black/10 xl:shadow-2xl xl:shadow-black/15 tracking-tight'
                             >
                                 Join
                             </button>
@@ -339,7 +343,6 @@ function HomeComponent() {
                         <div className='flex items-center gap-6 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest'>
                             <span onClick={() => setShowPrivacyModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Privacy</span>
                             <span onClick={() => setShowTermsModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Terms</span>
-                            <span onClick={() => setShowSupportModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Support</span>
                         </div>
                     </div>
 
@@ -660,66 +663,6 @@ function HomeComponent() {
                             <div className='pt-8 border-t border-gray-100 dark:border-white/5'>
                                 <button 
                                     onClick={() => setShowTermsModal(false)}
-                                    className='w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg'
-                                >
-                                    Got it, thanks!
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
-            {/* Support Modal */}
-            <AnimatePresence>
-                {showSupportModal && (
-                    <div className='fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm'>
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className='bg-white dark:bg-[#1a1a1a] w-full max-w-2xl rounded-3xl p-8 shadow-2xl border border-gray-100 dark:border-white/5 max-h-[80vh] overflow-y-auto custom-scrollbar'
-                        >
-                            <div className='flex justify-between items-center mb-8'>
-                                <h3 className='text-3xl font-black flex items-center gap-3'>
-                                    <Mail className='text-blue-600 w-8 h-8' />
-                                    Need Assistance?
-                                </h3>
-                                <button onClick={() => setShowSupportModal(false)} className='p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-all'>
-                                    <X className='w-6 h-6 text-gray-400' />
-                                </button>
-                            </div>
-                            
-                            <div className='space-y-6 text-gray-600 dark:text-gray-400'>
-                                <p className='text-base leading-relaxed'>
-                                    Our support team is dedicated to helping you get the most out of TeamMeet.
-                                </p>
-                                <p className='text-base leading-relaxed'>
-                                    Whether you're experiencing technical issues, having trouble joining a meeting, or need help with your account, we're here to assist.
-                                </p>
-
-                                <div className='bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-200 dark:border-blue-800/30'>
-                                    <h4 className='font-bold text-gray-900 dark:text-white mb-4'>Popular Topics</h4>
-                                    <ul className='space-y-2 ml-5 list-disc'>
-                                        <li>Joining a Meeting</li>
-                                        <li>Audio & Microphone Issues</li>
-                                        <li>Camera Troubleshooting</li>
-                                        <li>Connection Problems</li>
-                                        <li>Meeting Access & Permissions</li>
-                                    </ul>
-                                </div>
-
-                                <div className='pt-4'>
-                                    <p className='text-base leading-relaxed'>
-                                        For additional support, please contact our team.
-                                    </p>
-                                    <p className='text-blue-600 font-bold text-lg mt-2'>teammeet756@gmail.com</p>
-                                </div>
-                            </div>
-
-                            <div className='pt-8 border-t border-gray-100 dark:border-white/5'>
-                                <button 
-                                    onClick={() => setShowSupportModal(false)}
                                     className='w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg'
                                 >
                                     Got it, thanks!

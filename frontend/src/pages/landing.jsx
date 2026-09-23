@@ -18,15 +18,15 @@ export default function LandingPage() {
                     <h1 className='text-xl xs:text-2xl font-bold tracking-tight text-white truncate'>TeamMeet</h1>
                 </div>
                 <div className='flex items-center gap-2 xs:gap-3 md:gap-4 min-w-0'>
-                    <button 
+                    <button
                         onClick={() => navigate("/auth")}
-                        className='text-gray-400 hover:text-white px-2 xs:px-3 md:px-4 py-2 text-[11px] xs:text-xs md:text-sm font-bold transition-colors shrink-0 whitespace-nowrap'
+                        className='flex items-center justify-center text-white px-3.5 xs:px-5 md:px-6 py-2 xs:py-2.5 md:py-3 text-[11px] xs:text-xs md:text-sm font-bold transition-all duration-300 shrink-0 whitespace-nowrap rounded-full backdrop-blur-xl bg-white/6 hover:bg-white/12 border border-white/15 hover:border-blue-500/50 active:scale-95 shadow-lg shadow-white/5 ring-1 ring-white/5'
                     >
                         Login
                     </button>
-                    <button 
+                    <button
                         onClick={() => navigate("/auth")}
-                        className='bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3 xs:px-4 md:px-7 py-1.5 xs:py-2 md:py-3 rounded-full text-[10px] xs:text-xs md:text-sm font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/20 active:scale-95 shrink-0 whitespace-nowrap'
+                        className='bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 xs:px-6 md:px-8 py-2 xs:py-2.5 md:py-3 rounded-full text-[11px] xs:text-xs md:text-sm font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/30 active:scale-95 shrink-0 whitespace-nowrap border border-white/15'
                     >
                         Join Now
                     </button>

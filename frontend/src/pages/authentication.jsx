@@ -603,7 +603,6 @@ export default function Authentication() {
                         <div className='flex items-center gap-6 text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-widest'>
                             <span onClick={() => setShowPrivacyModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Privacy</span>
                             <span onClick={() => setShowTermsModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Terms</span>
-                            <span onClick={() => setShowContactModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Support</span>
                             <span onClick={() => setShowContactModal(true)} className='hover:text-blue-500 cursor-pointer transition-colors'>Contact</span>
                         </div>
                     </div>
