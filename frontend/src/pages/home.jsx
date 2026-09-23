@@ -219,36 +219,36 @@ function HomeComponent() {
                         </p>
                     </motion.div>
 
-                    <div className='flex flex-col md:flex-row items-stretch md:items-center gap-3 xs:gap-4 md:gap-5 lg:gap-6 xl:gap-7'>
+                    <div className='flex flex-col md:flex-row items-stretch md:items-center gap-3 xs:gap-4 md:gap-3.5 lg:gap-4 xl:gap-5'>
                         <button
                             onClick={handleCreateMeeting}
-                            className='group relative w-full md:flex-none md:min-w-[200px] lg:min-w-[220px] xl:min-w-[240px] 2xl:min-w-[260px] flex items-center justify-center gap-2 xs:gap-3 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 xs:px-6 md:px-7 lg:px-8 xl:px-10 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 rounded-2xl md:rounded-3xl font-extrabold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-2xl shadow-blue-600/30 xl:shadow-blue-600/40 active:scale-[0.97] text-sm xs:text-base md:text-lg lg:text-xl xl:text-2xl border border-white/10 xl:border-white/15 tracking-tight'
+                            className='group relative w-full md:flex-none md:min-w-[160px] lg:min-w-[170px] xl:min-w-[180px] 2xl:min-w-[190px] flex items-center justify-center gap-1.5 xs:gap-2 md:gap-2 overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-5 xs:px-6 md:px-5 lg:px-6 xl:px-7 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 rounded-2xl md:rounded-2xl font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/25 active:scale-[0.97] text-sm xs:text-base md:text-sm lg:text-base xl:text-lg border border-white/10 tracking-tight'
                         >
-                            <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none' />
-                            <div className='relative z-10 flex items-center justify-center gap-2 xs:gap-3'>
-                                <Plus className='w-4 h-4 xs:w-5 xs:h-5 md:w-6 md:h-6 xl:w-7 xl:h-7' />
+                            <div className='absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out pointer-events-none' />
+                            <div className='relative z-10 flex items-center justify-center gap-1.5 xs:gap-2 md:gap-2'>
+                                <Plus className='w-4 h-4 xs:w-5 xs:h-5 md:w-4 lg:w-5 xl:w-5' />
                                 New Meeting
                             </div>
                         </button>
 
-                        <div className='flex-1 flex flex-col sm:flex-row gap-2.5 xs:gap-3 md:gap-4 xl:gap-5'>
-                            <div className='flex-1 flex items-center gap-2 xs:gap-3 bg-white/5 dark:bg-white/5 border-2 border-white/10 dark:border-white/10 focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 rounded-2xl md:rounded-3xl px-4 xs:px-5 md:px-6 xl:px-7 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 transition-all duration-300 shadow-xl shadow-black/10 xl:shadow-2xl xl:shadow-black/15 backdrop-blur-xl group/input hover:border-white/20'>
-                                <div className='flex items-center justify-center w-9 h-9 md:w-11 md:h-11 xl:w-12 xl:h-12 shrink-0 rounded-xl md:rounded-2xl xl:rounded-3xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10 group-focus-within/input:from-blue-500/30 group-focus-within/input:to-indigo-500/30 transition-all'>
-                                    <Keyboard className='w-4 h-4 md:w-5 md:h-5 xl:w-6 xl:h-6 text-blue-300 shrink-0' />
+                        <div className='flex-1 flex flex-col sm:flex-row gap-2.5 xs:gap-3 md:gap-3 lg:gap-3.5 xl:gap-4'>
+                            <div className='flex-1 flex items-center gap-2 xs:gap-2.5 md:gap-2 bg-white/5 dark:bg-white/5 border-2 border-white/10 dark:border-white/10 focus-within:border-blue-500/60 dark:focus-within:border-blue-500/60 rounded-2xl md:rounded-2xl px-4 xs:px-5 md:px-4 lg:px-5 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 transition-all duration-300 shadow-lg shadow-black/10 backdrop-blur-xl group/input hover:border-white/20'>
+                                <div className='flex items-center justify-center w-9 h-9 md:w-8 md:h-8 lg:w-9 lg:h-9 xl:w-10 xl:h-10 shrink-0 rounded-xl md:rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10 group-focus-within/input:from-blue-500/30 group-focus-within/input:to-indigo-500/30 transition-all'>
+                                    <Keyboard className='w-4 h-4 md:w-4 lg:w-4 xl:w-5 text-blue-300 shrink-0' />
                                 </div>
                                 <input
                                     type="text"
                                     placeholder="Enter meeting code"
                                     value={meetingCode}
                                     onChange={(e) => setMeetingCode(e.target.value)}
-                                    className='bg-transparent border-none outline-none py-1 w-full text-xs xs:text-sm md:text-base xl:text-lg font-semibold text-white placeholder-gray-400 min-w-0 tracking-wider xl:tracking-widest'
+                                    className='bg-transparent border-none outline-none py-1 w-full text-xs xs:text-sm md:text-sm lg:text-base font-semibold text-white placeholder-gray-400 min-w-0 tracking-wide'
                                 />
                             </div>
 
                             <button
                                 disabled={!meetingCode.trim()}
                                 onClick={handleJoinMeeting}
-                                className='w-full sm:w-auto md:flex-none md:min-w-[140px] lg:min-w-[160px] xl:min-w-[180px] 2xl:min-w-[200px] px-5 xs:px-6 md:px-7 lg:px-8 py-3 xs:py-3.5 md:py-4 xl:py-[18px] 2xl:py-5 rounded-2xl md:rounded-3xl font-extrabold backdrop-blur-xl bg-white/8 dark:bg-white/8 text-white border-2 border-white/15 xl:border-white/20 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all duration-300 disabled:opacity-30 disabled:grayscale disabled:hover:bg-white/8 disabled:hover:border-white/15 active:scale-[0.97] text-sm xs:text-base md:text-lg lg:text-xl xl:text-2xl shadow-xl shadow-black/10 xl:shadow-2xl xl:shadow-black/15 tracking-tight'
+                                className='w-full sm:w-auto md:flex-none md:min-w-[110px] lg:min-w-[120px] xl:min-w-[130px] 2xl:min-w-[140px] px-5 xs:px-6 md:px-5 lg:px-6 xl:px-7 py-3 xs:py-3.5 md:py-2.5 lg:py-3 xl:py-3 rounded-2xl md:rounded-2xl font-bold backdrop-blur-xl bg-white/8 dark:bg-white/8 text-white border-2 border-white/15 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all duration-300 disabled:opacity-30 disabled:grayscale disabled:hover:bg-white/8 disabled:hover:border-white/15 active:scale-[0.97] text-sm xs:text-base md:text-sm lg:text-base xl:text-lg shadow-lg shadow-black/10 tracking-tight'
                             >
                                 Join
                             </button>

@@ -10,23 +10,23 @@ export default function LandingPage() {
     return (
         <div className='min-h-screen-safe w-full bg-[#111] text-gray-100 font-sans selection:bg-blue-900/30 selection:text-blue-200 transition-colors duration-300 overflow-x-hidden safe-x'>
             {/* Navigation */}
-            <nav className='flex items-center justify-between px-4 xs:px-6 py-4 xs:py-5 md:px-12 md:py-6 max-w-7xl mx-auto w-full safe-top'>
-                <div className='flex items-center gap-2 cursor-pointer shrink-0' onClick={() => navigate("/")}>
-                    <div className='bg-blue-600 p-1.5 xs:p-2 rounded-lg shadow-lg shadow-blue-600/20'>
+            <nav className='flex flex-wrap items-center justify-between gap-3 sm:gap-4 px-4 xs:px-6 py-4 xs:py-5 md:px-12 md:py-6 max-w-7xl mx-auto w-full safe-top'>
+                <div className='flex items-center gap-2 xs:gap-2.5 cursor-pointer shrink-0 min-w-0 flex-[1_1_auto]' onClick={() => navigate("/")}>
+                    <div className='bg-blue-600 p-1.5 xs:p-2 rounded-lg shadow-lg shadow-blue-600/20 shrink-0'>
                         <Video className='text-white w-5 h-5 xs:w-6 xs:h-6' />
                     </div>
-                    <h1 className='text-xl xs:text-2xl font-bold tracking-tight text-white truncate'>TeamMeet</h1>
+                    <h1 className='text-lg xs:text-xl sm:text-2xl font-black tracking-tight text-white truncate leading-none'>TeamMeet</h1>
                 </div>
-                <div className='flex items-center gap-2 xs:gap-3 md:gap-4 min-w-0'>
+                <div className='flex items-center gap-2 xs:gap-2.5 md:gap-4 shrink-0'>
                     <button
                         onClick={() => navigate("/auth")}
-                        className='flex items-center justify-center text-white px-3.5 xs:px-5 md:px-6 py-2 xs:py-2.5 md:py-3 text-[11px] xs:text-xs md:text-sm font-bold transition-all duration-300 shrink-0 whitespace-nowrap rounded-full backdrop-blur-xl bg-white/6 hover:bg-white/12 border border-white/15 hover:border-blue-500/50 active:scale-95 shadow-lg shadow-white/5 ring-1 ring-white/5'
+                        className='flex items-center justify-center text-white px-3 xs:px-3.5 sm:px-5 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-extrabold transition-all duration-300 whitespace-nowrap rounded-full backdrop-blur-xl bg-white/6 hover:bg-white/12 border border-white/15 hover:border-blue-500/50 active:scale-95 shadow-lg shadow-white/5 ring-1 ring-white/5'
                     >
                         Login
                     </button>
                     <button
                         onClick={() => navigate("/auth")}
-                        className='bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 xs:px-6 md:px-8 py-2 xs:py-2.5 md:py-3 rounded-full text-[11px] xs:text-xs md:text-sm font-bold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/30 active:scale-95 shrink-0 whitespace-nowrap border border-white/15'
+                        className='bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3.5 xs:px-4 sm:px-6 md:px-8 py-1.5 xs:py-2 sm:py-2.5 md:py-3 rounded-full text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-extrabold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/30 active:scale-95 whitespace-nowrap border border-white/15'
                     >
                         Join Now
                     </button>
