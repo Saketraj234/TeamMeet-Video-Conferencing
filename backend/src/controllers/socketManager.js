@@ -119,6 +119,16 @@ export const connectToSocket = (server) => {
             }
         })
 
+        socket.on("cancel-admission", (path) => {
+            if (pendingAdmissions[path]?.has(socket.id)) {
+                pendingAdmissions[path].delete(socket.id);
+                if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
+                if (hosts[path]) {
+                    io.to(hosts[path]).emit("admission-cancelled", socket.id);
+                }
+            }
+        })
+
         function completeJoin(socket, path, name) {
             if (connections[path] === undefined) {
                 connections[path] = []

@@ -109,6 +109,18 @@ function VideoMeet() {
     const location = useLocation()
     const url = window.location.href.split("/").pop()
     const { userData } = useContext(AuthContext)
+    const WAITING_STATUS_KEY = `teammeet_waiting_${url}`
+
+    const getPersistedWaitingStatus = () => {
+        try {
+            const stored = localStorage.getItem(WAITING_STATUS_KEY)
+            return stored === 'waiting' || stored === 'rejected' ? stored : 'none'
+        } catch {
+            return 'none'
+        }
+    }
+
+    const persistedWaiting = getPersistedWaitingStatus()
 
     const [micOn, setMicOn] = useState(true)
     const micOnRef = useRef(true)
@@ -122,12 +134,13 @@ function VideoMeet() {
     const [isHost, setIsHost] = useState(false)
     const createdMeetingHere = location.state?.fromCreate === true
     const isHostRef = useRef(false)
-    const [showLobby, setShowLobby] = useState(!location.state?.fromCreate)
+    const shouldShowLobby = !location.state?.fromCreate && persistedWaiting !== 'none' ? true : !location.state?.fromCreate
+    const [showLobby, setShowLobby] = useState(shouldShowLobby)
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
     const permissionsRef = useRef({ mic: true, video: true, chat: true, screenShare: true })
     const [notifications, setNotifications] = useState([])
     const lastNotifRef = useRef({})
-    const [waitingStatus, setWaitingStatus] = useState('none') // 'none', 'waiting', 'rejected'
+    const [waitingStatus, setWaitingStatus] = useState(persistedWaiting) // 'none', 'waiting', 'rejected'
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
@@ -248,7 +261,8 @@ function VideoMeet() {
                     setNotifications(prev => prev.filter(n => n.id !== nid))
                 }
                 console.log("Socket connected:", socketRef.current.id)
-                if (isJoiningRef.current || location.state?.fromCreate) {
+                const restoredWaiting = getPersistedWaitingStatus()
+                if (isJoiningRef.current || location.state?.fromCreate || restoredWaiting === 'waiting') {
                     socketRef.current.emit("join-call", url, userData.name)
                     isJoiningRef.current = false
                 }
@@ -357,16 +371,19 @@ function VideoMeet() {
 
             // Socket listeners
             socketRef.current.on("waiting-for-admission", () => {
+                try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
                 setWaitingStatus('waiting')
                 setIsJoining(false)
             })
 
             socketRef.current.on("admission-rejected", () => {
+                try { localStorage.setItem(WAITING_STATUS_KEY, 'rejected') } catch {}
                 setWaitingStatus('rejected')
                 setIsJoining(false)
             })
 
             socketRef.current.on("admission-accepted", () => {
+                try { localStorage.removeItem(WAITING_STATUS_KEY) } catch {}
                 setWaitingStatus('none')
                 setIsJoining(false)
                 setShowLobby(false)
@@ -388,6 +405,7 @@ function VideoMeet() {
             })
 
             socketRef.current.on("all-users", (usersList) => {
+                try { localStorage.removeItem(WAITING_STATUS_KEY) } catch {}
                 setIsJoining(false)
                 setShowLobby(false)
                 const newPeers = []
@@ -953,10 +971,24 @@ function VideoMeet() {
     const handleJoinMeeting = () => {
         isJoiningRef.current = true
         setIsJoining(true)
+        try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
+        setWaitingStatus('waiting')
         if (socketConnected && socketRef.current) {
             socketRef.current.emit("join-call", url, userData.name)
-            isJoiningRef.current = false
         }
+    }
+
+    const clearWaitingAndGoHome = () => {
+        try { localStorage.removeItem(WAITING_STATUS_KEY) } catch {}
+        setWaitingStatus('none')
+        navigate("/home")
+    }
+
+    const handleCancelWaiting = () => {
+        if (socketRef.current && socketConnected) {
+            socketRef.current.emit("cancel-admission", url)
+        }
+        clearWaitingAndGoHome()
     }
 
     if (showLobby) {
@@ -990,16 +1022,17 @@ function VideoMeet() {
                                     <div className='flex flex-col items-center gap-3 xs:gap-4 bg-blue-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-blue-500/20'>
                                         <div className='w-8 h-8 xs:w-10 xs:h-10 md:w-12 md:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
                                         <p className='text-blue-400 font-bold text-xs xs:text-sm md:text-base'>Request sent. Waiting for the room creator to accept...</p>
+                                        <button onClick={handleCancelWaiting} className='mt-1 text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Cancel Request</button>
                                     </div>
                                 ) : waitingStatus === 'rejected' ? (
                                     <div className='flex flex-col items-center gap-3 xs:gap-4 bg-red-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-red-500/20'>
                                         <div className='p-2.5 xs:p-3 bg-red-600/20 rounded-full'><X className='w-6 h-6 xs:w-8 xs:h-8 md:w-10 md:h-10 text-red-500' /></div>
                                         <p className='text-red-500 font-bold text-sm xs:text-base'>Host has denied your request.</p>
-                                        <button onClick={() => navigate("/home")} className='text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Return to Home</button>
+                                        <button onClick={clearWaitingAndGoHome} className='text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Return to Home</button>
                                     </div>
                                 ) : (
                                     <>
-                                        <button onClick={() => navigate("/home")} className='w-full sm:w-auto px-6 xs:px-8 md:px-12 py-3 xs:py-4 md:py-5 rounded-xl xs:rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-[10px] xs:text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10 whitespace-nowrap'>Not Now</button>
+                                        <button onClick={clearWaitingAndGoHome} className='w-full sm:w-auto px-6 xs:px-8 md:px-12 py-3 xs:py-4 md:py-5 rounded-xl xs:rounded-2xl md:rounded-[1.5rem] bg-white/5 text-white font-bold text-[10px] xs:text-xs md:text-sm uppercase tracking-widest transition-all border border-white/10 active:scale-95 hover:bg-white/10 whitespace-nowrap'>Not Now</button>
                                         <button 
                                             onClick={handleJoinMeeting} 
                                             disabled={isJoining}
