@@ -19,13 +19,13 @@ export default function LandingPage() {
                 </div>
                 <div className='flex items-center gap-2 xs:gap-2.5 md:gap-4 shrink-0'>
                     <button
-                        onClick={() => navigate("/auth")}
+                        onClick={() => navigate("/auth?mode=login")}
                         className='flex items-center justify-center text-white px-3 xs:px-3.5 sm:px-5 md:px-6 py-1.5 xs:py-2 sm:py-2.5 md:py-3 text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-extrabold transition-all duration-300 whitespace-nowrap rounded-full backdrop-blur-xl bg-white/6 hover:bg-white/12 border border-white/15 hover:border-blue-500/50 active:scale-95 shadow-lg shadow-white/5 ring-1 ring-white/5'
                     >
                         Login
                     </button>
                     <button
-                        onClick={() => navigate("/auth")}
+                        onClick={() => navigate("/auth?mode=register")}
                         className='bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3.5 xs:px-4 sm:px-6 md:px-8 py-1.5 xs:py-2 sm:py-2.5 md:py-3 rounded-full text-[10px] xs:text-[11px] sm:text-xs md:text-sm font-extrabold hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 shadow-xl shadow-blue-600/30 active:scale-95 whitespace-nowrap border border-white/15'
                     >
                         Join Now
@@ -60,14 +60,14 @@ export default function LandingPage() {
                         className='flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 justify-center md:justify-start'
                     >
                         <button 
-                            onClick={() => navigate("/auth")}
+                            onClick={() => navigate("/auth?mode=login")}
                             className='w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-xl shadow-blue-500/30 flex items-center justify-center gap-2 sm:gap-3 group active:scale-95 whitespace-nowrap'
                         >
                             Start Meeting
                             <ChevronRight className='w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform' />
                         </button>
                         <button 
-                            onClick={() => navigate("/auth")}
+                            onClick={() => navigate("/auth?mode=register")}
                             className='w-full sm:w-auto text-white px-7 sm:px-8 py-3.5 sm:py-4 rounded-2xl sm:rounded-3xl text-sm sm:text-base font-bold hover:bg-blue-500/20 transition-all active:scale-95 backdrop-blur-sm bg-blue-500/10 border border-blue-500/30 hover:border-blue-500/50 whitespace-nowrap shadow-lg shadow-blue-500/5'
                         >
                             <span className='relative z-10 flex items-center justify-center gap-2'>

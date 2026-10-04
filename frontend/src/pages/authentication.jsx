@@ -2,14 +2,15 @@ import React, { useState, useContext, useEffect, useRef } from 'react'
 import { AuthContext } from '../contexts/AuthContext'
 import { Video, Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, Home, Github, Linkedin, X, Shield, Users, CheckCircle2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const TURNSTILE_SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || "";
 const TURNSTILE_REQUIRED = !!TURNSTILE_SITE_KEY;
 
 export default function Authentication() {
     const navigate = useNavigate()
-    const [isLogin, setIsLogin] = useState(true)
+    const location = useLocation()
+    const [isLogin, setIsLogin] = useState(() => new URLSearchParams(location.search).get('mode') !== 'register')
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [username, setUsername] = useState('')
@@ -227,11 +228,13 @@ export default function Authentication() {
                 }
                 setShowRegistrationSuccess(true)
                 await new Promise(resolve => setTimeout(resolve, 1500))
-                setShowRegistrationSuccess(false)
                 try {
                     await handleLogin(username, password, turnstileToken)
                 } catch (loginErr) {
-                    navigate('/auth')
+                    console.error('Automatic sign-in after registration failed:', loginErr)
+                    setShowRegistrationSuccess(false)
+                    setIsLogin(true)
+                    setError('Your account was created, but automatic sign-in failed. Please log in.')
                 }
             }
         } catch (err) {
@@ -272,7 +275,7 @@ export default function Authentication() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9, y: -8 }}
                         transition={{ duration: 0.25 }}
-                        className='fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none'
+                        className='fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm pointer-events-none'
                     >
                         <div className='flex flex-col items-center gap-3 rounded-2xl border border-green-400/20 bg-[#1a1a1a] px-8 py-6 text-center shadow-2xl shadow-black/40'>
                             <motion.div
