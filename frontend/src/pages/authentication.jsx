@@ -228,14 +228,8 @@ export default function Authentication() {
                 }
                 setShowRegistrationSuccess(true)
                 await new Promise(resolve => setTimeout(resolve, 1500))
-                try {
-                    await handleLogin(username, password, turnstileToken)
-                } catch (loginErr) {
-                    console.error('Automatic sign-in after registration failed:', loginErr)
-                    setShowRegistrationSuccess(false)
-                    setIsLogin(true)
-                    setError('Your account was created, but automatic sign-in failed. Please log in.')
-                }
+                setShowRegistrationSuccess(false)
+                navigate('/home')
             }
         } catch (err) {
             console.error('Auth error:', err)

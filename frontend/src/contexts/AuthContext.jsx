@@ -65,9 +65,12 @@ export const AuthProvider = ({ children }) => {
                 turnstileToken: turnstileToken
             })
 
-            if (request.status === httpStatus.CREATED) {
-                return request.data.message;
+            if (request.status !== httpStatus.CREATED || !request.data.token || !request.data.user) {
+                throw new Error("Registration succeeded but the server did not return a login session.");
             }
+            localStorage.setItem("token", request.data.token);
+            setUserData(request.data.user);
+            return request.data;
         } catch (err) {
             throw err;
         }

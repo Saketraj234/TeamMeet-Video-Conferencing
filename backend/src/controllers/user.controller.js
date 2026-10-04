@@ -151,8 +151,24 @@ const register = async (req, res) => {
             email: cleanEmail
         });
 
+        const token = jwt.sign({ id: newUser._id, username: newUser.username }, process.env.JWT_SECRET, {
+            expiresIn: "7d"
+        });
+        newUser.token = token;
         await newUser.save();
-        res.status(httpStatus.CREATED).json({ message: "User Registered Successfully" });
+        res.status(httpStatus.CREATED).json({
+            message: "User Registered Successfully",
+            token,
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                username: newUser.username,
+                email: newUser.email,
+                phone: newUser.phone,
+                profileImg: newUser.profileImg,
+                lastUpdated: newUser.lastUpdated
+            }
+        });
     } catch (e) {
         console.error("Registration error:", e);
         if (e && e.code === 11000) {
