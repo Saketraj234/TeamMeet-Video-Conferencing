@@ -17,6 +17,7 @@ function HomeComponent() {
     const [showScheduleModal, setShowScheduleModal] = useState(false)
     const [showCreateModal, setShowCreateModal] = useState(false)
     const [showJoinModal, setShowJoinModal] = useState(false)
+    const [isJoiningMeeting, setIsJoiningMeeting] = useState(false)
     const [showLearnMore, setShowLearnMore] = useState(false)
     const [showContactModal, setShowContactModal] = useState(false)
     const [showPrivacyModal, setShowPrivacyModal] = useState(false)
@@ -49,12 +50,16 @@ function HomeComponent() {
     }, [])
 
     const handleJoinMeeting = async () => {
-        if (!meetingCode.trim()) return
-        setShowJoinModal(false)
+        if (!meetingCode.trim() || isJoiningMeeting) return
+        setIsJoiningMeeting(true)
         const code = meetingCode.trim()
-        setMeetingCode("")
         await addToUserHistory(code)
-        setTimeout(() => navigate(`/${code}`), 150)
+        setTimeout(() => {
+            setMeetingCode("")
+            setIsJoiningMeeting(false)
+            setShowJoinModal(false)
+            navigate(`/${code}`)
+        }, 900)
     }
 
     const handleCreateMeeting = () => {
@@ -369,38 +374,50 @@ function HomeComponent() {
 
                             <div className='mb-5 md:mb-7'>
                                 <label className='block text-xs md:text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 md:mb-3'>Meeting Code</label>
-                                <div className='flex items-center gap-3 bg-gray-50 dark:bg-white/5 border-2 border-gray-200 dark:border-white/10 focus-within:border-blue-500 dark:focus-within:border-blue-500 rounded-2xl md:rounded-2xl px-4 md:px-5 py-3 md:py-4 transition-all duration-300 shadow-sm hover:border-gray-300 dark:hover:border-white/15'>
+                                <div className={`flex items-center gap-3 bg-gray-50 dark:bg-white/5 border-2 rounded-2xl md:rounded-2xl px-4 md:px-5 py-3 md:py-4 transition-all duration-300 shadow-sm ${isJoiningMeeting ? 'border-blue-500/50 dark:border-blue-500/50' : 'border-gray-200 dark:border-white/10 focus-within:border-blue-500 dark:focus-within:border-blue-500 hover:border-gray-300 dark:hover:border-white/15'}`}>
                                     <div className='flex items-center justify-center w-10 h-10 md:w-11 md:h-11 shrink-0 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-white/10'>
                                         <Link2 className='w-5 h-5 md:w-5 md:h-5 text-blue-600 dark:text-blue-300 shrink-0' />
                                     </div>
                                     <input
                                         autoFocus
                                         type="text"
+                                        disabled={isJoiningMeeting}
                                         placeholder="e.g. abc-1234-xyz"
                                         value={meetingCode}
                                         onChange={(e) => setMeetingCode(e.target.value)}
                                         onKeyDown={(e) => { if (e.key === 'Enter' && meetingCode.trim()) handleJoinMeeting() }}
-                                        className='bg-transparent border-none outline-none py-1 w-full text-sm md:text-base font-semibold text-gray-900 dark:text-white placeholder-gray-400 min-w-0 tracking-wide'
+                                        className='bg-transparent border-none outline-none py-1 w-full text-sm md:text-base font-semibold text-gray-900 dark:text-white placeholder-gray-400 min-w-0 tracking-wide disabled:opacity-50 disabled:cursor-not-allowed'
                                     />
                                 </div>
                             </div>
 
-                            <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
-                                <button
-                                    onClick={() => setShowJoinModal(false)}
-                                    className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
+                            {isJoiningMeeting ? (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className='flex flex-col items-center justify-center gap-3 bg-blue-600/10 p-5 rounded-[1.5rem] border border-blue-500/20'
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    disabled={!meetingCode.trim()}
-                                    onClick={handleJoinMeeting}
-                                    className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 disabled:opacity-30 disabled:grayscale disabled:shadow-none order-1 sm:order-2 flex items-center justify-center gap-2'
-                                >
-                                    Join Now
-                                    <ArrowRight className='w-4 h-4 md:w-5 md:h-5' />
-                                </button>
-                            </div>
+                                    <div className='w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
+                                    <p className='text-blue-500 dark:text-blue-400 font-bold text-sm md:text-base'>Request sent. Connecting to meeting...</p>
+                                </motion.div>
+                            ) : (
+                                <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
+                                    <button
+                                        onClick={() => { setIsJoiningMeeting(false); setShowJoinModal(false) }}
+                                        className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        disabled={!meetingCode.trim()}
+                                        onClick={handleJoinMeeting}
+                                        className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 disabled:opacity-30 disabled:grayscale disabled:shadow-none order-1 sm:order-2 flex items-center justify-center gap-2'
+                                    >
+                                        Join Now
+                                        <ArrowRight className='w-4 h-4 md:w-5 md:h-5' />
+                                    </button>
+                                </div>
+                            )}
                         </motion.div>
                     </div>
                 )}

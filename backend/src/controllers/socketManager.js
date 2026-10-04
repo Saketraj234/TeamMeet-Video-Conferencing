@@ -73,16 +73,47 @@ export const connectToSocket = (server) => {
 
         console.log("SOMETHING CONNECTED")
 
-        socket.on("join-call", (path, name) => {
+        socket.on("join-call", (path, name, opts = {}) => {
             if (connections[path] && connections[path].length >= 500) {
                 socket.emit("meeting-full");
                 return;
             }
 
             names[socket.id] = name || "Guest";
+            const isCreator = opts.isCreator === true;
 
-            if (lockedMeetings[path] && hosts[path] !== socket.id) {
+            if (lockedMeetings[path] && hosts[path] !== socket.id && !isCreator) {
                 socket.emit("meeting-locked");
+                return;
+            }
+
+            if (isCreator) {
+                // If true creator arrives, always make them host (even if someone else already was)
+                const previousHost = hosts[path];
+                hosts[path] = socket.id;
+
+                // Clean from pending admissions if they were there
+                if (pendingAdmissions[path]) {
+                    pendingAdmissions[path].delete(socket.id);
+                    if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
+                }
+
+                // If creator was already connected (shouldn't happen but safety), nothing else needed
+                if (!connections[path] || !connections[path].includes(socket.id)) {
+                    socket.join(path);
+                    completeJoin(socket, path, name, { isCreator: true, previousHost });
+                } else {
+                    // Just re-broadcast host update
+                    const usersInRoom = connections[path].map(id => ({
+                        id,
+                        name: names[id],
+                        isHost: id === hosts[path],
+                        status: userStatus[id]
+                    }));
+                    io.to(path).emit("host-updated", hosts[path], usersInRoom);
+                    io.to(path).emit("update-participants", usersInRoom);
+                }
+                socket.emit("admission-accepted");
                 return;
             }
 
@@ -129,10 +160,13 @@ export const connectToSocket = (server) => {
             }
         })
 
-        function completeJoin(socket, path, name) {
+        function completeJoin(socket, path, name, opts = {}) {
             if (connections[path] === undefined) {
                 connections[path] = []
-                hosts[path] = socket.id // First person to join is the host
+                // Assign host, but if opts.isCreator then socket MUST be host (already set above in join-call)
+                if (!hosts[path]) {
+                    hosts[path] = socket.id
+                }
             }
             
             if (!connections[path].includes(socket.id)) {
@@ -159,6 +193,19 @@ export const connectToSocket = (server) => {
             // Notify everyone in the room about the new joiner
             io.to(path).emit("update-participants", usersInRoom);
             io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom);
+
+            // If the joiner was the true creator and a previous host existed, tell them about change
+            if (opts.isCreator && opts.previousHost && opts.previousHost !== socket.id) {
+                io.to(path).emit("host-updated", hosts[path], usersInRoom);
+            }
+
+            // If creator just arrived as host, re-emit all pending admission-requests to them
+            if (opts.isCreator && pendingAdmissions[path]) {
+                pendingAdmissions[path].forEach(waiterId => {
+                    const waiterName = names[waiterId] || "Guest";
+                    io.to(hosts[path]).emit("admission-request", { id: waiterId, name: waiterName });
+                });
+            }
 
             // Send existing whiteboard state to new joiner
             if (whiteboardVisible[path]) {
