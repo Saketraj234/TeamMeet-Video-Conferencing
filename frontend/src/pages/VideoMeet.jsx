@@ -133,21 +133,32 @@ function VideoMeet() {
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
     const createdMeetingHere = location.state?.fromCreate === true
+    const fromJoinHere = location.state?.fromJoin === true
     const isHostRef = useRef(false)
-    const shouldShowLobby = !location.state?.fromCreate && persistedWaiting !== 'none' ? true : !location.state?.fromCreate
+
+    const effectiveInitialWaiting = (
+        persistedWaiting === 'none' && fromJoinHere && !createdMeetingHere
+            ? 'waiting'
+            : persistedWaiting
+    )
+    const initialIsJoining = (
+        persistedWaiting === 'none' && fromJoinHere && !createdMeetingHere
+    )
+
+    const shouldShowLobby = !createdMeetingHere
     const [showLobby, setShowLobby] = useState(shouldShowLobby)
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
     const permissionsRef = useRef({ mic: true, video: true, chat: true, screenShare: true })
     const [notifications, setNotifications] = useState([])
     const lastNotifRef = useRef({})
-    const [waitingStatus, setWaitingStatus] = useState(persistedWaiting) // 'none', 'waiting', 'rejected'
+    const [waitingStatus, setWaitingStatus] = useState(effectiveInitialWaiting)
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [socketConnected, setSocketConnected] = useState(false)
     const reconnectingNotifRef = useRef(null)
-    const [isJoining, setIsJoining] = useState(false)
-    const isJoiningRef = useRef(false)
+    const [isJoining, setIsJoining] = useState(initialIsJoining)
+    const isJoiningRef = useRef(initialIsJoining)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
     const [showHostControls, setShowHostControls] = useState(false)
     const [showInviteModal, setShowInviteModal] = useState(false)
@@ -179,6 +190,12 @@ function VideoMeet() {
     useEffect(() => { showChatRef.current = showChat }, [showChat])
     useEffect(() => { isHostRef.current = isHost }, [isHost])
     useEffect(() => { isJoiningRef.current = isJoining }, [isJoining])
+
+    useEffect(() => {
+        if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
+            try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
+        }
+    }, [fromJoinHere, createdMeetingHere, WAITING_STATUS_KEY])
 
     // Canvas resizing to prevent blurriness
     useEffect(() => {

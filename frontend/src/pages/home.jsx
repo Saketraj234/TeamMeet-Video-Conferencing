@@ -54,12 +54,10 @@ function HomeComponent() {
         setIsJoiningMeeting(true)
         const code = meetingCode.trim()
         await addToUserHistory(code)
-        setTimeout(() => {
-            setMeetingCode("")
-            setIsJoiningMeeting(false)
-            setShowJoinModal(false)
-            navigate(`/${code}`)
-        }, 900)
+        setMeetingCode("")
+        setIsJoiningMeeting(false)
+        setShowJoinModal(false)
+        navigate(`/${code}`, { state: { fromJoin: true } })
     }
 
     const handleCreateMeeting = () => {
@@ -391,33 +389,32 @@ function HomeComponent() {
                                 </div>
                             </div>
 
-                            {isJoiningMeeting ? (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className='flex flex-col items-center justify-center gap-3 bg-blue-600/10 p-5 rounded-[1.5rem] border border-blue-500/20'
+                            <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
+                                <button
+                                    onClick={() => { setIsJoiningMeeting(false); setShowJoinModal(false) }}
+                                    disabled={isJoiningMeeting}
+                                    className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1 disabled:opacity-50 disabled:cursor-not-allowed'
                                 >
-                                    <div className='w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                                    <p className='text-blue-500 dark:text-blue-400 font-bold text-sm md:text-base'>Request sent. Connecting to meeting...</p>
-                                </motion.div>
-                            ) : (
-                                <div className='flex flex-col sm:flex-row gap-3 md:gap-4'>
-                                    <button
-                                        onClick={() => { setIsJoiningMeeting(false); setShowJoinModal(false) }}
-                                        className='flex-1 py-3 md:py-3.5 border border-gray-200 dark:border-white/10 rounded-2xl text-sm md:text-base font-bold text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all order-2 sm:order-1'
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        disabled={!meetingCode.trim()}
-                                        onClick={handleJoinMeeting}
-                                        className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 disabled:opacity-30 disabled:grayscale disabled:shadow-none order-1 sm:order-2 flex items-center justify-center gap-2'
-                                    >
-                                        Join Now
-                                        <ArrowRight className='w-4 h-4 md:w-5 md:h-5' />
-                                    </button>
-                                </div>
-                            )}
+                                    Cancel
+                                </button>
+                                <button
+                                    disabled={!meetingCode.trim() || isJoiningMeeting}
+                                    onClick={handleJoinMeeting}
+                                    className='flex-1 py-3 md:py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-sm md:text-base font-bold hover:from-blue-600 hover:to-indigo-700 transition-all shadow-xl shadow-blue-600/25 disabled:opacity-30 disabled:grayscale disabled:shadow-none order-1 sm:order-2 flex items-center justify-center gap-2'
+                                >
+                                    {isJoiningMeeting ? (
+                                        <>
+                                            <div className='w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                                            Joining...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Join Now
+                                            <ArrowRight className='w-4 h-4 md:w-5 md:h-5' />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
