@@ -125,11 +125,14 @@ function VideoMeet() {
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
     const permissionsRef = useRef({ mic: true, video: true, chat: true, screenShare: true })
     const [notifications, setNotifications] = useState([])
+    const lastNotifRef = useRef({})
     const [waitingStatus, setWaitingStatus] = useState('none') // 'none', 'waiting', 'rejected'
     const [admissionRequests, setAdmissionRequests] = useState([])
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [socketConnected, setSocketConnected] = useState(false)
+    const [isReconnecting, setIsReconnecting] = useState(false)
+    const reconnectingNotifRef = useRef(null)
     const [isJoining, setIsJoining] = useState(false)
     const isJoiningRef = useRef(false)
     const [showWhiteboard, setShowWhiteboard] = useState(false)
@@ -182,12 +185,22 @@ function VideoMeet() {
         return () => window.removeEventListener('resize', resizeCanvas);
     }, [showWhiteboard]);
 
-    const addNotification = useCallback((text) => {
-        const id = Date.now()
+    const addNotification = useCallback((text, options = {}) => {
+        const { dedupKey, ttl = 5000 } = options
+        const now = Date.now()
+        if (dedupKey) {
+            const last = lastNotifRef.current[dedupKey] || 0
+            if (now - last < 10000) return
+            lastNotifRef.current[dedupKey] = now
+        }
+        const id = now + Math.random()
         setNotifications(prev => [...prev, { id, text }])
-        setTimeout(() => {
-            setNotifications(prev => prev.filter(n => n.id !== id))
-        }, 5000)
+        if (ttl > 0) {
+            setTimeout(() => {
+                setNotifications(prev => prev.filter(n => n.id !== id))
+            }, ttl)
+        }
+        return id
     }, [])
 
     const createPeer = useCallback((userToSignal, callerID, stream) => {
@@ -228,10 +241,31 @@ function VideoMeet() {
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
+                setIsReconnecting(false)
+                if (reconnectingNotifRef.current) {
+                    const nid = reconnectingNotifRef.current
+                    reconnectingNotifRef.current = null
+                    setNotifications(prev => prev.filter(n => n.id !== nid))
+                }
                 console.log("Socket connected:", socketRef.current.id)
                 if (isJoiningRef.current || location.state?.fromCreate) {
                     socketRef.current.emit("join-call", url, userData.name)
                     isJoiningRef.current = false
+                }
+            })
+
+            socketRef.current.on("reconnect_attempt", (attempt) => {
+                setIsReconnecting(true)
+                console.log("Reconnect attempt:", attempt)
+                if (!reconnectingNotifRef.current) {
+                    const id = addNotification(`Reconnecting... (attempt ${attempt})`, { dedupKey: "reconnecting", ttl: 0 })
+                    reconnectingNotifRef.current = id
+                } else {
+                    setNotifications(prev => prev.map(n =>
+                        n.id === reconnectingNotifRef.current
+                            ? { ...n, text: `Reconnecting... (attempt ${attempt})` }
+                            : n
+                    ))
                 }
             })
 
@@ -241,15 +275,38 @@ function VideoMeet() {
                 if (msg.includes("Authentication") || msg.includes("token") || msg.includes("Session")) {
                     localStorage.removeItem("token")
                     localStorage.removeItem("userData")
-                    addNotification(msg + " Redirecting to login...")
+                    if (reconnectingNotifRef.current) {
+                        const nid = reconnectingNotifRef.current
+                        reconnectingNotifRef.current = null
+                        setNotifications(prev => prev.filter(n => n.id !== nid))
+                    }
+                    addNotification(msg + " Redirecting to login...", { dedupKey: "auth-error" })
                     setTimeout(() => navigate("/auth"), 1500)
-                } else {
-                    addNotification("Connection error. Retrying...")
                 }
             })
 
-            socketRef.current.on("disconnect", () => {
+            socketRef.current.on("reconnect_failed", () => {
+                console.error("All reconnection attempts failed")
+                setIsReconnecting(false)
+                if (reconnectingNotifRef.current) {
+                    const nid = reconnectingNotifRef.current
+                    reconnectingNotifRef.current = null
+                    setNotifications(prev => prev.filter(n => n.id !== nid))
+                }
+                addNotification("Server unreachable. Please check your connection and refresh.", { dedupKey: "reconnect-failed", ttl: 15000 })
+            })
+
+            socketRef.current.on("disconnect", (reason) => {
                 setSocketConnected(false)
+                if (reason === "io server disconnect" || reason === "io client disconnect") {
+                    setIsReconnecting(false)
+                    if (reconnectingNotifRef.current) {
+                        const nid = reconnectingNotifRef.current
+                        reconnectingNotifRef.current = null
+                        setNotifications(prev => prev.filter(n => n.id !== nid))
+                    }
+                    addNotification("Disconnected from meeting.", { dedupKey: "disconnect" })
+                }
             })
 
             // Now handle media
@@ -1152,8 +1209,51 @@ function VideoMeet() {
                 </AnimatePresence>
 
                 {/* Notifications */}
-                <div className='fixed top-20 right-4 z-[200] flex flex-col gap-2 pointer-events-none max-w-[200px]'>
-                    <AnimatePresence>{notifications.map(n => <motion.div key={n.id} initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 50, opacity: 0 }} className='bg-blue-600/90 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-xl border border-white/10 flex items-center gap-2 pointer-events-auto'><div className='w-1 h-1 bg-white rounded-full' />{n.text}</motion.div>)}</AnimatePresence>
+                <div className='fixed top-16 md:top-20 right-3 md:right-4 z-[200] flex flex-col gap-2 pointer-events-none max-w-[220px] md:max-w-[260px]'>
+                    <AnimatePresence>
+                        {notifications.map(n => {
+                            const text = n.text || ""
+                            const isReconnecting = text.startsWith("Reconnecting")
+                            const isError = text.includes("error") || text.includes("unreachable") || text.includes("denied") || text.includes("Disconnected") || text.includes("Failed") || text.includes("Redirecting")
+                            const isSuccess = text.includes("saved") || text.includes("copied") || text.includes("started") || text.includes("joined") || text.includes("muted") || text.includes("unlocked") || text.includes("locked") && !text.includes("error")
+                            const bgClass = isReconnecting
+                                ? "bg-amber-500/95 border-amber-400/30"
+                                : isError
+                                    ? "bg-red-500/95 border-red-400/30"
+                                    : isSuccess
+                                        ? "bg-emerald-500/95 border-emerald-400/30"
+                                        : "bg-blue-600/95 border-blue-500/30"
+                            const dotClass = isReconnecting ? "bg-white animate-pulse" : "bg-white"
+                            const isPersistent = n.id === reconnectingNotifRef.current
+                            return (
+                                <motion.div
+                                    key={n.id}
+                                    layout
+                                    initial={{ x: 60, opacity: 0, y: -10 }}
+                                    animate={{ x: 0, opacity: 1, y: 0 }}
+                                    exit={{ x: 60, opacity: 0 }}
+                                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                                    className={`backdrop-blur-xl text-white px-3.5 py-2 rounded-xl text-[10px] md:text-[11px] font-bold shadow-xl border flex items-center gap-2 pointer-events-auto ${bgClass}`}
+                                >
+                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+                                    <span className='flex-1 leading-snug break-words'>{text}</span>
+                                    {isPersistent ? (
+                                        <button
+                                            onClick={() => {
+                                                if (reconnectingNotifRef.current === n.id) {
+                                                    reconnectingNotifRef.current = null
+                                                }
+                                                setNotifications(prev => prev.filter(x => x.id !== n.id))
+                                            }}
+                                            className='shrink-0 w-5 h-5 -my-0.5 rounded-full flex items-center justify-center hover:bg-white/15 transition-colors'
+                                        >
+                                            <X className='w-3 h-3' />
+                                        </button>
+                                    ) : null}
+                                </motion.div>
+                            )
+                        })}
+                    </AnimatePresence>
                 </div>
             </div>
 

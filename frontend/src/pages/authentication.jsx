@@ -17,6 +17,7 @@ export default function Authentication() {
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
+    const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false)
     const [showUsernameValidation, setShowUsernameValidation] = useState(false)
     const [showPasswordValidation, setShowPasswordValidation] = useState(false)
 
@@ -224,6 +225,9 @@ export default function Authentication() {
                     resetTurnstile()
                     return
                 }
+                setShowRegistrationSuccess(true)
+                await new Promise(resolve => setTimeout(resolve, 1500))
+                setShowRegistrationSuccess(false)
                 try {
                     await handleLogin(username, password, turnstileToken)
                 } catch (loginErr) {
@@ -259,6 +263,32 @@ export default function Authentication() {
 
     return (
         <div className='min-h-screen-safe w-full bg-[#111] flex flex-col font-sans transition-colors duration-300 overflow-x-hidden safe-x'>
+            <AnimatePresence>
+                {showRegistrationSuccess && (
+                    <motion.div
+                        role='status'
+                        aria-live='polite'
+                        initial={{ opacity: 0, scale: 0.8, y: 8 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: -8 }}
+                        transition={{ duration: 0.25 }}
+                        className='fixed inset-0 z-[200] flex items-center justify-center p-4 pointer-events-none'
+                    >
+                        <div className='flex flex-col items-center gap-3 rounded-2xl border border-green-400/20 bg-[#1a1a1a] px-8 py-6 text-center shadow-2xl shadow-black/40'>
+                            <motion.div
+                                initial={{ scale: 0, rotate: -45 }}
+                                animate={{ scale: 1, rotate: 0 }}
+                                transition={{ type: 'spring', stiffness: 260, damping: 16, delay: 0.1 }}
+                                className='flex h-14 w-14 items-center justify-center rounded-full bg-green-500/15 text-green-400'
+                            >
+                                <CheckCircle2 className='h-9 w-9' />
+                            </motion.div>
+                            <p className='text-base font-semibold text-white'>Registration successful!</p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Navigation */}
             <nav className='flex items-center justify-between px-4 xs:px-6 py-4 xs:py-5 md:px-12 md:py-6 max-w-7xl mx-auto w-full safe-top'>
                 <div className='flex items-center gap-1.5 xs:gap-2 cursor-pointer shrink-0' onClick={() => navigate("/")}>
