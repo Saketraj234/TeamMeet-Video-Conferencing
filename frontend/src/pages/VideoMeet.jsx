@@ -131,7 +131,6 @@ function VideoMeet() {
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [socketConnected, setSocketConnected] = useState(false)
-    const [isReconnecting, setIsReconnecting] = useState(false)
     const reconnectingNotifRef = useRef(null)
     const [isJoining, setIsJoining] = useState(false)
     const isJoiningRef = useRef(false)
@@ -241,7 +240,6 @@ function VideoMeet() {
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
-                setIsReconnecting(false)
                 if (reconnectingNotifRef.current) {
                     const nid = reconnectingNotifRef.current
                     reconnectingNotifRef.current = null
@@ -255,7 +253,6 @@ function VideoMeet() {
             })
 
             socketRef.current.on("reconnect_attempt", (attempt) => {
-                setIsReconnecting(true)
                 console.log("Reconnect attempt:", attempt)
                 if (!reconnectingNotifRef.current) {
                     const id = addNotification(`Reconnecting... (attempt ${attempt})`, { dedupKey: "reconnecting", ttl: 0 })
@@ -287,7 +284,6 @@ function VideoMeet() {
 
             socketRef.current.on("reconnect_failed", () => {
                 console.error("All reconnection attempts failed")
-                setIsReconnecting(false)
                 if (reconnectingNotifRef.current) {
                     const nid = reconnectingNotifRef.current
                     reconnectingNotifRef.current = null
@@ -299,7 +295,6 @@ function VideoMeet() {
             socketRef.current.on("disconnect", (reason) => {
                 setSocketConnected(false)
                 if (reason === "io server disconnect" || reason === "io client disconnect") {
-                    setIsReconnecting(false)
                     if (reconnectingNotifRef.current) {
                         const nid = reconnectingNotifRef.current
                         reconnectingNotifRef.current = null
@@ -1215,7 +1210,7 @@ function VideoMeet() {
                             const text = n.text || ""
                             const isReconnecting = text.startsWith("Reconnecting")
                             const isError = text.includes("error") || text.includes("unreachable") || text.includes("denied") || text.includes("Disconnected") || text.includes("Failed") || text.includes("Redirecting")
-                            const isSuccess = text.includes("saved") || text.includes("copied") || text.includes("started") || text.includes("joined") || text.includes("muted") || text.includes("unlocked") || text.includes("locked") && !text.includes("error")
+                            const isSuccess = text.includes("saved") || text.includes("copied") || text.includes("started") || text.includes("joined") || text.includes("muted") || text.includes("unlocked") || (text.includes("locked") && !text.includes("error"))
                             const bgClass = isReconnecting
                                 ? "bg-amber-500/95 border-amber-400/30"
                                 : isError
