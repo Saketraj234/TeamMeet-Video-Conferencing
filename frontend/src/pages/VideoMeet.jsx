@@ -120,6 +120,7 @@ function VideoMeet() {
     const [handsRaised, setHandsRaised] = useState({})
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
+    const createdMeetingHere = location.state?.fromCreate === true
     const isHostRef = useRef(false)
     const [showLobby, setShowLobby] = useState(!location.state?.fromCreate)
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
@@ -1113,7 +1114,7 @@ function VideoMeet() {
                             <Shield className='w-3.5 h-3.5 md:w-4 md:h-4' />
                         </button>
                     )}
-                    {isHost && <button onClick={() => setShowInviteModal(true)} aria-label='Share meeting link' className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><Share className='w-3 h-3 md:w-3.5 md:h-3.5' /><span>Share Link</span></button>}
+                    {(isHost || createdMeetingHere) && <button onClick={() => setShowInviteModal(true)} aria-label='Share meeting link' className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><Share className='w-3 h-3 md:w-3.5 md:h-3.5' /><span>Share Link</span></button>}
                 </div>
             </div>
 
