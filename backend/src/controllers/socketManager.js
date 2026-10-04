@@ -9,6 +9,7 @@ let messages = {}
 let timeOnline = {}
 let names = {}
 let hosts = {}
+let pendingAdmissions = {}
 let whiteboardStates = {}
 let whiteboardVisible = {}
 let lockedMeetings = {}
@@ -87,7 +88,11 @@ export const connectToSocket = (server) => {
 
             // If meeting has a host and it's not the joiner, they must wait for admission
             if (hosts[path] && hosts[path] !== socket.id) {
-                io.to(hosts[path]).emit("admission-request", { id: socket.id, name: names[socket.id] });
+                if (!pendingAdmissions[path]) pendingAdmissions[path] = new Set()
+                if (!pendingAdmissions[path].has(socket.id)) {
+                    pendingAdmissions[path].add(socket.id)
+                    io.to(hosts[path]).emit("admission-request", { id: socket.id, name: names[socket.id] });
+                }
                 socket.emit("waiting-for-admission");
                 return;
             }
@@ -97,6 +102,10 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("admission-response", (id, path, accepted) => {
+            if (hosts[path] !== socket.id || !pendingAdmissions[path]?.has(id)) return;
+            pendingAdmissions[path].delete(id);
+            if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
+
             if (accepted) {
                 const targetSocket = io.sockets.sockets.get(id);
                 if (targetSocket) {
@@ -233,6 +242,13 @@ export const connectToSocket = (server) => {
         })
 
         socket.on("disconnecting", () => {
+            Object.entries(pendingAdmissions).forEach(([path, requests]) => {
+                if (requests.delete(socket.id) && hosts[path]) {
+                    io.to(hosts[path]).emit("admission-cancelled", socket.id);
+                }
+                if (requests.size === 0) delete pendingAdmissions[path];
+            });
+
             const rooms = Array.from(socket.rooms);
             rooms.forEach(path => {
                 if (path !== socket.id && connections[path]) {
@@ -265,6 +281,7 @@ export const connectToSocket = (server) => {
                         if (connections[path].length === 0) {
                             delete connections[path];
                             delete hosts[path];
+                            delete pendingAdmissions[path];
                             delete whiteboardStates[path];
                             delete whiteboardVisible[path];
                             delete lockedMeetings[path];
@@ -289,4 +306,3 @@ export const connectToSocket = (server) => {
 
     return io;
 }
-

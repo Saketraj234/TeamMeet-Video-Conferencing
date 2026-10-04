@@ -8,7 +8,7 @@ import {
     Mic, MicOff, Video, VideoOff, PhoneOff, Share, MessageSquare, 
     Users, Hand, Circle, 
     X, Check, Lock, Unlock, Copy, Pencil, Trash2, 
-    Type, Shield, Info, UserPlus, Send
+    Type, Shield, Info, Send
 } from 'lucide-react'
 
 import server from '../environment'
@@ -235,7 +235,8 @@ function VideoMeet() {
                 transports: ["websocket"],
                 reconnectionAttempts: 5,
                 timeout: 10000,
-                auth: { token }
+                auth: { token },
+                autoConnect: false
             })
 
             socketRef.current.on("connect", () => {
@@ -379,6 +380,10 @@ function VideoMeet() {
                     })
                     addNotification(`Admission request from ${data.name}`)
                 }
+            })
+
+            socketRef.current.on("admission-cancelled", (id) => {
+                setAdmissionRequests(prev => prev.filter(request => request.id !== id))
             })
 
             socketRef.current.on("all-users", (usersList) => {
@@ -595,6 +600,8 @@ function VideoMeet() {
                 alert("You have been removed from the meeting by the host.")
                 navigate("/home")
             })
+
+            socketRef.current.connect()
         }
 
         init()
@@ -943,9 +950,11 @@ function VideoMeet() {
     };
 
     const handleJoinMeeting = () => {
+        isJoiningRef.current = true
         setIsJoining(true)
         if (socketConnected && socketRef.current) {
             socketRef.current.emit("join-call", url, userData.name)
+            isJoiningRef.current = false
         }
     }
 
@@ -979,7 +988,7 @@ function VideoMeet() {
                                 {waitingStatus === 'waiting' ? (
                                     <div className='flex flex-col items-center gap-3 xs:gap-4 bg-blue-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-blue-500/20'>
                                         <div className='w-8 h-8 xs:w-10 xs:h-10 md:w-12 md:h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
-                                        <p className='text-blue-400 font-bold text-xs xs:text-sm md:text-base'>Waiting for host's approval...</p>
+                                        <p className='text-blue-400 font-bold text-xs xs:text-sm md:text-base'>Request sent. Waiting for the room creator to accept...</p>
                                     </div>
                                 ) : waitingStatus === 'rejected' ? (
                                     <div className='flex flex-col items-center gap-3 xs:gap-4 bg-red-600/10 p-5 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] w-full border border-red-500/20'>
@@ -1104,7 +1113,7 @@ function VideoMeet() {
                             <Shield className='w-3.5 h-3.5 md:w-4 md:h-4' />
                         </button>
                     )}
-                    {isHost && <button onClick={() => setShowInviteModal(true)} className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><UserPlus className='w-3 h-3 md:w-3.5 md:h-3.5' /><span className='hidden xs:inline'>Invite Others</span></button>}
+                    {isHost && <button onClick={() => setShowInviteModal(true)} aria-label='Share meeting link' className='flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-[10px] md:text-xs font-bold transition-all shadow-lg'><Share className='w-3 h-3 md:w-3.5 md:h-3.5' /><span>Share Link</span></button>}
                 </div>
             </div>
 
@@ -1385,8 +1394,8 @@ function VideoMeet() {
                         >
                             <div className='p-6 border-b border-white/5 flex justify-between items-center bg-white/5'>
                                 <div className='flex items-center gap-3'>
-                                    <UserPlus className='w-5 h-5 text-blue-500' />
-                                    <h3 className='text-lg font-bold'>Invite Others</h3>
+                                    <Share className='w-5 h-5 text-blue-500' />
+                                    <h3 className='text-lg font-bold'>Share Link</h3>
                                 </div>
                                 <button onClick={() => setShowInviteModal(false)} className='p-2 hover:bg-white/5 rounded-full transition-colors'>
                                     <X className='w-5 h-5 text-gray-400' />
