@@ -192,11 +192,12 @@ function VideoMeet() {
     useEffect(() => { isJoiningRef.current = isJoining }, [isJoining])
 
     useEffect(() => {
-        if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
-            try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
-        }
-    }, [fromJoinHere, createdMeetingHere, WAITING_STATUS_KEY])
+    if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
+        try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
+    }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [fromJoinHere, createdMeetingHere, WAITING_STATUS_KEY])
     // Canvas resizing to prevent blurriness
     useEffect(() => {
         if (!showWhiteboard || !canvasRef.current || !canvasContainerRef.current) return;
