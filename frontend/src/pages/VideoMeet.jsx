@@ -145,7 +145,7 @@ function VideoMeet() {
         persistedWaiting === 'none' && fromJoinHere && !createdMeetingHere
     )
 
-    const shouldShowLobby = !createdMeetingHere
+    const shouldShowLobby = !createdMeetingHere && !fromJoinHere
     const [showLobby, setShowLobby] = useState(shouldShowLobby)
     const [permissions, setPermissions] = useState({ mic: true, video: true, chat: true, screenShare: true })
     const permissionsRef = useRef({ mic: true, video: true, chat: true, screenShare: true })
@@ -1318,6 +1318,52 @@ function VideoMeet() {
                 </motion.div>
             </div>
             
+            {/* Waiting Overlay for fromJoin users */}
+            <AnimatePresence>
+                {waitingStatus !== 'none' && (
+                    <motion.div
+                        key="waiting-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className='fixed inset-0 z-[250] flex items-center justify-center p-3 xs:p-4 md:p-6 bg-black/60 backdrop-blur-md font-sans safe-x safe-y'
+                    >
+                        <div className='absolute top-0 left-0 w-full h-full pointer-events-none opacity-20'>
+                            <div className='absolute -top-16 xs:-top-24 -left-16 xs:-left-24 w-48 xs:w-64 md:w-96 h-48 xs:h-64 md:h-96 bg-blue-600 rounded-full blur-[80px] md:blur-[120px]' />
+                            <div className='absolute -bottom-16 xs:-bottom-24 -right-16 xs:-right-24 w-48 xs:w-64 md:w-96 h-48 xs:h-64 md:h-96 bg-indigo-600 rounded-full blur-[80px] md:blur-[120px]' />
+                        </div>
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className='w-full max-w-lg bg-[#111]/90 border border-white/10 rounded-[2rem] xs:rounded-[2.5rem] md:rounded-[3rem] p-5 xs:p-6 sm:p-8 md:p-10 shadow-2xl relative z-10 backdrop-blur-3xl'
+                        >
+                            <div className='flex flex-col items-center text-center space-y-6 md:space-y-8'>
+                                {waitingStatus === 'waiting' ? (
+                                    <div className='w-full flex flex-col items-center gap-4 md:gap-6 bg-blue-600/10 p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] border border-blue-500/20'>
+                                        <div className='w-10 h-10 md:w-14 md:h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin' />
+                                        <div className='space-y-2'>
+                                            <p className='text-blue-400 font-bold text-sm md:text-lg'>Request Sent</p>
+                                            <p className='text-gray-400 font-medium text-xs md:text-sm'>Waiting for the room creator to accept...</p>
+                                        </div>
+                                        <button onClick={handleCancelWaiting} className='text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Cancel Request</button>
+                                    </div>
+                                ) : waitingStatus === 'rejected' ? (
+                                    <div className='w-full flex flex-col items-center gap-4 md:gap-6 bg-red-600/10 p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] border border-red-500/20'>
+                                        <div className='p-3 md:p-4 bg-red-600/20 rounded-full'><X className='w-8 md:w-10 h-8 md:h-10 text-red-500' /></div>
+                                        <div className='space-y-2'>
+                                            <p className='text-red-500 font-bold text-sm md:text-lg'>Request Denied</p>
+                                            <p className='text-gray-400 font-medium text-xs md:text-sm'>Host has denied your request.</p>
+                                        </div>
+                                        <button onClick={clearWaitingAndGoHome} className='text-[10px] xs:text-xs md:text-sm text-gray-400 hover:text-white underline transition-colors'>Return to Home</button>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Admission Popup (Overlays) */}
             {admissionRequests.length > 0 && (
                 <div className='fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[90%] max-w-sm'>
