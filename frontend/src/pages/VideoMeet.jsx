@@ -1365,32 +1365,42 @@ function VideoMeet() {
                 )}
             </AnimatePresence>
 
-            {/* Admission Popup (Overlays) */}
+            {/* Admission Popup (Right Side Overlays) */}
             {admissionRequests.length > 0 && (
-                <div className='fixed bottom-24 left-1/2 -translate-x-1/2 z-[300] w-[90%] max-w-sm'>
+                <div className='fixed top-20 right-3 xs:right-4 md:right-6 z-[300] w-[85%] xs:w-[75%] sm:w-80 md:w-96 max-w-sm space-y-2 safe-top'>
                     <AnimatePresence>
                         {admissionRequests.map(req => (
                             <motion.div 
                                 key={req.id} 
-                                initial={{ y: 50, opacity: 0 }} 
-                                animate={{ y: 0, opacity: 1 }} 
-                                exit={{ y: 50, opacity: 0 }} 
-                                className='bg-[#1a1a1a] border border-white/10 p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 mb-2'
+                                initial={{ x: 120, opacity: 0, scale: 0.9 }} 
+                                animate={{ x: 0, opacity: 1, scale: 1 }} 
+                                exit={{ x: 120, opacity: 0, scale: 0.9 }} 
+                                transition={{ type: "spring", stiffness: 300, damping: 28 }}
+                                className='bg-[#111]/90 backdrop-blur-3xl border border-white/10 pl-3 pr-2 py-2.5 md:pl-4 md:pr-2.5 md:py-3 rounded-2xl md:rounded-3xl shadow-2xl shadow-black/50 flex items-center gap-2 md:gap-3'
                             >
-                                <div className='flex items-center gap-2'>
-                                    <div className='w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-xs font-bold uppercase'>
+                                <div className='flex items-center gap-2.5 md:gap-3 flex-1 min-w-0'>
+                                    <div className='w-9 h-9 md:w-10 md:h-10 shrink-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-xs md:text-sm font-black uppercase text-white shadow-lg shadow-blue-600/20 ring-2 ring-white/5'>
                                         {req.name?.charAt(0)}
                                     </div>
-                                    <h4 className='font-bold text-xs text-white truncate max-w-[100px]'>{req.name}</h4>
+                                    <div className='min-w-0 flex-1'>
+                                        <h4 className='font-bold text-[11px] md:text-sm text-white truncate leading-tight'>{req.name}</h4>
+                                        <p className='text-[9px] md:text-[11px] text-gray-400 font-medium truncate leading-tight'>wants to join</p>
+                                    </div>
                                 </div>
-                                <div className='flex gap-1.5'>
-                                    <button onClick={() => handleAdmissionResponse(req.id, false)} className='p-2 bg-red-600/10 text-red-500 rounded-lg'>
-                                        <X className='w-3.5 h-3.5' />
-                                    </button>
-                                    <button onClick={() => handleAdmissionResponse(req.id, true)} className='p-2 bg-green-600/10 text-green-500 rounded-lg'>
-                                        <Check className='w-3.5 h-3.5' />
-                                    </button>
-                                </div>
+                                <button 
+                                    onClick={() => handleAdmissionResponse(req.id, false)} 
+                                    className='shrink-0 p-2 md:p-2.5 bg-red-600/10 text-red-400 rounded-xl md:rounded-2xl hover:bg-red-600/20 active:scale-90 transition-all border border-red-500/10'
+                                    title='Reject'
+                                >
+                                    <X className='w-3.5 h-3.5 md:w-4 md:h-4' strokeWidth={2.5} />
+                                </button>
+                                <button 
+                                    onClick={() => handleAdmissionResponse(req.id, true)} 
+                                    className='shrink-0 p-1.5 md:p-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-xl md:rounded-2xl hover:from-green-600 hover:to-emerald-700 active:scale-90 transition-all shadow-lg shadow-green-600/30'
+                                    title='Accept'
+                                >
+                                    <Check className='w-3 h-3 md:w-3.5 md:h-3.5' strokeWidth={3} />
+                                </button>
                             </motion.div>
                         ))}
                     </AnimatePresence>
