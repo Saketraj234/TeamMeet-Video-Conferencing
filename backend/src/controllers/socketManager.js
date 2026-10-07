@@ -195,6 +195,13 @@ export const connectToSocket = (server) => {
             }
         })
 
+        socket.on("sync-pending-admissions", (path) => {
+            if (!path) return
+            const isAllowed = hosts[path] === socket.id || connections[path]?.includes(socket.id)
+            if (!isAllowed) return
+            broadcastPendingAdmissionSnapshot(path, socket.id)
+        })
+
         function completeJoin(socket, path, name, opts = {}) {
             if (connections[path] === undefined) {
                 connections[path] = []

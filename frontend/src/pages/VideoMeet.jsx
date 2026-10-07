@@ -110,6 +110,7 @@ function VideoMeet() {
     const url = window.location.href.split("/").pop()
     const { userData } = useContext(AuthContext)
     const WAITING_STATUS_KEY = `teammeet_waiting_${url}`
+    const CREATOR_STATUS_KEY = `teammeet_creator_${url}`
 
     const getPersistedWaitingStatus = () => {
         try {
@@ -120,7 +121,16 @@ function VideoMeet() {
         }
     }
 
+    const getPersistedCreator = () => {
+        try { return localStorage.getItem(CREATOR_STATUS_KEY) === '1' } catch { return false }
+    }
+    const setPersistedCreator = (v) => {
+        try { v ? localStorage.setItem(CREATOR_STATUS_KEY, '1') : localStorage.removeItem(CREATOR_STATUS_KEY) } catch {}
+    }
+    if (location.state?.fromCreate === true) setPersistedCreator(true)
+
     const persistedWaiting = getPersistedWaitingStatus()
+    const persistedCreator = getPersistedCreator()
 
     const [micOn, setMicOn] = useState(true)
     const micOnRef = useRef(true)
@@ -132,7 +142,7 @@ function VideoMeet() {
     const [handsRaised, setHandsRaised] = useState({})
     const [isRecording, setIsRecording] = useState(false)
     const [isHost, setIsHost] = useState(false)
-    const createdMeetingHere = location.state?.fromCreate === true
+    const createdMeetingHere = (location.state?.fromCreate === true) || persistedCreator
     const fromJoinHere = location.state?.fromJoin === true
     const isHostRef = useRef(false)
 
@@ -362,12 +372,20 @@ function VideoMeet() {
             }
 
             socketRef.current = io(server, {
-                transports: ["websocket"],
-                reconnectionAttempts: 5,
-                timeout: 10000,
+                transports: ["polling", "websocket"],
+                reconnection: true,
+                reconnectionAttempts: 15,
+                reconnectionDelay: 800,
+                reconnectionDelayMax: 6000,
+                timeout: 15000,
                 auth: { token },
                 autoConnect: false
             })
+
+            const emitJoinCall = () => {
+                const isCreator = createdMeetingHere || (location.state?.fromCreate === true) || persistedCreator
+                socketRef.current.emit("join-call", url, userData.name, { isCreator: !!isCreator })
+            }
 
             socketRef.current.on("connect", () => {
                 setSocketConnected(true)
@@ -378,10 +396,34 @@ function VideoMeet() {
                 }
                 console.log("Socket connected:", socketRef.current.id)
                 const restoredWaiting = getPersistedWaitingStatus()
-                if (isJoiningRef.current || location.state?.fromCreate || restoredWaiting === 'waiting') {
-                    socketRef.current.emit("join-call", url, userData.name, { isCreator: createdMeetingHere || location.state?.fromCreate })
+                const persistedCreatorNow = getPersistedCreator()
+                const shouldAutoJoin =
+                    isJoiningRef.current ||
+                    (location.state?.fromCreate === true) ||
+                    createdMeetingHere ||
+                    persistedCreatorNow ||
+                    restoredWaiting === 'waiting' ||
+                    !shouldShowLobby
+
+                if (shouldAutoJoin) {
+                    emitJoinCall()
                     isJoiningRef.current = false
                 }
+
+                const trySyncPending = (delay = 0) => {
+                    setTimeout(() => {
+                        if (socketRef.current?.connected) {
+                            socketRef.current.emit("sync-pending-admissions", url)
+                        }
+                    }, delay)
+                }
+                trySyncPending(100)
+                trySyncPending(1500)
+            })
+
+            socketRef.current.on("connect_error", (err) => {
+                console.warn("Socket connect_error:", err?.message || err)
+                setSocketConnected(false)
             })
 
             socketRef.current.on("reconnect_attempt", (attempt) => {
