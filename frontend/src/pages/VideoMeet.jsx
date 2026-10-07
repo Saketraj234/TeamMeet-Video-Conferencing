@@ -8,7 +8,7 @@ import {
     Mic, MicOff, Video, VideoOff, PhoneOff, Share, MessageSquare, 
     Users, Hand, Circle, 
     X, Check, Lock, Unlock, Copy, Pencil, Trash2, 
-    Type, Shield, Info, Send
+    Type, Shield, Info, Send, Wifi, WifiOff
 } from 'lucide-react'
 
 import server from '../environment'
@@ -241,43 +241,65 @@ function VideoMeet() {
     useEffect(() => {
         let cancelled = false
         let intervalId
+        const SLOW_THRESHOLD = 6000
+        const HARD_TIMEOUT = 10000
 
         const checkHealth = async () => {
             const start = Date.now()
+            let ok = false
+            let reached = false
+            let latency = null
+            const controller = new AbortController()
+            const hardTimer = setTimeout(() => controller.abort(), HARD_TIMEOUT)
+
+            const doFetch = async (path, mode = "cors") => {
+                try {
+                    const res = await fetch(`${server}${path}`, {
+                        method: "GET",
+                        mode,
+                        signal: controller.signal,
+                        cache: "no-store",
+                        credentials: mode === "no-cors" ? "omit" : "same-origin"
+                    })
+                    return { ok: res.ok || mode === "no-cors", status: res.status }
+                } catch (err) {
+                    if (err?.name === "AbortError") throw err
+                    return null
+                }
+            }
+
             try {
-                const ctrl = new AbortController()
-                const timeout = setTimeout(() => ctrl.abort(), 6000)
-                const res = await fetch(`${server}/health`, {
-                    method: "GET",
-                    signal: ctrl.signal,
-                    cache: "no-store"
-                })
-                clearTimeout(timeout)
-                const ok = res.ok
-                if (!cancelled) {
-                    const wasHealthy = backendHealthyRef.current
-                    setBackendHealthy(ok)
-                    setHealthLatency(Date.now() - start)
-                    if (wasHealthy === false && ok === true) {
-                        addNotification("Backend is back online.", { dedupKey: "back-online", ttl: 4000 })
-                    } else if (wasHealthy === true && ok === false) {
-                        addNotification("Backend is unhealthy.", { dedupKey: "unhealthy", ttl: 6000 })
-                    }
+                let result = await doFetch("/health", "cors")
+                if (!result) result = await doFetch("/", "cors")
+                if (!result) result = await doFetch("/health", "no-cors")
+
+                clearTimeout(hardTimer)
+                reached = !!result
+                ok = reached && result.ok
+                latency = Date.now() - start
+            } catch (err) {
+                clearTimeout(hardTimer)
+                reached = false
+                ok = false
+                if (err?.name === "AbortError") {
+                    latency = SLOW_THRESHOLD + 1
                 }
-            } catch (e) {
-                if (!cancelled) {
-                    const wasHealthy = backendHealthyRef.current
-                    setBackendHealthy(false)
-                    setHealthLatency(null)
-                    if (wasHealthy === true || wasHealthy === null) {
-                        addNotification("Cannot reach backend server.", { dedupKey: "cannot-reach", ttl: 6000 })
-                    }
-                }
+            }
+
+            if (cancelled) return
+            const wasHealthy = backendHealthyRef.current
+            setBackendHealthy(reached ? ok : false)
+            setHealthLatency(latency)
+
+            if (wasHealthy === false && ok === true) {
+                addNotification("Backend is back online.", { dedupKey: "back-online", ttl: 4000 })
+            } else if (wasHealthy === true && ok === false) {
+                addNotification("Backend connection lost.", { dedupKey: "unhealthy", ttl: 6000 })
             }
         }
 
         checkHealth()
-        intervalId = setInterval(checkHealth, 20000)
+        intervalId = setInterval(checkHealth, 25000)
         return () => {
             cancelled = true
             if (intervalId) clearInterval(intervalId)
@@ -1237,11 +1259,37 @@ function VideoMeet() {
 
             {/* Header */}
             <div className='p-2 md:p-4 flex justify-between items-center bg-[#1a1a1a]/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-[150] shrink-0'>
-                <div className='flex items-center gap-2 md:gap-4 min-w-0'>
+                <div className='flex items-center gap-2 md:gap-3 min-w-0 flex-wrap'>
                     <button onClick={() => setShowParticipantsModal(true)} className='flex items-center gap-2 bg-black/40 px-2 md:px-3 py-1.5 rounded-full border border-white/5 hover:bg-blue-600/20 hover:border-blue-500/30 transition-all'>
                         <Users className='w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500' />
                         <span className='text-xs font-bold text-gray-300'>{peers.length + 1}</span>
                     </button>
+                    <div className={`group relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 rounded-full border transition-all ${
+                        socketConnected
+                            ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/15'
+                            : 'bg-red-500/10 border-red-500/20 hover:bg-red-500/15 animate-pulse'
+                    }`}>
+                        {socketConnected ? (
+                            <Wifi className='w-3 h-3 md:w-3.5 md:h-3.5 text-green-400' strokeWidth={2.5} />
+                        ) : (
+                            <WifiOff className='w-3 h-3 md:w-3.5 md:h-3.5 text-red-400' strokeWidth={2.5} />
+                        )}
+                        <span className={`hidden xs:inline text-[10px] md:text-xs font-bold uppercase tracking-wider ${
+                            socketConnected ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                            {socketConnected ? 'Connected' : 'Connecting'}
+                        </span>
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                            <div className="bg-[#111] border border-white/10 text-[10px] md:text-xs rounded-xl px-3 py-2 shadow-2xl whitespace-nowrap backdrop-blur-xl">
+                                <div className="flex items-center gap-2 text-gray-300">
+                                    <span className="text-gray-500">Socket:</span>
+                                    <span className={socketConnected ? 'text-green-400' : 'text-red-400'}>
+                                        {socketConnected ? 'Live (admission requests work)' : 'Disconnected (requests will not arrive)'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div className={`group relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 rounded-full border transition-all ${
                         backendHealthy === null
                             ? 'bg-amber-500/10 border-amber-500/20'
@@ -1265,12 +1313,12 @@ function VideoMeet() {
                                 : backendHealthy ? 'text-green-400'
                                 : 'text-red-400'
                         }`}>
-                            {backendHealthy === null ? 'Checking' : backendHealthy ? 'Online' : 'Offline'}
+                            {backendHealthy === null ? 'Checking' : backendHealthy ? 'Server OK' : 'Server Offline'}
                         </span>
                         <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
                             <div className="bg-[#111] border border-white/10 text-[10px] md:text-xs rounded-xl px-3 py-2 shadow-2xl whitespace-nowrap backdrop-blur-xl">
                                 <div className="flex items-center gap-2 text-gray-300">
-                                    <span className="text-gray-500">Backend:</span>
+                                    <span className="text-gray-500">Backend API:</span>
                                     <span className={backendHealthy ? 'text-green-400' : backendHealthy === false ? 'text-red-400' : 'text-amber-400'}>
                                         {backendHealthy === null ? 'Checking...' : backendHealthy ? 'Healthy' : 'Unreachable'}
                                     </span>
@@ -1283,6 +1331,12 @@ function VideoMeet() {
                                         }`}>
                                             {healthLatency} ms
                                         </span>
+                                    </div>
+                                )}
+                                {backendHealthy === false && (
+                                    <div className="flex items-center gap-2 text-gray-300 mt-1">
+                                        <span className="text-gray-500">Tip:</span>
+                                        <span className="text-gray-400">Deployed backend not reachable (CORS/URL). Admission still works if socket is Connected.</span>
                                     </div>
                                 )}
                             </div>

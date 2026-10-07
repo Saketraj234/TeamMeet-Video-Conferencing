@@ -73,6 +73,17 @@ app.get("/", (req, res) => {
     res.status(200).json({ status: "ok", message: "TeamMeet Backend is running securely." });
 });
 
+app.get("/health", (req, res) => {
+    const state = {
+        status: "ok",
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        mongo: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+    }
+    const code = state.mongo === "connected" ? 200 : 503
+    res.status(code).json(state)
+});
+
 const start = async () => {
     const connectionDb = await mongoose.connect(process.env.MONGO_URI)
 
