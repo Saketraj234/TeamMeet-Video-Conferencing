@@ -196,6 +196,49 @@ function VideoMeet() {
     useEffect(() => { backendHealthyRef.current = backendHealthy }, [backendHealthy])
 
     useEffect(() => {
+    if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
+        try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [fromJoinHere, createdMeetingHere, WAITING_STATUS_KEY])
+    // Canvas resizing to prevent blurriness
+    useEffect(() => {
+        if (!showWhiteboard || !canvasRef.current || !canvasContainerRef.current) return;
+
+        const resizeCanvas = () => {
+            const canvas = canvasRef.current;
+            const container = canvasContainerRef.current;
+            if (!canvas || !container) return;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        };
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        return () => window.removeEventListener('resize', resizeCanvas);
+    }, [showWhiteboard]);
+
+    const addNotification = useCallback((text, options = {}) => {
+        const { dedupKey, ttl = 5000 } = options
+        const now = Date.now()
+        if (dedupKey) {
+            const last = lastNotifRef.current[dedupKey] || 0
+            if (now - last < 10000) return
+            lastNotifRef.current[dedupKey] = now
+        }
+        const id = now + Math.random()
+        setNotifications(prev => [...prev, { id, text }])
+        if (ttl > 0) {
+            setTimeout(() => {
+                setNotifications(prev => prev.filter(n => n.id !== id))
+            }, ttl)
+        }
+        return id
+    }, [])
+
+    useEffect(() => {
         let cancelled = false
         let intervalId
 
@@ -239,50 +282,8 @@ function VideoMeet() {
             cancelled = true
             if (intervalId) clearInterval(intervalId)
         }
-    }, [addNotification, server])
-
-    useEffect(() => {
-    if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
-        try { localStorage.setItem(WAITING_STATUS_KEY, 'waiting') } catch {}
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [fromJoinHere, createdMeetingHere, WAITING_STATUS_KEY])
-    // Canvas resizing to prevent blurriness
-    useEffect(() => {
-        if (!showWhiteboard || !canvasRef.current || !canvasContainerRef.current) return;
-
-        const resizeCanvas = () => {
-            const canvas = canvasRef.current;
-            const container = canvasContainerRef.current;
-            if (!canvas || !container) return;
-            const rect = container.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-        };
-
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        return () => window.removeEventListener('resize', resizeCanvas);
-    }, [showWhiteboard]);
-
-    const addNotification = useCallback((text, options = {}) => {
-        const { dedupKey, ttl = 5000 } = options
-        const now = Date.now()
-        if (dedupKey) {
-            const last = lastNotifRef.current[dedupKey] || 0
-            if (now - last < 10000) return
-            lastNotifRef.current[dedupKey] = now
-        }
-        const id = now + Math.random()
-        setNotifications(prev => [...prev, { id, text }])
-        if (ttl > 0) {
-            setTimeout(() => {
-                setNotifications(prev => prev.filter(n => n.id !== id))
-            }, ttl)
-        }
-        return id
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [addNotification])
 
     const createPeer = useCallback((userToSignal, callerID, stream) => {
         const peer = new Peer({ initiator: true, trickle: true, stream })
