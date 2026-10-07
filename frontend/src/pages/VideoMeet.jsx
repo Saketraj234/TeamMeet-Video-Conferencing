@@ -156,6 +156,9 @@ function VideoMeet() {
     const [isLocked, setIsLocked] = useState(false)
     const [screenShareOn, setScreenShareOn] = useState(false)
     const [socketConnected, setSocketConnected] = useState(false)
+    const [backendHealthy, setBackendHealthy] = useState(null)
+    const [healthLatency, setHealthLatency] = useState(null)
+    const backendHealthyRef = useRef(null)
     const reconnectingNotifRef = useRef(null)
     const [isJoining, setIsJoining] = useState(initialIsJoining)
     const isJoiningRef = useRef(initialIsJoining)
@@ -190,6 +193,53 @@ function VideoMeet() {
     useEffect(() => { showChatRef.current = showChat }, [showChat])
     useEffect(() => { isHostRef.current = isHost }, [isHost])
     useEffect(() => { isJoiningRef.current = isJoining }, [isJoining])
+    useEffect(() => { backendHealthyRef.current = backendHealthy }, [backendHealthy])
+
+    useEffect(() => {
+        let cancelled = false
+        let intervalId
+
+        const checkHealth = async () => {
+            const start = Date.now()
+            try {
+                const ctrl = new AbortController()
+                const timeout = setTimeout(() => ctrl.abort(), 6000)
+                const res = await fetch(`${server}/health`, {
+                    method: "GET",
+                    signal: ctrl.signal,
+                    cache: "no-store"
+                })
+                clearTimeout(timeout)
+                const ok = res.ok
+                if (!cancelled) {
+                    const wasHealthy = backendHealthyRef.current
+                    setBackendHealthy(ok)
+                    setHealthLatency(Date.now() - start)
+                    if (wasHealthy === false && ok === true) {
+                        addNotification("Backend is back online.", { dedupKey: "back-online", ttl: 4000 })
+                    } else if (wasHealthy === true && ok === false) {
+                        addNotification("Backend is unhealthy.", { dedupKey: "unhealthy", ttl: 6000 })
+                    }
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    const wasHealthy = backendHealthyRef.current
+                    setBackendHealthy(false)
+                    setHealthLatency(null)
+                    if (wasHealthy === true || wasHealthy === null) {
+                        addNotification("Cannot reach backend server.", { dedupKey: "cannot-reach", ttl: 6000 })
+                    }
+                }
+            }
+        }
+
+        checkHealth()
+        intervalId = setInterval(checkHealth, 20000)
+        return () => {
+            cancelled = true
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [addNotification, server])
 
     useEffect(() => {
     if (fromJoinHere && !createdMeetingHere && getPersistedWaitingStatus() === 'none') {
@@ -250,6 +300,31 @@ function VideoMeet() {
         peer.signal(incomingSignal)
         return peer
     }, [])
+
+    useEffect(() => {
+        if (showLobby) return
+        try {
+            const key = `teammeet_pending_${url}`
+            const raw = localStorage.getItem(key)
+            if (!raw) return
+            const list = JSON.parse(raw)
+            if (!Array.isArray(list) || list.length === 0) {
+                localStorage.removeItem(key)
+                return
+            }
+            setAdmissionRequests(prev => {
+                const existing = new Set(prev.map(r => r.id))
+                const merged = [...prev]
+                list.forEach(item => {
+                    if (item && item.id && !existing.has(item.id)) {
+                        existing.add(item.id)
+                        merged.push(item)
+                    }
+                })
+                return merged
+            })
+        } catch {}
+    }, [url, showLobby])
 
     useEffect(() => {
         if (isInitializingRef.current) return
@@ -410,13 +485,26 @@ function VideoMeet() {
             socketRef.current.on("admission-request", (data) => {
                 setAdmissionRequests(prev => {
                     if (prev.find(r => r.id === data.id)) return prev;
-                    return [...prev, data];
+                    const fresh = [...prev, data];
+                    try {
+                        const key = `teammeet_pending_${url}`;
+                        localStorage.setItem(key, JSON.stringify(fresh));
+                    } catch {}
+                    return fresh;
                 })
                 addNotification(`Admission request from ${data.name}`)
             })
 
             socketRef.current.on("admission-cancelled", (id) => {
-                setAdmissionRequests(prev => prev.filter(request => request.id !== id))
+                setAdmissionRequests(prev => {
+                    const next = prev.filter(request => request.id !== id)
+                    try {
+                        const key = `teammeet_pending_${url}`;
+                        if (next.length === 0) localStorage.removeItem(key);
+                        else localStorage.setItem(key, JSON.stringify(next));
+                    } catch {}
+                    return next;
+                })
             })
 
             socketRef.current.on("all-users", (usersList) => {
@@ -870,8 +958,16 @@ function VideoMeet() {
     };
 
     const handleAdmissionResponse = (id, accepted) => {
-        setAdmissionRequests(prev => prev.filter(req => req.id !== id));
-        socketRef.current.emit("admission-response", id, url, accepted);
+        setAdmissionRequests(prev => {
+            const next = prev.filter(req => req.id !== id);
+            try {
+                const key = `teammeet_pending_${url}`;
+                if (next.length === 0) localStorage.removeItem(key);
+                else localStorage.setItem(key, JSON.stringify(next));
+            } catch {}
+            return next;
+        });
+        if (socketRef.current) socketRef.current.emit("admission-response", id, url, accepted);
     };
 
     const removeParticipant = (id) => {
@@ -1145,6 +1241,52 @@ function VideoMeet() {
                         <Users className='w-3.5 h-3.5 md:w-4 md:h-4 text-blue-500' />
                         <span className='text-xs font-bold text-gray-300'>{peers.length + 1}</span>
                     </button>
+                    <div className={`group relative flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 rounded-full border transition-all ${
+                        backendHealthy === null
+                            ? 'bg-amber-500/10 border-amber-500/20'
+                            : backendHealthy
+                                ? 'bg-green-500/10 border-green-500/20 hover:bg-green-500/15'
+                                : 'bg-red-500/10 border-red-500/20 hover:bg-red-500/15 animate-pulse'
+                    }`}>
+                        <span className={`relative flex w-2 h-2 md:w-2.5 md:h-2.5 rounded-full ${
+                            backendHealthy === null
+                                ? 'bg-amber-400'
+                                : backendHealthy
+                                    ? 'bg-green-400'
+                                    : 'bg-red-500'
+                        }`}>
+                            {backendHealthy === true && (
+                                <span className='absolute inset-0 rounded-full bg-green-400 animate-ping opacity-60'></span>
+                            )}
+                        </span>
+                        <span className={`hidden xs:inline text-[10px] md:text-xs font-bold uppercase tracking-wider ${
+                            backendHealthy === null ? 'text-amber-400'
+                                : backendHealthy ? 'text-green-400'
+                                : 'text-red-400'
+                        }`}>
+                            {backendHealthy === null ? 'Checking' : backendHealthy ? 'Online' : 'Offline'}
+                        </span>
+                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                            <div className="bg-[#111] border border-white/10 text-[10px] md:text-xs rounded-xl px-3 py-2 shadow-2xl whitespace-nowrap backdrop-blur-xl">
+                                <div className="flex items-center gap-2 text-gray-300">
+                                    <span className="text-gray-500">Backend:</span>
+                                    <span className={backendHealthy ? 'text-green-400' : backendHealthy === false ? 'text-red-400' : 'text-amber-400'}>
+                                        {backendHealthy === null ? 'Checking...' : backendHealthy ? 'Healthy' : 'Unreachable'}
+                                    </span>
+                                </div>
+                                {healthLatency != null && backendHealthy && (
+                                    <div className="flex items-center gap-2 text-gray-300 mt-1">
+                                        <span className="text-gray-500">Latency:</span>
+                                        <span className={`font-mono font-bold ${
+                                            healthLatency < 200 ? 'text-green-400' : healthLatency < 600 ? 'text-amber-400' : 'text-red-400'
+                                        }`}>
+                                            {healthLatency} ms
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div className='flex items-center gap-1.5 md:gap-2'>
                     {isHost && (

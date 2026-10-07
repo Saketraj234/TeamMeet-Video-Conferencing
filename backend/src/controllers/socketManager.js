@@ -73,6 +73,30 @@ export const connectToSocket = (server) => {
 
         console.log("SOMETHING CONNECTED")
 
+        const notifyRoomAboutPendingAdmissions = (path, extraTargets = []) => {
+            if (!pendingAdmissions[path] || pendingAdmissions[path].size === 0) return
+            const targets = new Set()
+            if (hosts[path]) targets.add(hosts[path])
+            if (connections[path]) connections[path].forEach(id => targets.add(id))
+            extraTargets.forEach(id => targets.add(id))
+            pendingAdmissions[path].forEach(waiterId => {
+                const waiterName = names[waiterId] || "Guest"
+                const payload = { id: waiterId, name: waiterName }
+                targets.forEach(targetId => {
+                    if (targetId === waiterId) return
+                    io.to(targetId).emit("admission-request", payload)
+                })
+            })
+        }
+
+        const broadcastPendingAdmissionSnapshot = (path, targetId) => {
+            if (!pendingAdmissions[path] || pendingAdmissions[path].size === 0) return
+            pendingAdmissions[path].forEach(waiterId => {
+                if (waiterId === targetId) return
+                io.to(targetId).emit("admission-request", { id: waiterId, name: names[waiterId] || "Guest" })
+            })
+        }
+
         socket.on("join-call", (path, name, opts = {}) => {
             if (connections[path] && connections[path].length >= 500) {
                 socket.emit("meeting-full");
@@ -88,22 +112,18 @@ export const connectToSocket = (server) => {
             }
 
             if (isCreator) {
-                // If true creator arrives, always make them host (even if someone else already was)
                 const previousHost = hosts[path];
                 hosts[path] = socket.id;
 
-                // Clean from pending admissions if they were there
                 if (pendingAdmissions[path]) {
                     pendingAdmissions[path].delete(socket.id);
                     if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
                 }
 
-                // If creator was already connected (shouldn't happen but safety), nothing else needed
                 if (!connections[path] || !connections[path].includes(socket.id)) {
                     socket.join(path);
                     completeJoin(socket, path, name, { isCreator: true, previousHost });
                 } else {
-                    // Just re-broadcast host update
                     const usersInRoom = connections[path].map(id => ({
                         id,
                         name: names[id],
@@ -112,30 +132,42 @@ export const connectToSocket = (server) => {
                     }));
                     io.to(path).emit("host-updated", hosts[path], usersInRoom);
                     io.to(path).emit("update-participants", usersInRoom);
+                    broadcastPendingAdmissionSnapshot(path, socket.id)
                 }
                 socket.emit("admission-accepted");
                 return;
             }
 
-            // If meeting has a host and it's not the joiner, they must wait for admission
             if (hosts[path] && hosts[path] !== socket.id) {
                 if (!pendingAdmissions[path]) pendingAdmissions[path] = new Set()
-                if (!pendingAdmissions[path].has(socket.id)) {
+                const wasNotPending = !pendingAdmissions[path].has(socket.id)
+                if (wasNotPending) {
                     pendingAdmissions[path].add(socket.id)
-                    io.to(hosts[path]).emit("admission-request", { id: socket.id, name: names[socket.id] });
+                    notifyRoomAboutPendingAdmissions(path)
                 }
                 socket.emit("waiting-for-admission");
                 return;
             }
 
-            socket.join(path); // Join the socket.io room
+            socket.join(path);
             completeJoin(socket, path, name);
         })
 
         socket.on("admission-response", (id, path, accepted) => {
-            if (hosts[path] !== socket.id || !pendingAdmissions[path]?.has(id)) return;
+            const isHostResponder = hosts[path] === socket.id
+            const isInRoom = connections[path]?.includes(socket.id)
+            if (!isHostResponder && !isInRoom) return
+            if (!pendingAdmissions[path]?.has(id)) return
+
             pendingAdmissions[path].delete(id);
             if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
+
+            if (connections[path]) {
+                connections[path].forEach(memberId => {
+                    io.to(memberId).emit("admission-cancelled", id)
+                })
+            }
+            if (hosts[path]) io.to(hosts[path]).emit("admission-cancelled", id)
 
             if (accepted) {
                 const targetSocket = io.sockets.sockets.get(id);
@@ -154,16 +186,18 @@ export const connectToSocket = (server) => {
             if (pendingAdmissions[path]?.has(socket.id)) {
                 pendingAdmissions[path].delete(socket.id);
                 if (pendingAdmissions[path].size === 0) delete pendingAdmissions[path];
-                if (hosts[path]) {
-                    io.to(hosts[path]).emit("admission-cancelled", socket.id);
+                if (connections[path]) {
+                    connections[path].forEach(memberId => {
+                        io.to(memberId).emit("admission-cancelled", socket.id);
+                    })
                 }
+                if (hosts[path]) io.to(hosts[path]).emit("admission-cancelled", socket.id);
             }
         })
 
         function completeJoin(socket, path, name, opts = {}) {
             if (connections[path] === undefined) {
                 connections[path] = []
-                // Assign host, but if opts.isCreator then socket MUST be host (already set above in join-call)
                 if (!hosts[path]) {
                     hosts[path] = socket.id
                 }
@@ -186,28 +220,23 @@ export const connectToSocket = (server) => {
                 status: userStatus[id]
             }))
             
-            // Send all existing users with their full data to the new joiner
             const otherUsersData = usersInRoom.filter(u => u.id !== socket.id);
             socket.emit("all-users", otherUsersData);
 
-            // Notify everyone in the room about the new joiner
             io.to(path).emit("update-participants", usersInRoom);
             io.to(path).emit("user-joined", socket.id, connections[path], usersInRoom);
 
-            // If the joiner was the true creator and a previous host existed, tell them about change
             if (opts.isCreator && opts.previousHost && opts.previousHost !== socket.id) {
                 io.to(path).emit("host-updated", hosts[path], usersInRoom);
             }
 
-            // If creator just arrived as host, re-emit all pending admission-requests to them
-            if (opts.isCreator && pendingAdmissions[path]) {
+            if (pendingAdmissions[path]) {
                 pendingAdmissions[path].forEach(waiterId => {
-                    const waiterName = names[waiterId] || "Guest";
-                    io.to(hosts[path]).emit("admission-request", { id: waiterId, name: waiterName });
-                });
+                    if (waiterId === socket.id) return
+                    io.to(socket.id).emit("admission-request", { id: waiterId, name: names[waiterId] || "Guest" })
+                })
             }
 
-            // Send existing whiteboard state to new joiner
             if (whiteboardVisible[path]) {
                 io.to(socket.id).emit("whiteboard-toggled", true)
                 if (whiteboardStates[path]) {
@@ -300,8 +329,11 @@ export const connectToSocket = (server) => {
 
         socket.on("disconnecting", () => {
             Object.entries(pendingAdmissions).forEach(([path, requests]) => {
-                if (requests.delete(socket.id) && hosts[path]) {
-                    io.to(hosts[path]).emit("admission-cancelled", socket.id);
+                if (requests.delete(socket.id) && connections[path]) {
+                    connections[path].forEach(memberId => {
+                        io.to(memberId).emit("admission-cancelled", socket.id);
+                    })
+                    if (hosts[path]) io.to(hosts[path]).emit("admission-cancelled", socket.id);
                 }
                 if (requests.size === 0) delete pendingAdmissions[path];
             });
@@ -313,8 +345,8 @@ export const connectToSocket = (server) => {
                     if (index !== -1) {
                         connections[path].splice(index, 1);
                         
-                        // If the person leaving was the host, assign a new host
-                        if (hosts[path] === socket.id) {
+                        const wasHost = hosts[path] === socket.id
+                        if (wasHost) {
                             if (connections[path].length > 0) {
                                 hosts[path] = connections[path][0];
                             } else {
@@ -333,6 +365,14 @@ export const connectToSocket = (server) => {
                         
                         if (connections[path].length > 0) {
                             io.to(path).emit('host-updated', hosts[path], usersInRoom);
+                            if (wasHost && pendingAdmissions[path]) {
+                                pendingAdmissions[path].forEach(waiterId => {
+                                    io.to(hosts[path]).emit("admission-request", {
+                                        id: waiterId,
+                                        name: names[waiterId] || "Guest"
+                                    })
+                                })
+                            }
                         }
 
                         if (connections[path].length === 0) {
